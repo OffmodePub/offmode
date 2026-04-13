@@ -1,0 +1,261 @@
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Dimensions, Animated,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '../utils/useColors';
+import T from '../components/ThemedText';
+
+const F = 'Kkukkukk';
+const { width } = Dimensions.get('window');
+
+const ITEM_H  = 56;
+const VISIBLE = 5;
+const PICKER_H = ITEM_H * VISIBLE;
+
+const HOURS   = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+
+const PRESETS = [
+  { label: '이른 아침', time: { h: 6,  m: 0 } },
+  { label: '아침',     time: { h: 8,  m: 0 } },
+  { label: '점심',     time: { h: 12, m: 0 } },
+  { label: '저녁',     time: { h: 18, m: 0 } },
+  { label: '밤',       time: { h: 21, m: 0 } },
+  { label: '자정 전',  time: { h: 23, m: 0 } },
+];
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function ampmLabel(h) {
+  if (h < 6)  return '새벽';
+  if (h < 12) return '오전';
+  if (h < 18) return '오후';
+  return '밤';
+}
+
+function WheelPicker({ items, selectedIndex, onChange }) {
+  const C = useColors();
+  const wheel = useMemo(() => makeWheelStyles(C), [C]);
+  const scrollRef   = useRef(null);
+  const isScrolling = useRef(false);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: true });
+  }, [selectedIndex]);
+
+  const handleScrollEnd = useCallback((e) => {
+    const y = e.nativeEvent.contentOffset.y;
+    // 정확한 인덱스 계산
+    const idx = Math.min(Math.max(Math.round(y / ITEM_H), 0), items.length - 1);
+    
+    if (idx !== selectedIndex) {
+      onChange(idx);
+    }
+  }, [items.length, selectedIndex, onChange]);
+
+  const scrollToIndex = useCallback((idx, animated = true) => {
+    scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated });
+  }, []);
+
+  const onMomentumEnd = useCallback((e) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
+    const clamped = Math.max(0, Math.min(idx, items.length - 1));
+    onChange(clamped);
+    scrollToIndex(clamped);
+  }, [items, onChange, scrollToIndex]);
+
+  const onScrollEnd = useCallback((e) => {
+    if (!isScrolling.current) {
+      const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
+      onChange(Math.max(0, Math.min(idx, items.length - 1)));
+    }
+  }, [items, onChange]);
+
+  const onLayout = useCallback(() => {
+    scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
+  }, [selectedIndex]);
+
+  return (
+    <View style={wheel.wrap}>
+      <View style={wheel.highlight} pointerEvents="none" />
+      <LinearGradient colors={[C.surface, 'transparent']} style={[wheel.fade, { top: 0 }]}    pointerEvents="none" />
+      <LinearGradient colors={['transparent', C.surface]} style={[wheel.fade, { bottom: 0 }]} pointerEvents="none" />
+      <ScrollView
+        ref={scrollRef}
+        style={{ height: PICKER_H, width: '100%' }}
+        contentContainerStyle={{ paddingVertical: ITEM_H * 2 }}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_H} 
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleScrollEnd} 
+        onLayout={onLayout}
+        scrollEventThrottle={16}
+      >
+        {items.map((val, i) => (
+          <TouchableOpacity
+            key={i}
+            style={wheel.item}
+            activeOpacity={0.6}
+            onPress={() => onChange(i)}
+          >
+            <T
+              v="sub"
+              size={i === selectedIndex ? 34 : 28}
+              color={i === selectedIndex ? C.text : C.textSub}
+              style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
+            >
+              {pad(val)}
+            </T>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function makeWheelStyles(C) {
+  return StyleSheet.create({
+    wrap: { flex: 1, position: 'relative', overflow: 'hidden', height: PICKER_H },
+    highlight: {
+      position: 'absolute', top: ITEM_H * 2, left: 0, right: 0, height: ITEM_H,
+      borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
+      backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
+    },
+    fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.8, zIndex: 2 },
+    item: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
+    itemText: { fontFamily: F, fontSize: 28, color: C.textSub, opacity: 0.4 },
+    itemTextSelected: { color: C.text, opacity: 1, fontSize: 34 },
+  });
+}
+
+export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour: 8, minute: 0 } }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
+  const [hourIdx,   setHourIdx]   = useState(initialTime.hour);
+  const [minuteIdx, setMinuteIdx] = useState(initialTime.minute);
+  const h = HOURS[hourIdx];
+  const m = MINUTES[minuteIdx];
+  
+  const handleSave = () => {
+    onSave && onSave({ hour: h, minute: m });
+    onBack && onBack();
+  };
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+        <T v="section" size={17}>미션 수신 시간</T>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <T v="sub" style={{ lineHeight: 20, textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
+          매일 이 시간에 오늘의 미션 알림을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 설정하세요.
+        </T>
+
+        <View style={styles.previewWrap}>
+          <T v="green" style={{ opacity: 0.8, marginBottom: 4, letterSpacing: 1 }}>{ampmLabel(h)}</T>
+          <T v="stat" size={56} style={{ letterSpacing: 2, lineHeight: 66 }}>{pad(h)} : {pad(m)}</T>
+          <T v="label" style={{ marginTop: 6 }}>매일 이 시간에 미션 도착</T>
+        </View>
+
+        <View style={styles.pickerRow}>
+          <View style={styles.pickerBlock}>
+            <T v="sub" style={{ marginBottom: 8 }}>시</T>
+            <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
+          </View>
+          <T v="sub" size={36} style={{ marginTop: 16, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
+          <View style={styles.pickerBlock}>
+            <T v="sub" style={{ marginBottom: 8 }}>분</T>
+            <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
+          </View>
+        </View>
+
+        <T v="body" color={C.textSub} style={{ marginBottom: 12 }}>빠른 선택</T>
+        <View style={styles.presetGrid}>
+          {PRESETS.map((p) => {
+            const active = p.time.h === h && p.time.m === m;
+            return (
+              <TouchableOpacity
+                key={p.label}
+                style={[styles.presetChip, active && styles.presetChipActive]}
+                onPress={() => { setHourIdx(p.time.h); setMinuteIdx(p.time.m); }}
+                activeOpacity={0.7}
+              >
+                <T v="body" size={16} color={active ? C.green : C.textSub} style={{ marginBottom: 2 }}>
+                  {pad(p.time.h)}:{pad(p.time.m)}
+                </T>
+                <T v="caption" color={active ? C.green : C.textSub} style={{ opacity: active ? 1 : 0.7 }}>
+                  {p.label}
+                </T>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity onPress={handleSave} activeOpacity={0.85} style={{ marginTop: 8 }}>
+          <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveBtn}>
+            <T v="btn">{pad(h)}:{pad(m)} 으로 설정하기</T>
+          </LinearGradient>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+}
+
+function makeStyles(C) {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    backIcon:    { fontSize: 20, color: C.text },
+    headerTitle: { fontFamily: F, fontSize: 17, color: C.text },
+    content:     { paddingHorizontal: 20, paddingBottom: 40 },
+    desc: {
+      fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 20,
+      textAlign: 'center', marginTop: 8, marginBottom: 24,
+    },
+    previewWrap: {
+      alignItems: 'center', backgroundColor: C.surface,
+      borderRadius: 20, borderWidth: 1, borderColor: C.greenBorder,
+      paddingVertical: 24, marginBottom: 28,
+    },
+    previewAmpm: { fontFamily: F, fontSize: 14, color: C.green, opacity: 0.8, marginBottom: 4, letterSpacing: 1 },
+    previewTime: { fontFamily: F, fontSize: 56, color: C.text, letterSpacing: 2, lineHeight: 66 },
+    previewSub:  { fontFamily: F, fontSize: 12, color: C.textSub, marginTop: 6 },
+    pickerRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border,
+      paddingHorizontal: 24, paddingVertical: 12, marginBottom: 28,
+    },
+    pickerBlock: { flex: 1, alignItems: 'center' },
+    pickerLabel: { fontFamily: F, fontSize: 13, color: C.textSub, marginBottom: 8 },
+    colon:       { fontFamily: F, fontSize: 36, color: C.textSub, marginTop: 16, paddingHorizontal: 8, opacity: 0.5 },
+    presetTitle: { fontFamily: F, fontSize: 14, color: C.textSub, marginBottom: 12 },
+    presetGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 28 },
+    presetChip: {
+      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+      borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+      alignItems: 'center', minWidth: (width - 40 - 16) / 3,
+    },
+    presetChipActive:  { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
+    presetTime:        { fontFamily: F, fontSize: 16, color: C.textSub, marginBottom: 2 },
+    presetTimeActive:  { color: C.green },
+    presetLabel:       { fontFamily: F, fontSize: 11, color: C.textSub, opacity: 0.7 },
+    presetLabelActive: { color: C.green, opacity: 1 },
+    saveBtn:     { borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
+    saveBtnText: { fontFamily: F, fontSize: 16, color: '#000' },
+  });
+}

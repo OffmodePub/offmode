@@ -1,0 +1,444 @@
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, Animated, Easing, Image,
+} from 'react-native';
+import { BASE_URL } from '../utils/api';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '../utils/useColors';
+import { api } from '../utils/api';
+import T from '../components/ThemedText';
+
+const F = 'Kkukkukk';
+
+const TICKER_MESSAGES = [
+  '📸  사진으로 인증하기', '✨  하루 하나의 미션', '🔥  오늘도 갓생 도전',
+  '⚡️  미션 완료하고 배지 획득', '🌙  스마트폰 내려놓는 시간',
+  '👑  새벽의 지배자가 되어라', '📍  오프라인에서 진짜 삶을', '🎯  지금 바로 시작하기',
+];
+const TICKER_TEXT = TICKER_MESSAGES.join('          ') + '          ';
+
+function MarqueeBanner() {
+  const C = useColors();
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [textWidth, setTextWidth] = useState(0);
+
+  useEffect(() => {
+    if (textWidth > 0) {
+      translateX.setValue(0);
+      Animated.loop(
+        Animated.timing(translateX, {
+          toValue: -(textWidth + 1), duration: (textWidth + 1) * 30,
+          easing: Easing.linear, useNativeDriver: true, isInteraction: false,
+        })
+      ).start();
+    }
+  }, [textWidth, translateX]);
+
+  return (
+    <View>
+      {/* horizontal ScrollView 안에서는 Text가 줄바꿈 없이 자연 너비로 측정됨 */}
+      <ScrollView
+        horizontal scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        style={{ position: 'absolute', opacity: 0 }}
+        pointerEvents="none"
+      >
+        <T
+          v="body"
+          style={{ paddingVertical: 8, letterSpacing: 0.4 }}
+          onLayout={(e) => { if (e.nativeEvent.layout.width > 0) setTextWidth(e.nativeEvent.layout.width); }}
+        >
+          {TICKER_TEXT}
+        </T>
+      </ScrollView>
+
+      <View style={{ backgroundColor: C.isDark ? '#0f0f1c' : '#f0f8f4', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder, overflow: 'hidden', height: 40, justifyContent: 'center' }}>
+        <Animated.View style={{ flexDirection: 'row', transform: [{ translateX }] }}>
+          {textWidth > 0 && <T v="body" style={{ paddingVertical: 8,  width: textWidth + 1, letterSpacing: 0.4, opacity: 0.85 }}>{TICKER_TEXT}</T>}
+          {textWidth > 0 && <T v="body" style={{ paddingVertical: 8, width: textWidth + 1, letterSpacing: 0.4, opacity: 0.85 }}>{TICKER_TEXT}</T>}
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+function StatBar({ label, color, fill, styles }) {
+  return (
+    <View style={styles.statRow}>
+      <T v="sub" style={{ width: 62 }}>{label}</T>
+      <View style={styles.statTrack}>
+        <View style={[styles.statFill, { width: `${fill}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
+function MissionIcon({ icon, styles, C }) {
+  if (icon) {
+    return (
+      <View style={styles.iconBox}>
+        <Text style={{ fontSize: 38 }}>{icon}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.iconBox}>
+      <View style={styles.iconWindow}>
+        <View style={styles.iconWindowBar} />
+        <View style={styles.iconPanes}>
+          <View style={styles.iconPane}>
+            <View style={styles.cloud}>
+              <View style={styles.cloudBody} />
+              <View style={[styles.cloudPuff, { left: -6, width: 12, height: 12 }]} />
+              <View style={[styles.cloudPuff, { right: -6, width: 12, height: 12 }]} />
+            </View>
+          </View>
+          <View style={[styles.iconPane, { borderLeftWidth: 1, borderLeftColor: C.greenBorder }]} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const STEPS = [
+  { icon: '🕐', title: '시간 설정',   desc: '미션을 받고 싶은 시간을 정해요' },
+  { icon: '📋', title: '미션 도착',   desc: '매일 딱 하나의 미션이 팡!' },
+  { icon: '📸', title: '인증 & 공유', desc: '완료하고 인증 카드로 자랑하기' },
+];
+
+function useCountdown(missionTime) {
+  const calc = () => {
+    const now = new Date();
+    const target = new Date();
+    target.setHours(missionTime.hour, missionTime.minute, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    const diff = Math.floor((target - now) / 1000);
+    return { h: Math.floor(diff / 3600), m: Math.floor((diff % 3600) / 60), s: diff % 60 };
+  };
+  const [time, setTime] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(id);
+  }, [missionTime]);
+  return time;
+}
+
+function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, communityStats, missionPool }) {
+  const C = useColors();
+  const { styles, empty } = useMemo(() => makeAllStyles(C), [C]);
+  const pad = (n) => String(n).padStart(2, '0');
+  const { h, m, s } = useCountdown(missionTime || { hour: 8, minute: 0 });
+  const timeLabel = missionTime ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}` : '08:00';
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={empty.waitCard}>
+        <Text style={empty.waitEmoji}>⏳</Text>
+        <T v="title" size={22} style={{ marginBottom: 6 }}>미션 대기 중</T>
+        <T v="sub" style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>매일 설정한 시간에{'\n'}오늘의 미션이 도착해요</T>
+        <View style={empty.countdownRow}>
+          {[{ v: h, u: '시간' }, { v: m, u: '분' }, { v: s, u: '초' }].map(({ v, u }, i) => (
+            <React.Fragment key={u}>
+              {i > 0 && <T v="sub" size={24} style={{ opacity: 0.4, marginBottom: 14 }}>:</T>}
+              <View style={empty.countdownBlock}>
+                <T v="stat">{pad(v)}</T>
+                <T v="caption" style={{ marginTop: 2 }}>{u}</T>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+        <TouchableOpacity style={empty.timeRow} onPress={onOpenTimeSettings} activeOpacity={0.7}>
+          <T v="sub">🕐  미션 알림 시간</T>
+          <T v="green">{timeLabel}  ›</T>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity onPress={onOpenRoulette} activeOpacity={0.85} style={{ marginHorizontal: 20, marginTop: 14 }}>
+        <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={empty.rollBtn}>
+          <Text style={empty.rollBtnIcon}>🎰</Text>
+          <T v="btn" size={17}>미션 돌리기</T>
+        </LinearGradient>
+      </TouchableOpacity>
+
+      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 14 }}>이렇게 하면 돼요</T>
+      <View style={empty.stepsWrap}>
+        {STEPS.map((step, i) => (
+          <View key={i} style={empty.stepRow}>
+            <View style={empty.stepNumWrap}>
+              <Text style={empty.stepEmoji}>{step.icon}</Text>
+              {i < STEPS.length - 1 && <View style={empty.stepLine} />}
+            </View>
+            <View style={empty.stepContent}>
+              <T v="section" style={{ marginBottom: 4, marginTop: 2 }}>{step.title}</T>
+              <T v="sub" style={{ lineHeight: 19 }}>{step.desc}</T>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 14 }}>지금 이 순간</T>
+      <View style={empty.statsRow}>
+        {[
+          { value: communityStats ? communityStats.activeToday.toLocaleString() : '-', label: '오늘 미션 중' },
+          { value: communityStats ? `${communityStats.verificationRate}%` : '-',       label: '인증 완료율' },
+          { value: communityStats ? `${communityStats.streakDays}일` : '-',            label: '나의 연속 기록' },
+        ].map((st, i) => (
+          <View key={i} style={[empty.statCard, i === 1 && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}>
+            <T v="title" size={20} style={{ marginBottom: 4 }} color={i === 1 ? C.green : undefined}>{st.value}</T>
+            <T v="caption" style={{ textAlign: 'center' }}>{st.label}</T>
+          </View>
+        ))}
+      </View>
+
+      {missionPool.length > 0 && (
+        <View style={empty.hintCard}>
+          <T v="body" style={{ marginBottom: 14 }}>미션은 이런 거예요</T>
+          {missionPool.slice(0, 4).map((m, i) => (
+            <View key={i} style={empty.hintRow}>
+              <View style={empty.hintDot} />
+              <T v="sub">{m.icon} {m.text}</T>
+            </View>
+          ))}
+          <T v="caption" style={{ opacity: 0.5, marginTop: 6 }}>* 매일 랜덤으로 새 미션이 도착해요</T>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenRoulette, onOpenVerify, hasMission = false, currentMission }) {
+  const C = useColors();
+  const { styles } = useMemo(() => makeAllStyles(C), [C]);
+  const pad = (n) => String(n).padStart(2, '0');
+  const timeLabel = missionTime ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}` : '08:00';
+
+  const [displayedText,  setDisplayedText]  = useState('');
+  const [communityStats, setCommunityStats] = useState(null);
+  const [userStats,      setUserStats]      = useState(null);
+  const [badges,         setBadges]         = useState([]);
+  const [missionPool,    setMissionPool]    = useState([]);
+  const fullText = "미션 수행 중...";
+
+  useEffect(() => {
+    api.get('/api/feed/stats').then(setCommunityStats).catch(e => console.warn('커뮤니티 통계 로딩 실패:', e));
+    api.get('/api/users/me/stats').then(setUserStats).catch(e => console.warn('유저 통계 로딩 실패:', e));
+    api.get('/api/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
+    api.get('/api/missions/pool').then(setMissionPool).catch(e => console.warn('미션 풀 로딩 실패:', e));
+  }, []);
+
+  const mainBadge    = badges.find(b => b.earned) ?? null;
+  const earnedBadges = badges.filter(b => b.earned).slice(0, 3);
+
+  useEffect(() => {
+    if (!hasMission) return;
+
+    let index = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(fullText.slice(0, index + 1));
+      index++;
+
+      if (index > fullText.length) {
+        index = 0;
+        setDisplayedText('');
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [hasMission]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <T v="logo">OFFMODE</T>
+          <TouchableOpacity style={styles.timeBtn} onPress={onOpenTimeSettings} activeOpacity={0.7}>
+            <Text style={styles.timeBtnIcon}>🕐</Text>
+            <T v="green" style={{ letterSpacing: 0.5 }}>{timeLabel}</T>
+          </TouchableOpacity>
+        </View>
+        <T v="body" style={{ lineHeight: 20 }}>스마트폰 밖의 진짜 세상으로,{'\n'}미션과 함께하는 나만의 로그아웃</T>
+      </View>
+
+      <MarqueeBanner />
+
+      {hasMission ? (
+        <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.cardWrapper}>
+            <View style={styles.card}>
+              <T v="section" color={C.green} style={{ letterSpacing: 2, marginBottom: 16, opacity: 0.75 }}>오늘의 미션</T>
+              <MissionIcon icon={currentMission?.icon} styles={styles} C={C} />
+              <T v="mission" style={{ marginBottom: 10 }}>{currentMission?.text ?? '창문 열고\n하늘 사진 찍기'}</T>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusClock}>
+                  {currentMission?.status === 'verified' ? '✅' : currentMission?.photoUrl ? '⏳' : '🕐'}
+                </Text>
+                <T v="green16" style={{ opacity: 0.8 }}>
+                  {currentMission?.status === 'verified'
+                    ? '인증 완료!'
+                    : currentMission?.photoUrl
+                      ? '인증 대기 중...'
+                      : displayedText}
+                </T>
+              </View>
+              <View style={styles.statsBlock}>
+                <StatBar label="Energy"    color={C.green}  fill={userStats?.energyFill    ?? 0} styles={styles} />
+                <StatBar label="Intellect" color={C.purple} fill={userStats?.intellectFill ?? 0} styles={styles} />
+                <StatBar label="Vitality"  color={C.blue}   fill={userStats?.vitalityFill  ?? 0} styles={styles} />
+              </View>
+              {(mainBadge || earnedBadges.length > 0) && (
+                <View style={styles.badgeRow}>
+                  {mainBadge && (
+                    <View style={styles.titleTag}>
+                      <T v="purple" size={14} style={{ letterSpacing: 0.3 }}>{mainBadge.name}</T>
+                    </View>
+                  )}
+                  <View style={styles.badges}>
+                    {earnedBadges.map((b, i) => {
+                      const colors = [
+                        { border: C.purpleBorder, bg: C.purpleFaint },
+                        { border: C.blueBorder,   bg: C.blueFaint   },
+                        { border: C.greenBorder,  bg: C.greenFaint  },
+                      ][i % 3];
+                      return (
+                        <View key={b.key ?? i} style={[styles.badge, { borderColor: colors.border, backgroundColor: colors.bg }]}>
+                          <Text style={styles.badgeEmoji}>🏅</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+              {currentMission?.photoUrl || currentMission?.status === 'verified' ? (
+                <View style={styles.verifiedResult}>
+                  {currentMission.photoUrl ? (
+                    <Image
+                      source={{ uri: `${BASE_URL}${currentMission.photoUrl}` }}
+                      style={styles.verifiedPhoto}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                  <View style={styles.verifiedInfo}>
+                    <View style={styles.verifiedTag}>
+                      {currentMission.status === 'verified'
+                        ? <T v="green" size={13}>✅  인증 완료</T>
+                        : <T v="sub" size={13}>⏳  다른 사람의 인증을 기다리는 중</T>
+                      }
+                    </View>
+                    {currentMission.caption ? (
+                      <T v="sub" style={{ marginTop: 6 }}>{currentMission.caption}</T>
+                    ) : null}
+                    <T v="caption" style={{ marginTop: 6, opacity: 0.55 }}>
+                      {currentMission.status === 'verified'
+                        ? '피드에서 리액션을 확인해봐요 🎉'
+                        : '같은 미션을 받은 사람이 인증해주면 완료돼요'}
+                    </T>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity activeOpacity={0.8} onPress={onOpenVerify}>
+                  <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.verifyBtn}>
+                    <T v="btn" size={17} style={{ letterSpacing: 0.5 }}>인증하기</T>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      ) : (
+        <EmptyMissionState
+          missionTime={missionTime}
+          onOpenTimeSettings={onOpenTimeSettings}
+          onOpenRoulette={onOpenRoulette}
+          communityStats={communityStats}
+          missionPool={missionPool}
+        />
+      )}
+    </View>
+  );
+}
+
+function makeAllStyles(C) {
+  const styles = StyleSheet.create({
+    screen:  { flex: 1, backgroundColor: C.bg },
+    content: { paddingBottom: 130 },
+    header:  { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+    logoText:  { fontFamily: F, fontSize: 34, color: C.green, fontStyle: 'italic', letterSpacing: -0.5 },
+    logoSub:   { fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 20 },
+    timeBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.surface, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    timeBtnIcon: { fontSize: 14 },
+    timeBtnText: { fontFamily: F, fontSize: 14, color: C.green, letterSpacing: 0.5 },
+    cardWrapper: { paddingHorizontal: 20, marginTop: 25 },
+    card:        { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.greenBorder, borderRadius: 20, padding: 20 },
+    cardLabel:   { fontFamily: F, fontSize: 12, color: C.green, letterSpacing: 2, marginBottom: 16, opacity: 0.75 },
+    iconBox:     { alignSelf: 'center', marginBottom: 16, width: 80, height: 80, borderRadius: 18, backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, alignItems: 'center', justifyContent: 'center' },
+    iconWindow:  { width: 46, height: 40, borderWidth: 1.5, borderColor: C.green, borderRadius: 4, overflow: 'hidden' },
+    iconWindowBar: { height: 11, borderBottomWidth: 1.5, borderBottomColor: C.green, backgroundColor: 'transparent' },
+    iconPanes:   { flex: 1, flexDirection: 'row' },
+    iconPane:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    cloud:       { alignItems: 'center' },
+    cloudBody:   { width: 18, height: 8, backgroundColor: C.green, borderRadius: 4, opacity: 0.85 },
+    cloudPuff:   { position: 'absolute', top: -4, backgroundColor: C.green, borderRadius: 6, opacity: 0.85 },
+    missionTitle: { fontFamily: F, textAlign: 'center', fontSize: 26, color: C.text, lineHeight: 36, marginBottom: 10 },
+    statusRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 },
+    statusClock: { fontSize: 15 },
+    statusText:  { fontFamily: F, fontSize: 14, color: C.green, opacity: 0.8 },
+    statsBlock:  { marginBottom: 14 },
+    statRow:     { flexDirection: 'row', alignItems: 'center', marginBottom: 9, gap: 8 },
+    statLabel:   { fontFamily: F, fontSize: 13, color: C.textSub, width: 62 },
+    statTrack:   { flex: 1, height: 6, backgroundColor: C.surface2, borderRadius: 3, overflow: 'hidden' },
+    statFill:    { height: '100%', borderRadius: 3 },
+    badgeRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+    titleTag:    { backgroundColor: C.purpleFaint, borderWidth: 1, borderColor: C.purpleBorder, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
+    titleTagText: { fontFamily: F, fontSize: 12, color: C.purple, letterSpacing: 0.3 },
+    badges:      { flexDirection: 'row', gap: 6 },
+    badge:       { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    badgeEmoji:  { fontSize: 16 },
+    verifyBtn:   { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+    verifyBtnText: { fontFamily: F, color: '#000', fontSize: 17, letterSpacing: 0.5 },
+    verifiedResult: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: C.greenBorder, backgroundColor: C.greenFaint },
+    verifiedPhoto:  { width: '100%', height: 160 },
+    verifiedInfo:   { padding: 14 },
+    verifiedTag:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  });
+
+  const empty = StyleSheet.create({
+    waitCard: { marginHorizontal: 20, marginTop: 16, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 24, alignItems: 'center' },
+    waitEmoji: { fontSize: 40, marginBottom: 10 },
+    waitTitle: { fontFamily: F, fontSize: 22, color: C.text, marginBottom: 6 },
+    waitDesc:  { fontFamily: F, fontSize: 13, color: C.textSub, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+    countdownRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
+    countdownBlock: { alignItems: 'center', backgroundColor: C.surface2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, minWidth: 64, borderWidth: 1, borderColor: C.border },
+    countdownNum:   { fontFamily: F, fontSize: 32, color: C.text, lineHeight: 38 },
+    countdownUnit:  { fontFamily: F, fontSize: 11, color: C.textSub, marginTop: 2 },
+    countdownColon: { fontFamily: F, fontSize: 24, color: C.textSub, opacity: 0.4, marginBottom: 14 },
+    timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+    timeRowText:  { fontFamily: F, fontSize: 13, color: C.textSub },
+    timeRowValue: { fontFamily: F, fontSize: 14, color: C.green },
+    sectionTitle: { fontFamily: F, fontSize: 15, color: C.text, paddingHorizontal: 20, marginTop: 28, marginBottom: 14 },
+    stepsWrap:    { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },
+    stepRow:      { flexDirection: 'row', gap: 14, minHeight: 60 },
+    stepNumWrap:  { alignItems: 'center', width: 36 },
+    stepEmoji:    { fontSize: 24 },
+    stepLine:     { flex: 1, width: 1.5, backgroundColor: C.border, marginTop: 6, marginBottom: -10 },
+    stepContent:  { flex: 1, paddingBottom: 20 },
+    stepTitle:    { fontFamily: F, fontSize: 15, color: C.text, marginBottom: 4, marginTop: 2 },
+    stepDesc:     { fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 19 },
+    statsRow:     { flexDirection: 'row', marginHorizontal: 20, gap: 8 },
+    statCard:     { flex: 1, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, alignItems: 'center' },
+    statValue:    { fontFamily: F, fontSize: 20, color: C.text, marginBottom: 4 },
+    statLabel:    { fontFamily: F, fontSize: 11, color: C.textSub, textAlign: 'center' },
+    hintCard:     { marginHorizontal: 20, marginTop: 16, marginBottom: 8, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },
+    hintTitle:    { fontFamily: F, fontSize: 14, color: C.text, marginBottom: 14 },
+    hintRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    hintDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green, opacity: 0.6 },
+    hintText:     { fontFamily: F, fontSize: 13, color: C.textSub },
+    hintNote:     { fontFamily: F, fontSize: 11, color: C.textSub, opacity: 0.5, marginTop: 6 },
+    rollBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 16, paddingVertical: 17 },
+    rollBtnIcon:  { fontSize: 22 },
+    rollBtnText:  { fontFamily: F, fontSize: 17, color: '#000' },
+  });
+
+  return { styles, empty };
+}
