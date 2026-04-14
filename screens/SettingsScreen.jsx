@@ -1,18 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Modal,
-  TouchableOpacity, Switch, TextInput, Keyboard,
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, Switch,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
 import { useTheme } from '../utils/ThemeContext';
 import T from '../components/ThemedText';
 import * as H from '../utils/haptics';
-import { api } from '../utils/api';
-
-const F = 'Kkukkukk';
-
-const AVATARS = ['🏃','🚴','🧘','🏊','💪','🎯','🔥','⚡','🌙','🦁','🐺','🦊','📚','🎮','🌅','🎸'];
 
 /* ── 토글 스위치 ─────────────────────────────────────── */
 function OffSwitch({ value, onValueChange }) {
@@ -81,114 +75,6 @@ function makeSecStyles(C) {
   });
 }
 
-/* ── 프로필 편집 모달 ────────────────────────────────── */
-function ProfileEditModal({ visible, profile, onSave, onClose }) {
-  const C = useColors();
-  const m = useMemo(() => makeModalStyles(C), [C]);
-  const [name,   setName]   = useState(profile.name);
-  const [avatar, setAvatar] = useState(profile.avatar);
-
-  const handleSave = () => {
-    Keyboard.dismiss();
-    H.success();
-    onSave({ name: name.trim() || '오프모더', avatar });
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={() => { Keyboard.dismiss(); onClose(); }} />
-      <View style={m.sheet}>
-        <View style={m.handle} />
-        <T v="section" style={m.title}>프로필 편집</T>
-
-        <View style={m.previewRow}>
-          <LinearGradient colors={['#22c97a', '#1ab065']} style={m.previewAvatar}>
-            <Text style={m.previewEmoji}>{avatar}</Text>
-          </LinearGradient>
-        </View>
-
-        <T v="label" style={m.sectionLabel}>아바타 선택</T>
-        <View style={m.avatarGrid}>
-          {AVATARS.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              style={[m.avatarCell, avatar === emoji && m.avatarCellActive]}
-              onPress={() => { H.tap(); setAvatar(emoji); }}
-              activeOpacity={0.7}
-            >
-              <Text style={m.avatarEmoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <T v="label" style={m.sectionLabel}>닉네임</T>
-        <View style={m.inputWrap}>
-          <TextInput
-            style={m.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="닉네임 입력"
-            placeholderTextColor={C.textSub}
-            maxLength={12}
-          />
-          <T v="caption" style={{ opacity: 0.4 }}>{name.length}/12</T>
-        </View>
-
-        <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#26d67a', '#1ab065']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={m.saveBtn}
-          >
-            <T v="btn">저장하기</T>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </Modal>
-  );
-}
-
-function makeModalStyles(C) {
-  return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
-    sheet: {
-      backgroundColor: C.surface,
-      borderTopLeftRadius: 24, borderTopRightRadius: 24,
-      borderTopWidth: 1, borderColor: C.greenBorder,
-      paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12,
-    },
-    handle: {
-      alignSelf: 'center', width: 40, height: 4,
-      borderRadius: 2, backgroundColor: C.border, marginBottom: 20,
-    },
-    title:       { textAlign: 'center', marginBottom: 20 },
-    previewRow:  { alignItems: 'center', marginBottom: 20 },
-    previewAvatar: {
-      width: 72, height: 72, borderRadius: 36,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    previewEmoji: { fontSize: 36 },
-    sectionLabel: { marginBottom: 10, opacity: 0.6, letterSpacing: 1 },
-    avatarGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-    avatarCell: {
-      width: 48, height: 48, borderRadius: 12,
-      backgroundColor: C.surface2, borderWidth: 1, borderColor: C.border,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    avatarCellActive: { borderColor: C.green, backgroundColor: C.greenFaint },
-    avatarEmoji: { fontSize: 24 },
-    inputWrap: {
-      backgroundColor: C.surface2, borderRadius: 12,
-      borderWidth: 1, borderColor: C.border,
-      paddingHorizontal: 14, paddingVertical: 10,
-      flexDirection: 'row', alignItems: 'center', marginBottom: 24,
-    },
-    input:   { flex: 1, fontFamily: F, fontSize: 15, color: C.text },
-    saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-  });
-}
-
 /* ── 버전 푸터 ───────────────────────────────────────── */
 function VersionFooter() {
   return (
@@ -210,8 +96,6 @@ export default function SettingsScreen({
   missionTime,
   autoRoulette,
   onSetAutoRoulette,
-  profile,
-  onSaveProfile,
 }) {
   const C = useColors();
   const { scheme, setScheme } = useTheme();
@@ -222,18 +106,8 @@ export default function SettingsScreen({
     ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}`
     : '08:00';
 
-  const [haptic,      setHaptic]      = useState(H.isEnabled());
-  const [sound,       setSound]       = useState(false);
-  const [editVisible, setEditVisible] = useState(false);
-  const [userInfo,    setUserInfo]    = useState(null);
-  const [mainBadge,   setMainBadge]   = useState(null);
-
-  useEffect(() => {
-    api.get('/api/users/me').then(setUserInfo).catch(() => {});
-    api.get('/api/badges/me')
-      .then(badges => setMainBadge(badges.find(b => b.earned) ?? null))
-      .catch(() => {});
-  }, []);
+  const [haptic, setHaptic] = useState(H.isEnabled());
+  const [sound,  setSound]  = useState(false);
 
   const handleHapticToggle = (v) => {
     H.setEnabled(v);
@@ -257,32 +131,6 @@ export default function SettingsScreen({
       </View>
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-
-        {/* 프로필 카드 */}
-        <LinearGradient
-          colors={C.isDark
-            ? ['rgba(34,201,122,0.08)', 'rgba(34,201,122,0.02)']
-            : ['rgba(34,201,122,0.12)', 'rgba(34,201,122,0.04)']}
-          style={s.profileCard}
-        >
-          <LinearGradient colors={['#22c97a', '#1ab065']} style={s.profileAvatar}>
-            <Text style={s.profileEmoji}>{profile?.avatar ?? '🏃'}</Text>
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <T v="title" size={17}>{profile?.name ?? '오프모더'}</T>
-            <T v="sub" size={12} style={{ marginTop: 2 }}>
-              {userInfo ? `Lv.${userInfo.level ?? 1}` : ''}
-              {mainBadge ? `  ${mainBadge.name}` : ''}
-            </T>
-          </View>
-          <TouchableOpacity
-            style={s.editBadge}
-            onPress={() => { H.tap(); setEditVisible(true); }}
-            activeOpacity={0.7}
-          >
-            <T v="green" size={11}>편집</T>
-          </TouchableOpacity>
-        </LinearGradient>
 
         {/* 미션 */}
         <Section title="미션">
@@ -392,16 +240,6 @@ export default function SettingsScreen({
 
         <VersionFooter />
       </ScrollView>
-
-      {/* 프로필 편집 모달 */}
-      {profile && (
-        <ProfileEditModal
-          visible={editVisible}
-          profile={profile}
-          onSave={onSaveProfile}
-          onClose={() => setEditVisible(false)}
-        />
-      )}
     </View>
   );
 }
@@ -421,20 +259,5 @@ function makeStyles(C) {
     },
     backIcon: { fontSize: 20, color: C.text },
     content:  { paddingBottom: 40 },
-    profileCard: {
-      marginHorizontal: 20, marginBottom: 24,
-      borderRadius: 18, borderWidth: 1, borderColor: C.greenBorder,
-      flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16,
-    },
-    profileAvatar: {
-      width: 52, height: 52, borderRadius: 26,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    profileEmoji: { fontSize: 26 },
-    editBadge: {
-      backgroundColor: C.greenFaint, borderRadius: 8,
-      borderWidth: 1, borderColor: C.greenBorder,
-      paddingHorizontal: 10, paddingVertical: 5,
-    },
   });
 }

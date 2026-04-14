@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Dimensions, ActivityIndicator, Image,
-  TextInput, Modal, KeyboardAvoidingView, Platform,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -54,37 +54,31 @@ const FILTERS = ['전체', '인증 완료', '인증 대기'];
 const VERIFY_THRESHOLD = 1;
 const FIXED_EMOJIS = ['🔥', '👍', '💜'];
 
-// 이모지 피커 — Modal 하단에 TextInput 표시, autoFocus로 키보드 즉시 오픈
+// 이모지 피커 — TextInput autoFocus로 키보드 즉시 오픈, onBlur 없음
 function EmojiPicker({ onSelect, onClose }) {
   const C = useColors();
-
-  const handleChange = (text) => {
-    const chars = [...text]; // 멀티바이트 이모지 처리
-    if (chars.length > 0) {
-      onSelect(chars[0]);
-    }
-  };
-
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose}>
-      {/* 배경 탭 → 닫기 */}
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={ep.backdrop} activeOpacity={1} onPress={onClose} />
-      {/* KeyboardAvoidingView로 키보드 위에 올라오게 */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={ep.kvWrap}
         pointerEvents="box-none"
       >
-        <View style={[ep.box, { backgroundColor: C.surface, borderTopColor: C.border }]}>
-          <T v="caption" style={{ marginBottom: 10, opacity: 0.6 }}>키보드 왼쪽 하단 🌐 를 눌러 이모지 키보드로 전환하세요</T>
+        <View style={[ep.sheet, { backgroundColor: C.surface, borderTopColor: C.border }]}>
+          <View style={ep.header}>
+            <T v="section">이모지 추가</T>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <T v="sub" style={{ opacity: 0.5 }}>닫기</T>
+            </TouchableOpacity>
+          </View>
           <TextInput
             style={[ep.input, { color: C.text, borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
-            onChangeText={handleChange}
+            onChangeText={(text) => { const chars = [...text]; if (chars.length > 0) onSelect(chars[0]); }}
             maxLength={8}
             placeholder="😊"
             placeholderTextColor={C.textSub}
             autoFocus
-            onBlur={onClose}
           />
         </View>
       </KeyboardAvoidingView>
@@ -95,7 +89,8 @@ function EmojiPicker({ onSelect, onClose }) {
 const ep = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   kvWrap:   { flex: 1, justifyContent: 'flex-end' },
-  box:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderTopWidth: 1, alignItems: 'center' },
+  sheet:    { borderTopWidth: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 20, alignItems: 'center', gap: 12 },
+  header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
   input:    { fontSize: 34, textAlign: 'center', width: 80, height: 64, borderWidth: 1.5, borderRadius: 16 },
 });
 
@@ -409,13 +404,13 @@ export default function FeedScreen() {
 
         {featured && (
           <>
-            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 10 }}>✦  가장 많은 리액션</T>
+            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>✦  가장 많은 리액션</T>
             <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} />
           </>
         )}
         {rest.length > 0 && (
           <>
-            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 10 }}>모든 인증</T>
+            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>모든 인증</T>
             <View style={s.gridWrap}>
               {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} />)}
             </View>
@@ -440,7 +435,7 @@ function makeSStyles(C) {
     screen: { flex: 1, backgroundColor: C.bg, paddingBottom: 100 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 20 },
     headerTitle: { fontFamily: F, fontSize: 17, color: C.text },
-    missionBar: { marginHorizontal: 16, marginBottom: 14, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+    missionBar: { marginHorizontal: 16, marginBottom: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
     missionNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     missionIcon: { fontSize: 18 },
     missionName: { fontFamily: F, fontSize: 14, color: C.text, flex: 1 },
@@ -448,7 +443,7 @@ function makeSStyles(C) {
     progressTrack: { height: 7, backgroundColor: C.surface2, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
     progressFill:  { height: '100%', borderRadius: 3, backgroundColor: C.green },
     participantText: { fontFamily: F, fontSize: 12, color: C.textSub },
-    filterRow:     { marginBottom: 14 },
+    filterRow:     { marginBottom: 20 },
     filterChip:    { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
     filterChipActive: { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
     filterText:    { fontFamily: F, fontSize: 13, color: C.textSub },

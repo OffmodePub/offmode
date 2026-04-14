@@ -1,0 +1,20 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<style>
+.line { fill:none; stroke-linecap:round; stroke-width:6; }
+.blue { stroke:#35E6FF; }
+.yellow { stroke:#FFC93A; }
+.pink { stroke:#FFD600; }
+</style>
+
+<rect width="256" height="256" fill="#0B0F2A"/>
+
+<!-- face -->
+<path class="line blue" d="M78 84 L78 172 C78 206,101 224,128 224 C155 224,178 206,178 172 L178 84"/>
+
+<!-- eyes -->
+<circle class="line blue" cx="104" cy="116" r="8"/><circle class="line blue" cx="152" cy="116" r="8"/>
+
+<!-- mouth -->
+<path class="line pink" d="M103 151 C111 168,145 168,153 151"/>
+
+</svg>

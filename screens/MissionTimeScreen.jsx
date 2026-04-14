@@ -37,44 +37,34 @@ function ampmLabel(h) {
 function WheelPicker({ items, selectedIndex, onChange }) {
   const C = useColors();
   const wheel = useMemo(() => makeWheelStyles(C), [C]);
-  const scrollRef   = useRef(null);
-  const isScrolling = useRef(false);
+  const scrollRef           = useRef(null);
+  const isProgrammatic      = useRef(false);
+  const selectedIndexRef    = useRef(selectedIndex);
+  selectedIndexRef.current  = selectedIndex; // 매 렌더마다 최신값 유지
 
+  // selectedIndex 변경 시 스크롤 위치 동기화
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: true });
+    isProgrammatic.current = true;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
+      requestAnimationFrame(() => { isProgrammatic.current = false; });
+    });
   }, [selectedIndex]);
 
-  const handleScrollEnd = useCallback((e) => {
-    const y = e.nativeEvent.contentOffset.y;
-    // 정확한 인덱스 계산
-    const idx = Math.min(Math.max(Math.round(y / ITEM_H), 0), items.length - 1);
-    
-    if (idx !== selectedIndex) {
-      onChange(idx);
-    }
-  }, [items.length, selectedIndex, onChange]);
-
-  const scrollToIndex = useCallback((idx, animated = true) => {
-    scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated });
+  // 초기 레이아웃 완료 후 위치 설정 (ref로 최신값 참조 → stale closure 방지)
+  const onLayout = useCallback(() => {
+    isProgrammatic.current = true;
+    scrollRef.current?.scrollTo({ y: selectedIndexRef.current * ITEM_H, animated: false });
+    requestAnimationFrame(() => { isProgrammatic.current = false; });
   }, []);
 
-  const onMomentumEnd = useCallback((e) => {
+  // 사용자가 직접 스크롤했을 때만 onChange 호출
+  const handleMomentumEnd = useCallback((e) => {
+    if (isProgrammatic.current) return;
     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
     const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    onChange(clamped);
-    scrollToIndex(clamped);
-  }, [items, onChange, scrollToIndex]);
-
-  const onScrollEnd = useCallback((e) => {
-    if (!isScrolling.current) {
-      const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-      onChange(Math.max(0, Math.min(idx, items.length - 1)));
-    }
-  }, [items, onChange]);
-
-  const onLayout = useCallback(() => {
-    scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
-  }, [selectedIndex]);
+    if (clamped !== selectedIndex) onChange(clamped);
+  }, [items.length, selectedIndex, onChange]);
 
   return (
     <View style={wheel.wrap}>
@@ -86,9 +76,9 @@ function WheelPicker({ items, selectedIndex, onChange }) {
         style={{ height: PICKER_H, width: '100%' }}
         contentContainerStyle={{ paddingVertical: ITEM_H * 2 }}
         showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H} 
+        snapToInterval={ITEM_H}
         decelerationRate="fast"
-        onMomentumScrollEnd={handleScrollEnd} 
+        onMomentumScrollEnd={handleMomentumEnd}
         onLayout={onLayout}
         scrollEventThrottle={16}
       >

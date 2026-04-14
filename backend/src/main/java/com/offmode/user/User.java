@@ -38,15 +38,12 @@ public class User {
     @Builder.Default
     private Integer level = 1;
 
-    @Column(nullable = false)
     @Builder.Default
     private Integer missionHour = 8;
 
-    @Column(nullable = false)
     @Builder.Default
     private Integer missionMinute = 0;
 
-    @Column(nullable = false)
     @Builder.Default
     private Boolean autoRoulette = true;
 

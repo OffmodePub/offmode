@@ -1,27 +1,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Dimensions, Image, Modal,
+  TouchableOpacity, Dimensions, Image, Modal, TextInput, Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Asset } from 'expo-asset';
+import { SvgUri } from 'react-native-svg';
 import { useColors } from '../utils/useColors';
 import { api, BASE_URL } from '../utils/api';
 import T from '../components/ThemedText';
 import Svg, { Path, G, Defs, ClipPath, Rect } from 'react-native-svg';
+import { AVATAR_IDS, getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
+import * as H from '../utils/haptics';
 
 // imageFile (백엔드) → local require 매핑
 const BADGE_IMAGE_MAP = {
-  'badge_time_dawn_dawnmaster.png':           require('../assets/badge_time_dawn_dawnmaster.png'),
-  'badge_time_afternoon_freeman.png':         require('../assets/badge_time_afternoon_freeman.png'),
-  'badge_time_evening_timewarden.png':        require('../assets/badge_time_evening_timewarden.png'),
-  'badge_activity_walker_walker.png':         require('../assets/badge_activity_walker_walker.png'),
-  'badge_activity_routine_manager.png':       require('../assets/badge_activity_routine_manager.png'),
-  'badge_activity_beauty_curator.png':        require('../assets/badge_activity_beauty_curator.png'),
-  'badge_activity_local_hipster.png':         require('../assets/badge_activity_local_hipster.png'),
-  'badge_explore_lv01_initiate.png':          require('../assets/badge_explore_lv01_initiate.png'),
-  'badge_explore_lv02_explorer.png':          require('../assets/badge_explore_lv02_explorer.png'),
-  'badge_real_world_ruler.png':               require('../assets/badge_real_world_ruler.png'),
-  'badge_unique_speedrunner_streakking.png':  require('../assets/badge_unique_speedrunner_streakking.png'),
+  'badge_time_dawn_dawnmaster.png':           require('../assets/badge/badge_time_dawn_dawnmaster.png'),
+  'badge_time_afternoon_freeman.png':         require('../assets/badge/badge_time_afternoon_freeman.png'),
+  'badge_time_evening_timewarden.png':        require('../assets/badge/badge_time_evening_timewarden.png'),
+  'badge_activity_walker_walker.png':         require('../assets/badge/badge_activity_walker_walker.png'),
+  'badge_activity_routine_manager.png':       require('../assets/badge/badge_activity_routine_manager.png'),
+  'badge_activity_beauty_curator.png':        require('../assets/badge/badge_activity_beauty_curator.png'),
+  'badge_activity_local_hipster.png':         require('../assets/badge/badge_activity_local_hipster.png'),
+  'badge_explore_lv01_initiate.png':          require('../assets/badge/badge_explore_lv01_initiate.png'),
+  'badge_explore_lv02_explorer.png':          require('../assets/badge/badge_explore_lv02_explorer.png'),
+  'badge_real_world_ruler.png':               require('../assets/badge/badge_real_world_ruler.png'),
+  'badge_unique_speedrunner_streakking.png':  require('../assets/badge/badge_unique_speedrunner_streakking.png'),
   'image_45.png': require('../assets/expansion.png'),
 };
 
@@ -112,6 +116,125 @@ function formatJoinDate(val) {
   const dt = parseLocalDT(val);
   if (!dt) return '';
   return `${dt.getFullYear()}.${pad2(dt.getMonth()+1)}.${pad2(dt.getDate())} 합류`;
+}
+
+/* ── SVG 아바타 렌더러 ───────────────────────────────── */
+function AvatarSvg({ source, width = 80, height = 80 }) {
+  const [uri, setUri] = useState(() => {
+    const a = Asset.fromModule(source);
+    return a.localUri || a.uri || null;
+  });
+  useEffect(() => {
+    const a = Asset.fromModule(source);
+    if (a.localUri || a.uri) { setUri(a.localUri || a.uri); return; }
+    a.downloadAsync().then(() => setUri(a.localUri || a.uri));
+  }, [source]);
+  if (!uri) return <View style={{ width, height }} />;
+  return <SvgUri width={width} height={height} uri={uri} />;
+}
+
+/* ── 프로필 편집 모달 ────────────────────────────────── */
+function ProfileEditModal({ visible, profile, onSave, onClose }) {
+  const C = useColors();
+  const m = useMemo(() => makeEditModalStyles(C), [C]);
+  const [name,     setName]     = useState('');
+  const [avatarId, setAvatarId] = useState('01');
+
+  useEffect(() => {
+    if (visible) {
+      setName(profile.name ?? '오프모더');
+      setAvatarId(profile.avatar ?? '01');
+    }
+  }, [visible]);
+
+  const handleSave = () => {
+    Keyboard.dismiss();
+    H.success();
+    onSave({ name: name.trim() || '오프모더', avatar: avatarId });
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={() => { Keyboard.dismiss(); onClose(); }} />
+      <View style={m.sheet}>
+        <View style={m.handle} />
+        <T v="section" style={m.title}>프로필 편집</T>
+        <View style={m.previewRow}>
+          <AvatarSvg source={getAvatarDefaultSource(avatarId)} width={80} height={80} />
+        </View>
+        <T v="label" style={m.sectionLabel}>아바타 선택</T>
+        <View style={m.avatarGrid}>
+          {AVATAR_IDS.map((id) => (
+            <TouchableOpacity
+              key={id}
+              style={[m.avatarCell, avatarId === id && m.avatarCellActive]}
+              onPress={() => { H.tap(); setAvatarId(id); }}
+              activeOpacity={0.7}
+            >
+              <AvatarSvg source={getAvatarDefaultSource(id)} width={52} height={52} />
+              {avatarId === id && (
+                <View style={m.avatarCheck}><T v="green" size={10}>✓</T></View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+        <T v="label" style={m.sectionLabel}>닉네임</T>
+        <View style={m.inputWrap}>
+          <TextInput
+            style={m.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="닉네임 입력"
+            placeholderTextColor={C.textSub}
+            maxLength={12}
+          />
+          <T v="caption" style={{ opacity: 0.4 }}>{name.length}/12</T>
+        </View>
+        <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
+          <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={m.saveBtn}>
+            <T v="btn">저장하기</T>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
+function makeEditModalStyles(C) {
+  return StyleSheet.create({
+    backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+    sheet: {
+      backgroundColor: C.surface,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      borderTopWidth: 1, borderColor: C.greenBorder,
+      paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12,
+    },
+    handle:       { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
+    title:        { textAlign: 'center', marginBottom: 16 },
+    previewRow:   { alignItems: 'center', marginBottom: 20 },
+    sectionLabel: { marginBottom: 10, opacity: 0.6, letterSpacing: 1 },
+    avatarGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    avatarCell: {
+      width: 76, height: 76, borderRadius: 14,
+      backgroundColor: C.surface2, borderWidth: 1.5, borderColor: C.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarCellActive: { borderColor: C.green, backgroundColor: C.greenFaint },
+    avatarCheck: {
+      position: 'absolute', bottom: 4, right: 4,
+      backgroundColor: C.green, borderRadius: 6, width: 16, height: 16,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    inputWrap: {
+      backgroundColor: C.surface2, borderRadius: 12,
+      borderWidth: 1, borderColor: C.border,
+      paddingHorizontal: 14, paddingVertical: 10,
+      flexDirection: 'row', alignItems: 'center', marginBottom: 24,
+    },
+    input:   { flex: 1, fontFamily: 'Kkukkukk', fontSize: 15, color: C.text },
+    saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
+  });
 }
 
 function ZoomIcon({ color, size = 14 }) {
@@ -359,13 +482,14 @@ function MissionHistory({ s, hist, C, weekGroups, weekLabels }) {
   );
 }
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ profile, onSaveProfile, currentMission }) {
   const C = useColors();
   const { s, hist } = useMemo(() => makeAllStyles(C), [C]);
   const [badges, setBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
   const [userStats, setUserStats] = useState(null);
+  const [editVisible, setEditVisible] = useState(false);
 
   useEffect(() => {
     api.get('/api/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
@@ -378,6 +502,12 @@ export default function ProfileScreen() {
       setUserStats(stats);
     }).catch(e => console.warn('데이터 로딩 실패:', e));
   }, []);
+
+  const handleSaveProfile = (updated) => {
+    onSaveProfile?.(updated);
+    api.put('/api/users/me', { name: updated.name, avatar: updated.avatar })
+      .catch(e => console.warn('프로필 저장 실패:', e));
+  };
 
   const STATS = userStats ? [
     { label: 'Energy',    color: C.green,  fill: userStats.energyFill,   level: userStats.energyLevel },
@@ -392,21 +522,30 @@ export default function ProfileScreen() {
   const mainBadge  = useMemo(() => badges.find(b => b.earned) ?? null, [badges]);
   const headerGrad = C.isDark ? ['#111128', '#0d0d14'] : ['#f0f0fa', '#f3f3f8'];
 
+  const avatarId     = profile?.avatar ?? '01';
+  const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
+
   return (
-    <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+    <View style={s.screen}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
       <LinearGradient colors={headerGrad} style={s.profileHeader}>
         <View style={s.avatarSection}>
           <View style={s.avatarWrap}>
-            <View style={s.avatarInner}>
-              <View style={s.avatarHair} />
-              <View style={s.avatarFace} />
-              <View style={s.avatarBody} />
-            </View>
+            <AvatarSvg source={avatarSource} width={76} height={76} />
             <View style={s.avatarRing} />
             <View style={s.levelBubble}><T v="caption" size={10} color="#000">Lv.{userProfile?.level ?? 1}</T></View>
           </View>
           <View style={s.nameBlock}>
-            <T v="title" size={22}>{userProfile?.name ?? '...'}</T>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <T v="title" size={22}>{profile?.name ?? userProfile?.name ?? '...'}</T>
+              <TouchableOpacity
+                style={s.editBadge}
+                onPress={() => { H.tap(); setEditVisible(true); }}
+                activeOpacity={0.7}
+              >
+                <T v="green" size={11}>편집</T>
+              </TouchableOpacity>
+            </View>
             {mainBadge && (
               <View style={s.titlePill}>
                 <T v="purple" size={13}>👑 {mainBadge.name}</T>
@@ -445,6 +584,15 @@ export default function ProfileScreen() {
       {badges.length > 0 && <BadgeGrid s={s} C={C} badges={badges} mainBadge={mainBadge} />}
       <MissionHistory s={s} hist={hist} C={C} weekGroups={weekGroups} weekLabels={weekLabels} />
     </ScrollView>
+    {profile && (
+      <ProfileEditModal
+        visible={editVisible}
+        profile={profile}
+        onSave={handleSaveProfile}
+        onClose={() => setEditVisible(false)}
+      />
+    )}
+    </View>
   );
 }
 
@@ -454,11 +602,8 @@ function makeAllStyles(C) {
     profileHeader: { paddingVertical: 24, paddingHorizontal: 20, marginVertical: 12 },
     avatarSection: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 20 },
     avatarWrap:    { position: 'relative', width: 76, height: 76 },
-    avatarInner:   { width: 76, height: 76, borderRadius: 38, backgroundColor: C.isDark ? '#1a1a2e' : '#e0e0f0', alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' },
-    avatarHair:    { position: 'absolute', top: 8,  width: 42, height: 24, borderRadius: 12, backgroundColor: '#3a2010' },
-    avatarFace:    { position: 'absolute', top: 18, width: 30, height: 30, borderRadius: 15, backgroundColor: '#c8956c' },
-    avatarBody:    { width: 54, height: 26, borderRadius: 13, backgroundColor: C.isDark ? '#4a4a6a' : '#8888aa' },
     avatarRing:    { position: 'absolute', top: -3, left: -3, width: 82, height: 82, borderRadius: 41, borderWidth: 2, borderColor: C.greenBorder },
+    editBadge:     { backgroundColor: C.greenFaint, borderRadius: 8, borderWidth: 1, borderColor: C.greenBorder, paddingHorizontal: 8, paddingVertical: 3 },
     levelBubble:   { position: 'absolute', bottom: -4, right: -4, backgroundColor: C.green, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: C.bg },
     levelText:     { fontFamily: F, fontSize: 10, color: '#000' },
     nameBlock:     { flex: 1, gap: 5 },

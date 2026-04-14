@@ -41,13 +41,19 @@ public class AuthService {
     // ── Kakao ──────────────────────────────────────────────
     public AuthResponse kakaoLogin(String accessToken) {
         // 카카오 API로 사용자 정보 조회
-        Map<?, ?> kakaoUser = webClientBuilder.build()
-                .get()
-                .uri(kakaoUserInfoUrl)
-                .header("Authorization", "Bearer " + accessToken)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+        Map<?, ?> kakaoUser;
+        try {
+            kakaoUser = webClientBuilder.build()
+                    .get()
+                    .uri(kakaoUserInfoUrl)
+                    .header("Authorization", "Bearer " + accessToken)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+        } catch (Exception e) {
+            // Kakao API 오류(만료된 토큰 등)를 그대로 전파하지 않도록 래핑
+            throw new RuntimeException("카카오 토큰 검증 실패: " + e.getMessage());
+        }
 
         if (kakaoUser == null) throw new RuntimeException("카카오 토큰 검증 실패");
 

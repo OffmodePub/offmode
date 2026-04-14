@@ -36,12 +36,13 @@ function AppInner() {
       if (token) {
         try {
           const user = await api.get('/api/users/me');
-          setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '🏃' });
+          setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
           if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
           if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
           await loadTodayMission();
           setAuthStatus('authenticated');
-        } catch {
+        } catch (e) {
+          console.warn('자동 로그인 실패:', e);
           setAuthStatus('unauthenticated');
         }
       } else {
@@ -58,7 +59,7 @@ function AppInner() {
   const [currentMissionId, setCurrentMissionId] = useState(null);
   const [showRoulette, setShowRoulette]         = useState(false);
   const [autoRoulette, setAutoRoulette]         = useState(true);
-  const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '🏃' });
+  const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '01' });
   const lastTriggeredRef = useRef(null);
 
   const loadTodayMission = async () => {
@@ -79,7 +80,7 @@ function AppInner() {
       const { user, isNew } = await signInWithKakao();
       setAuthUser(user);
       if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '🏃' });
+        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
         if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
         if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
         await loadTodayMission();
@@ -95,7 +96,7 @@ function AppInner() {
       const { user, isNew } = await signInWithApple();
       setAuthUser(user);
       if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '🏃' });
+        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
         if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
         if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
         await loadTodayMission();
@@ -276,7 +277,13 @@ function AppInner() {
               />
             )}
             {tab === 'feed'     && <FeedScreen />}
-            {tab === 'profile'  && <ProfileScreen />}
+            {tab === 'profile'  && (
+              <ProfileScreen
+                profile={profile}
+                onSaveProfile={setProfile}
+                currentMission={currentMission}
+              />
+            )}
             {tab === 'settings' && (
               <SettingsScreen
                 onBack={null}
@@ -287,8 +294,6 @@ function AppInner() {
                   setAutoRoulette(val);
                   api.put('/api/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
                 }}
-                profile={profile}
-                onSaveProfile={setProfile}
               />
             )}
           </View>

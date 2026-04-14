@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 // 실기기 테스트 시: Mac의 로컬 IP 주소로 변경하세요
 // 예) const DEV_HOST = '192.168.0.10';
 //const DEV_HOST = Platform.OS === 'ios' ? 'localhost' : '10.0.2.2';
-const DEV_HOST = '192.168.219.164';
+const DEV_HOST = '172.20.10.7';
 
 export const BASE_URL = __DEV__
   ? `http://${DEV_HOST}:8080`
