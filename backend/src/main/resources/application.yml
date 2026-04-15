@@ -23,12 +23,12 @@ apple:
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
 
-aws:
-  s3:
-    bucket: ${AWS_S3_BUCKET:}
-    region: ${AWS_S3_REGION:ap-northeast-2}
-    access-key: ${AWS_ACCESS_KEY:}
-    secret-key: ${AWS_SECRET_KEY:}
+r2:
+  access-key: ${R2_ACCESS_KEY:}
+  secret-key: ${R2_SECRET_KEY:}
+  endpoint: ${R2_ENDPOINT:}
+  bucket: ${R2_BUCKET:}
+  public-url: ${R2_PUBLIC_URL:}
 
 logging:
   level:

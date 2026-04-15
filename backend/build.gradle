@@ -46,6 +46,10 @@ dependencies {
     // MySQL (운영 환경)
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // AWS SDK v2 (S3 / Cloudflare R2)
+    implementation 'software.amazon.awssdk:s3:2.20.68'
+    implementation 'software.amazon.awssdk:url-connection-client:2.20.68'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 

@@ -12,6 +12,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,11 +37,18 @@ public class FeedService {
     private final UserMissionRepository         userMissionRepository;
     private final UserService                   userService;
     private final BadgeService                  badgeService;
+    private final S3Client                      s3Client;
 
-    private static final int VERIFY_THRESHOLD = 1; // 이 수 이상 피어 인증 → 미션 완료
+    private static final int VERIFY_THRESHOLD = 1;
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
+
+    @Value("${r2.bucket:}")
+    private String r2Bucket;
+
+    @Value("${r2.public-url:}")
+    private String r2PublicUrl;
 
     @Transactional
     public Verification verify(Long userId, Long userMissionId, MultipartFile photo, String caption) throws IOException {
@@ -53,15 +63,28 @@ public class FeedService {
             throw new RuntimeException("이미 인증 사진을 올린 미션입니다");
         }
 
-        // 사진 저장 (로컬) — S3는 추후 추가
+        // 사진 저장 (R2 우선, 없으면 로컬)
         String photoUrl = null;
         if (photo != null && !photo.isEmpty()) {
             String ext      = getExtension(photo.getOriginalFilename());
-            String filename = UUID.randomUUID() + ext;
-            Path   dir      = Paths.get(uploadDir).toAbsolutePath();
-            Files.createDirectories(dir);
-            photo.transferTo(dir.resolve(filename));
-            photoUrl = "/uploads/" + filename;
+            String filename = "verifications/" + UUID.randomUUID() + ext;
+            if (s3Client != null && !r2Bucket.isBlank()) {
+                s3Client.putObject(
+                        PutObjectRequest.builder()
+                                .bucket(r2Bucket)
+                                .key(filename)
+                                .contentType(photo.getContentType())
+                                .build(),
+                        RequestBody.fromInputStream(photo.getInputStream(), photo.getSize())
+                );
+                photoUrl = r2PublicUrl + "/" + filename;
+            } else {
+                String localName = UUID.randomUUID() + ext;
+                Path   dir       = Paths.get(uploadDir).toAbsolutePath();
+                Files.createDirectories(dir);
+                photo.transferTo(dir.resolve(localName));
+                photoUrl = "/uploads/" + localName;
+            }
         }
 
         // 인증 저장 (상태는 "pending" 유지 — 피어 인증 후 완료 처리)
