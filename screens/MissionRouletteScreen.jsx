@@ -119,7 +119,6 @@ function makeSlotStyles(C) {
     fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.2, zIndex: 2 },
     item: { height: ITEM_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 14 },
     itemIcon: { fontSize: 28, width: 36, textAlign: 'center' },
-    itemText: { fontFamily: F, fontSize: 15, color: C.textSub, flex: 1, lineHeight: 22 },
     manualBtn: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 10, backgroundColor: C.surface + 'cc' },
     manualBtnInner: { paddingHorizontal: 40, paddingVertical: 16, borderRadius: 16 },
   });

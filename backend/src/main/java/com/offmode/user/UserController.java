@@ -26,6 +26,13 @@ public class UserController {
         return ResponseEntity.ok(userService.getStats(userId));
     }
 
+    // DELETE /api/users/me
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal Long userId) {
+        userService.deleteAccount(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     // PUT /api/users/me
     // body: { "name": "...", "avatar": "...", "missionHour": 8, "missionMinute": 0, "autoRoulette": true }
     @PutMapping("/me")

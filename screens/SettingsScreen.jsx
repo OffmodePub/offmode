@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch,
+  TouchableOpacity, Switch, Alert,
 } from 'react-native';
 import { useColors } from '../utils/useColors';
 import { useTheme } from '../utils/ThemeContext';
@@ -96,6 +96,8 @@ export default function SettingsScreen({
   missionTime,
   autoRoulette,
   onSetAutoRoulette,
+  onLogout,
+  onDeleteAccount,
 }) {
   const C = useColors();
   const { scheme, setScheme } = useTheme();
@@ -233,7 +235,22 @@ export default function SettingsScreen({
             icon="🚪"
             label="로그아웃"
             right={null}
-            onPress={() => {}}
+            onPress={onLogout}
+          />
+          <SettingRow
+            icon="⚠️"
+            label="회원 탈퇴"
+            right={null}
+            onPress={() => {
+              Alert.alert(
+                '회원 탈퇴',
+                '탈퇴하면 모든 미션 기록과 배지가 삭제됩니다.\n정말 탈퇴하시겠어요?',
+                [
+                  { text: '취소', style: 'cancel' },
+                  { text: '탈퇴', style: 'destructive', onPress: onDeleteAccount },
+                ],
+              );
+            }}
             last
           />
         </Section>

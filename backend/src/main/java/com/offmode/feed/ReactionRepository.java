@@ -1,6 +1,7 @@
 package com.offmode.feed;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,4 +23,14 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
         ORDER BY r.verification.id, COUNT(r) DESC
     """)
     List<Object[]> findSummaries(@Param("ids") List<Long> ids, @Param("userId") Long userId);
+
+    // 유저가 남긴 reaction 삭제
+    @Modifying
+    @Query("DELETE FROM Reaction r WHERE r.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
+
+    // 유저 미션의 verification에 달린 reaction 삭제
+    @Modifying
+    @Query("DELETE FROM Reaction r WHERE r.verification.userMission.user.id = :userId")
+    void deleteByVerificationOwnerUserId(@Param("userId") Long userId);
 }

@@ -2,6 +2,7 @@ package com.offmode.feed;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,4 +29,9 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
         ORDER BY v.createdAt DESC
     """)
     List<FeedItemDto> findFeedItems(Pageable pageable, @Param("userId") Long userId, @Param("missionText") String missionText);
+
+    // 유저의 verification 삭제 (user_id 기준)
+    @Modifying
+    @Query("DELETE FROM Verification v WHERE v.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

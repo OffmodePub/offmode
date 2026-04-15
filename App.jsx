@@ -15,7 +15,7 @@ import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 import { signInWithApple, signInWithKakao } from './utils/auth';
-import { api, loadToken } from './utils/api';
+import { api, loadToken, clearToken } from './utils/api';
 
 const TABS = [
   { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
@@ -107,13 +107,40 @@ function AppInner() {
     }
   };
 
-  const handleSignupComplete = async (profileData) => {
+  const handleLogout = async () => {
+    await clearToken();
+    setAuthUser(null);
+    setProfile({ name: '오프모더', avatar: '01' });
+    setMissionTime({ hour: 8, minute: 0 });
+    setHasMission(false);
+    setCurrentMission(null);
+    setCurrentMissionId(null);
+    setAuthStatus('unauthenticated');
+  };
+
+  const handleDeleteAccount = async () => {
     try {
-      await api.put('/api/users/me', { name: profileData.name, avatar: profileData.avatar });
+      await api.delete('/api/users/me');
+    } catch (e) {
+      console.warn('회원탈퇴 실패:', e);
+    }
+    await handleLogout();
+  };
+
+  const handleSignupComplete = async (profileData) => {
+    const { name, avatar, missionTime: mt } = profileData;
+    try {
+      await api.put('/api/users/me', {
+        name,
+        avatar,
+        missionHour:   mt.hour,
+        missionMinute: mt.minute,
+      });
     } catch (e) {
       console.warn('프로필 저장 실패:', e);
     }
-    setProfile(profileData);
+    setProfile({ name, avatar });
+    setMissionTime(mt);
     await loadTodayMission();
     setAuthStatus('authenticated');
   };
@@ -299,6 +326,8 @@ function AppInner() {
                   setAutoRoulette(val);
                   api.put('/api/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
                 }}
+                onLogout={handleLogout}
+                onDeleteAccount={handleDeleteAccount}
               />
             )}
           </View>

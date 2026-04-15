@@ -14,7 +14,7 @@ export const dark = {
   blueBorder:   'rgba(77, 168, 218, 0.35)',
   text:         '#ddddf0',
   textSub:      '#9090b8',
-  border:       '#222236',
+  border:       '#2e2e4a',
 };
 
 export const light = {

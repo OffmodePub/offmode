@@ -4,11 +4,11 @@ import * as SecureStore from 'expo-secure-store';
 // 실기기 테스트 시: Mac의 로컬 IP 주소로 변경하세요
 // 예) const DEV_HOST = '192.168.0.10';
 //const DEV_HOST = Platform.OS === 'ios' ? 'localhost' : '10.0.2.2';
-const DEV_HOST = '169.254.75.59';
+const DEV_HOST = '172.28.70.47';
 
 export const BASE_URL = __DEV__
   ? `http://${DEV_HOST}:8080`
-  : 'https://your-production-server.com';   // 운영 서버 주소로 교체
+  : 'https://RAILWAY_URL_HERE.railway.app';  // Railway 배포 후 실제 URL로 교체
 
 const TOKEN_KEY = 'auth_token';
 
@@ -41,8 +41,9 @@ async function request(method, path, body, isFormData = false) {
 }
 
 export const api = {
-  get:    (path)           => request('GET',  path),
-  post:   (path, body)     => request('POST', path, body),
-  put:    (path, body)     => request('PUT',  path, body),
-  upload: (path, formData) => request('POST', path, formData, true),
+  get:    (path)           => request('GET',    path),
+  post:   (path, body)     => request('POST',   path, body),
+  put:    (path, body)     => request('PUT',    path, body),
+  delete: (path)           => request('DELETE', path),
+  upload: (path, formData) => request('POST',   path, formData, true),
 };

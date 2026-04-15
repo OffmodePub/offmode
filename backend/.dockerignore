@@ -1,0 +1,6 @@
+build/
+.gradle/
+*.class
+uploads/
+offmode-db*
+*.log

@@ -32,7 +32,7 @@ public class User {
 
     @Column(nullable = false)
     @Builder.Default
-    private String avatar = "🏃";
+    private String avatar = "01";
 
     @Column(nullable = false)
     @Builder.Default

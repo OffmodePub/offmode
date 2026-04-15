@@ -1,5 +1,9 @@
 package com.offmode.user;
 
+import com.offmode.badge.UserBadgeRepository;
+import com.offmode.feed.ReactionRepository;
+import com.offmode.feed.VerificationConfirmRepository;
+import com.offmode.feed.VerificationRepository;
 import com.offmode.mission.UserMissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,8 +19,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository        userRepository;
-    private final UserMissionRepository userMissionRepository;
+    private final UserRepository             userRepository;
+    private final UserMissionRepository      userMissionRepository;
+    private final VerificationConfirmRepository verificationConfirmRepository;
+    private final ReactionRepository         reactionRepository;
+    private final VerificationRepository     verificationRepository;
+    private final UserBadgeRepository        userBadgeRepository;
 
     public User getById(Long id) {
         return userRepository.findById(id)
@@ -80,6 +88,19 @@ public class UserService {
             check = check.minusDays(1);
         }
         return streak;
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        // FK 순서대로 삭제
+        verificationConfirmRepository.deleteByUserId(userId);               // 내가 남긴 confirm
+        verificationConfirmRepository.deleteByVerificationOwnerUserId(userId); // 내 인증에 달린 confirm
+        reactionRepository.deleteByUserId(userId);                          // 내가 남긴 reaction
+        reactionRepository.deleteByVerificationOwnerUserId(userId);         // 내 인증에 달린 reaction
+        verificationRepository.deleteByUserId(userId);                      // 내 인증
+        userBadgeRepository.deleteByUserId(userId);                         // 내 배지
+        userMissionRepository.deleteByUserId(userId);                       // 내 미션
+        userRepository.deleteById(userId);
     }
 
     // 카테고리별 레벨당 10개 미션, fill은 현재 레벨 내 진행도

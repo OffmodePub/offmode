@@ -10,12 +10,12 @@ import T from '../components/ThemedText';
 const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
 
-const ITEM_H  = 56;
-const VISIBLE = 5;
+const ITEM_H  = 60;
+const VISIBLE = 3;
 const PICKER_H = ITEM_H * VISIBLE;
 
 const HOURS   = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 5분 단위
 
 const PRESETS = [
   { label: '이른 아침', time: { h: 6,  m: 0 } },
@@ -74,7 +74,7 @@ function WheelPicker({ items, selectedIndex, onChange }) {
       <ScrollView
         ref={scrollRef}
         style={{ height: PICKER_H, width: '100%' }}
-        contentContainerStyle={{ paddingVertical: ITEM_H * 2 }}
+        contentContainerStyle={{ paddingVertical: ITEM_H * 1 }}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
@@ -108,13 +108,12 @@ function makeWheelStyles(C) {
   return StyleSheet.create({
     wrap: { flex: 1, position: 'relative', overflow: 'hidden', height: PICKER_H },
     highlight: {
-      position: 'absolute', top: ITEM_H * 2, left: 0, right: 0, height: ITEM_H,
+      position: 'absolute', top: ITEM_H * 1, left: 0, right: 0, height: ITEM_H,
       borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
       backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
     },
-    fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.8, zIndex: 2 },
+    fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.0, zIndex: 2 },
     item: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
-    itemText: { fontFamily: F, fontSize: 28, color: C.textSub, opacity: 0.4 },
     itemTextSelected: { color: C.text, opacity: 1, fontSize: 34 },
   });
 }
@@ -124,7 +123,7 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
   const styles = useMemo(() => makeStyles(C), [C]);
 
   const [hourIdx,   setHourIdx]   = useState(initialTime.hour);
-  const [minuteIdx, setMinuteIdx] = useState(initialTime.minute);
+  const [minuteIdx, setMinuteIdx] = useState(Math.round(initialTime.minute / 5));
   const h = HOURS[hourIdx];
   const m = MINUTES[minuteIdx];
   
@@ -156,12 +155,12 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
 
         <View style={styles.pickerRow}>
           <View style={styles.pickerBlock}>
-            <T v="sub" style={{ marginBottom: 8 }}>시</T>
+            <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>시</T>
             <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
           </View>
           <T v="sub" size={36} style={{ marginTop: 16, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
           <View style={styles.pickerBlock}>
-            <T v="sub" style={{ marginBottom: 8 }}>분</T>
+            <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>분</T>
             <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
           </View>
         </View>
@@ -174,7 +173,7 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
               <TouchableOpacity
                 key={p.label}
                 style={[styles.presetChip, active && styles.presetChipActive]}
-                onPress={() => { setHourIdx(p.time.h); setMinuteIdx(p.time.m); }}
+                onPress={() => { setHourIdx(p.time.h); setMinuteIdx(p.time.m / 5); }}
                 activeOpacity={0.7}
               >
                 <T v="body" size={16} color={active ? C.green : C.textSub} style={{ marginBottom: 2 }}>
@@ -211,29 +210,18 @@ function makeStyles(C) {
       alignItems: 'center', justifyContent: 'center',
     },
     backIcon:    { fontSize: 20, color: C.text },
-    headerTitle: { fontFamily: F, fontSize: 17, color: C.text },
     content:     { paddingHorizontal: 20, paddingBottom: 40 },
-    desc: {
-      fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 20,
-      textAlign: 'center', marginTop: 8, marginBottom: 24,
-    },
     previewWrap: {
       alignItems: 'center', backgroundColor: C.surface,
       borderRadius: 20, borderWidth: 1, borderColor: C.greenBorder,
       paddingVertical: 24, marginBottom: 28,
     },
-    previewAmpm: { fontFamily: F, fontSize: 14, color: C.green, opacity: 0.8, marginBottom: 4, letterSpacing: 1 },
-    previewTime: { fontFamily: F, fontSize: 56, color: C.text, letterSpacing: 2, lineHeight: 66 },
-    previewSub:  { fontFamily: F, fontSize: 12, color: C.textSub, marginTop: 6 },
     pickerRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border,
-      paddingHorizontal: 24, paddingVertical: 12, marginBottom: 28,
+      paddingHorizontal: 8, paddingVertical: 12, marginBottom: 28,
     },
-    pickerBlock: { flex: 1, alignItems: 'center' },
-    pickerLabel: { fontFamily: F, fontSize: 13, color: C.textSub, marginBottom: 8 },
-    colon:       { fontFamily: F, fontSize: 36, color: C.textSub, marginTop: 16, paddingHorizontal: 8, opacity: 0.5 },
-    presetTitle: { fontFamily: F, fontSize: 14, color: C.textSub, marginBottom: 12 },
+    pickerBlock: { flex: 1, alignItems: 'stretch' },
     presetGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 28 },
     presetChip: {
       backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
@@ -241,11 +229,8 @@ function makeStyles(C) {
       alignItems: 'center', minWidth: (width - 40 - 16) / 3,
     },
     presetChipActive:  { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
-    presetTime:        { fontFamily: F, fontSize: 16, color: C.textSub, marginBottom: 2 },
     presetTimeActive:  { color: C.green },
-    presetLabel:       { fontFamily: F, fontSize: 11, color: C.textSub, opacity: 0.7 },
     presetLabelActive: { color: C.green, opacity: 1 },
     saveBtn:     { borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
-    saveBtnText: { fontFamily: F, fontSize: 16, color: '#000' },
   });
 }

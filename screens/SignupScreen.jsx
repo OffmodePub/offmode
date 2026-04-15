@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Keyboard, ScrollView, Dimensions,
+  TextInput, Keyboard, ScrollView, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -19,11 +19,11 @@ function AvatarSvg({ source: SvgComponent, width = 80, height = 80 }) {
 }
 
 // ── 시간 휠 피커 ──────────────────────────────────────────
-const ITEM_H  = 48;
-const VISIBLE = 5;
+const ITEM_H  = 60;
+const VISIBLE = 3;
 const PICKER_H = ITEM_H * VISIBLE;
 const HOURS   = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 10, 20, 30, 40, 50]; // 10분 단위
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 5분 단위
 const PRESETS = [
   { label: '이른 아침', h: 6,  m: 0 },
   { label: '아침',     h: 8,  m: 0 },
@@ -72,16 +72,16 @@ function WheelPicker({ items, selectedIndex, onChange }) {
     <View style={{ flex: 1, position: 'relative', overflow: 'hidden', height: PICKER_H }}>
       {/* 선택 하이라이트 */}
       <View style={{
-        position: 'absolute', top: ITEM_H * 2, left: 0, right: 0, height: ITEM_H,
+        position: 'absolute', top: ITEM_H * 1, left: 0, right: 0, height: ITEM_H,
         borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
         backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
       }} pointerEvents="none" />
-      <LinearGradient colors={[C.surface, 'transparent']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.8, zIndex: 2 }} pointerEvents="none" />
-      <LinearGradient colors={['transparent', C.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.8, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={[C.surface, 'transparent']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={['transparent', C.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
       <ScrollView
         ref={scrollRef}
         style={{ height: PICKER_H }}
-        contentContainerStyle={{ paddingVertical: ITEM_H * 2 }}
+        contentContainerStyle={{ paddingVertical: ITEM_H * 1 }}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
@@ -116,11 +116,12 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
   const C = useColors();
   const s = useMemo(() => makeStyles(C), [C]);
 
-  const [step,      setStep]      = useState(1); // 1: 프로필, 2: 미션 시간
-  const [name,      setName]      = useState(defaultName);
-  const [avatarId,  setAvatarId]  = useState('01');
-  const [hourIdx,   setHourIdx]   = useState(8);
-  const [minuteIdx, setMinuteIdx] = useState(0);
+  const [step,           setStep]           = useState(1); // 1: 프로필, 2: 미션 시간
+  const [name,           setName]           = useState(defaultName);
+  const [avatarId,       setAvatarId]       = useState('01');
+  const [hourIdx,        setHourIdx]        = useState(8);
+  const [minuteIdx,      setMinuteIdx]      = useState(0);
+  const [outerScrollEnabled, setOuterScrollEnabled] = useState(true);
 
   const h = HOURS[hourIdx];
   const m = MINUTES[minuteIdx];
@@ -146,7 +147,10 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
   // ── Step 1: 아바타 + 닉네임 ──────────────────────────────
   if (step === 1) {
     return (
-      <View style={s.screen}>
+      <KeyboardAvoidingView
+        style={s.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView
           contentContainerStyle={s.content}
           keyboardShouldPersistTaps="handled"
@@ -166,7 +170,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
           {/* 선택된 아바타 미리보기 */}
           <View style={s.previewRow}>
             <View style={s.previewRing}>
-              <AvatarSvg source={getAvatarDefaultSource(avatarId)} width={88} height={88} />
+              <AvatarSvg source={getAvatarDefaultSource(avatarId)} width={150} height={150} />
             </View>
           </View>
 
@@ -214,7 +218,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -224,6 +228,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={outerScrollEnabled}
       >
         <View style={s.stepIndicator}>
           <View style={s.dot} />
@@ -246,14 +251,19 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
         </View>
 
         {/* 휠 피커 */}
-        <View style={s.pickerRow}>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <T v="sub" style={{ marginBottom: 8 }}>시</T>
+        <View
+          style={s.pickerRow}
+          onTouchStart={() => setOuterScrollEnabled(false)}
+          onTouchEnd={() => setOuterScrollEnabled(true)}
+          onTouchCancel={() => setOuterScrollEnabled(true)}
+        >
+          <View style={{ flex: 1, alignItems: 'stretch' }}>
+            <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>시</T>
             <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
           </View>
           <T v="sub" size={32} style={{ marginTop: 12, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <T v="sub" style={{ marginBottom: 8 }}>분</T>
+          <View style={{ flex: 1, alignItems: 'stretch' }}>
+            <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>분</T>
             <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
           </View>
         </View>
@@ -315,10 +325,11 @@ function makeStyles(C) {
 
     previewRow:  { alignItems: 'center', marginBottom: 24 },
     previewRing: {
-      width: 100, height: 100, borderRadius: 50,
+      width: 150, height: 150, borderRadius: 50,
       borderWidth: 2, borderColor: C.greenBorder,
       backgroundColor: C.greenFaint,
       alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
     },
 
     sectionLabel: { marginBottom: 12, opacity: 0.6, letterSpacing: 1 },
@@ -357,7 +368,7 @@ function makeStyles(C) {
     pickerRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border,
-      paddingHorizontal: 24, paddingVertical: 12, marginBottom: 24,
+      paddingHorizontal: 8, paddingVertical: 12, marginBottom: 24,
     },
     presetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 28 },
     presetChip: {

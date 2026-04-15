@@ -1,6 +1,7 @@
 package com.offmode.mission;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -71,4 +72,8 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
         ORDER BY um.assignedAt DESC
     """)
     List<UserMissionDto> findHistoryWithPhoto(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM UserMission um WHERE um.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

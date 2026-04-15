@@ -1,6 +1,9 @@
 package com.offmode.badge;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Set;
@@ -17,4 +20,8 @@ public interface UserBadgeRepository extends JpaRepository<UserBadge, Long> {
                 .map(UserBadge::getBadgeKey)
                 .collect(Collectors.toSet());
     }
+
+    @Modifying
+    @Query("DELETE FROM UserBadge ub WHERE ub.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

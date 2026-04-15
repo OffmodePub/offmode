@@ -67,10 +67,16 @@ function MarqueeBanner() {
         </T>
       </ScrollView>
 
-      <View style={{ backgroundColor: C.isDark ? '#0f0f1c' : '#f0f8f4', borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder, overflow: 'hidden', height: 40, justifyContent: 'center' }}>
+      <View style={{
+        backgroundColor: C.isDark ? '#0a1a10' : '#f0f8f4',
+        borderTopWidth: 1, borderBottomWidth: 1,
+        borderColor: C.isDark ? '#22c97a88' : C.greenBorder,
+        overflow: 'hidden', height: 44, justifyContent: 'center',
+        ...(C.isDark && { shadowColor: '#22c97a', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }),
+      }}>
         <Animated.View style={{ flexDirection: 'row', transform: [{ translateX }] }}>
-          {textWidth > 0 && <T v="body" style={{ paddingVertical: 8,  width: textWidth + 1, letterSpacing: 0.4, opacity: 0.85 }}>{TICKER_TEXT}</T>}
-          {textWidth > 0 && <T v="body" style={{ paddingVertical: 8, width: textWidth + 1, letterSpacing: 0.4, opacity: 0.85 }}>{TICKER_TEXT}</T>}
+          {textWidth > 0 && <T v="green" style={{ paddingVertical: 8, width: textWidth + 1, letterSpacing: 0.6, opacity: C.isDark ? 1 : 0.85 }}>{TICKER_TEXT}</T>}
+          {textWidth > 0 && <T v="green" style={{ paddingVertical: 8, width: textWidth + 1, letterSpacing: 0.6, opacity: C.isDark ? 1 : 0.85 }}>{TICKER_TEXT}</T>}
         </Animated.View>
       </View>
     </View>
@@ -384,14 +390,10 @@ function makeAllStyles(C) {
     content: { paddingBottom: 130 },
     header:  { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16 },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    logoText:  { fontFamily: F, fontSize: 34, color: C.green, fontStyle: 'italic', letterSpacing: -0.5 },
-    logoSub:   { fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 20 },
     timeBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.surface, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
     timeBtnIcon: { fontSize: 14 },
-    timeBtnText: { fontFamily: F, fontSize: 14, color: C.green, letterSpacing: 0.5 },
     cardWrapper: { paddingHorizontal: 20, marginTop: 25 },
     card:        { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.greenBorder, borderRadius: 20, padding: 20 },
-    cardLabel:   { fontFamily: F, fontSize: 12, color: C.green, letterSpacing: 2, marginBottom: 16, opacity: 0.75 },
     iconBox:     { alignSelf: 'center', marginBottom: 16, width: 80, height: 80, borderRadius: 18, backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, alignItems: 'center', justifyContent: 'center' },
     iconWindow:  { width: 46, height: 40, borderWidth: 1.5, borderColor: C.green, borderRadius: 4, overflow: 'hidden' },
     iconWindowBar: { height: 11, borderBottomWidth: 1.5, borderBottomColor: C.green, backgroundColor: 'transparent' },
@@ -400,24 +402,19 @@ function makeAllStyles(C) {
     cloud:       { alignItems: 'center' },
     cloudBody:   { width: 18, height: 8, backgroundColor: C.green, borderRadius: 4, opacity: 0.85 },
     cloudPuff:   { position: 'absolute', top: -4, backgroundColor: C.green, borderRadius: 6, opacity: 0.85 },
-    missionTitle: { fontFamily: F, textAlign: 'center', fontSize: 26, color: C.text, lineHeight: 36, marginBottom: 10 },
     statusRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 },
     statusClock: { fontSize: 15 },
-    statusText:  { fontFamily: F, fontSize: 14, color: C.green, opacity: 0.8 },
     statsBlock:  { marginBottom: 14 },
     statRow:     { flexDirection: 'row', alignItems: 'center', marginBottom: 9, gap: 8 },
-    statLabel:   { fontFamily: F, fontSize: 13, color: C.textSub, width: 62 },
     statTrack:   { flex: 1, height: 6, backgroundColor: C.surface2, borderRadius: 3, overflow: 'hidden' },
     statFill:    { height: '100%', borderRadius: 3 },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
     titleTag:    { backgroundColor: C.purpleFaint, borderWidth: 1, borderColor: C.purpleBorder, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-    titleTagText: { fontFamily: F, fontSize: 12, color: C.purple, letterSpacing: 0.3 },
     badges:      { flexDirection: 'row', gap: 6 },
     badge:       { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     badgeImg:    { width: 26, height: 26 },
     badgeEmoji:  { fontSize: 16 },
     verifyBtn:   { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-    verifyBtnText: { fontFamily: F, color: '#000', fontSize: 17, letterSpacing: 0.5 },
     verifiedResult: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: C.greenBorder, backgroundColor: C.greenFaint },
     verifiedPhoto:  { width: '100%', height: 160 },
     verifiedInfo:   { padding: 14 },
@@ -427,38 +424,22 @@ function makeAllStyles(C) {
   const empty = StyleSheet.create({
     waitCard: { marginHorizontal: 20, marginTop: 16, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 24, alignItems: 'center' },
     waitEmoji: { fontSize: 40, marginBottom: 10 },
-    waitTitle: { fontFamily: F, fontSize: 22, color: C.text, marginBottom: 6 },
-    waitDesc:  { fontFamily: F, fontSize: 13, color: C.textSub, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     countdownRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
     countdownBlock: { alignItems: 'center', backgroundColor: C.surface2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, minWidth: 64, borderWidth: 1, borderColor: C.border },
-    countdownNum:   { fontFamily: F, fontSize: 32, color: C.text, lineHeight: 38 },
-    countdownUnit:  { fontFamily: F, fontSize: 11, color: C.textSub, marginTop: 2 },
-    countdownColon: { fontFamily: F, fontSize: 24, color: C.textSub, opacity: 0.4, marginBottom: 14 },
     timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
-    timeRowText:  { fontFamily: F, fontSize: 13, color: C.textSub },
-    timeRowValue: { fontFamily: F, fontSize: 14, color: C.green },
-    sectionTitle: { fontFamily: F, fontSize: 15, color: C.text, paddingHorizontal: 20, marginTop: 28, marginBottom: 14 },
     stepsWrap:    { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },
     stepRow:      { flexDirection: 'row', gap: 14, minHeight: 60 },
     stepNumWrap:  { alignItems: 'center', width: 36 },
     stepEmoji:    { fontSize: 24 },
     stepLine:     { flex: 1, width: 1.5, backgroundColor: C.border, marginTop: 6, marginBottom: -10 },
     stepContent:  { flex: 1, paddingBottom: 20 },
-    stepTitle:    { fontFamily: F, fontSize: 15, color: C.text, marginBottom: 4, marginTop: 2 },
-    stepDesc:     { fontFamily: F, fontSize: 13, color: C.textSub, lineHeight: 19 },
     statsRow:     { flexDirection: 'row', marginHorizontal: 20, gap: 8 },
     statCard:     { flex: 1, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, alignItems: 'center' },
-    statValue:    { fontFamily: F, fontSize: 20, color: C.text, marginBottom: 4 },
-    statLabel:    { fontFamily: F, fontSize: 11, color: C.textSub, textAlign: 'center' },
     hintCard:     { marginHorizontal: 20, marginTop: 16, marginBottom: 8, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },
-    hintTitle:    { fontFamily: F, fontSize: 14, color: C.text, marginBottom: 14 },
     hintRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
     hintDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green, opacity: 0.6 },
-    hintText:     { fontFamily: F, fontSize: 13, color: C.textSub },
-    hintNote:     { fontFamily: F, fontSize: 11, color: C.textSub, opacity: 0.5, marginTop: 6 },
     rollBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 16, paddingVertical: 17 },
     rollBtnIcon:  { fontSize: 22 },
-    rollBtnText:  { fontFamily: F, fontSize: 17, color: '#000' },
   });
 
   return { styles, empty };
