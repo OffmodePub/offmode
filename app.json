@@ -13,15 +13,14 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.minnnj.offmode",
       "appleTeamId": "F93MCV6G64",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "privacyPolicyUrl": "https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0d0d14"
       },
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
@@ -44,6 +43,12 @@
         }
       ],
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "55f790bd-66d2-44f7-bacc-2d422434926b"
+      }
+    },
+    "owner": "minnnj"
   }
 }
