@@ -8,8 +8,141 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
 import { api } from '../utils/api';
 import T from '../components/ThemedText';
+import Svg, { Path, Defs, ClipPath, Rect } from 'react-native-svg';
 
 const F = 'Kkukkukk';
+
+function HourglassAnimation({ size = 88 }) {
+  const C = useColors();
+  const col = C.green;
+
+  const [fill, setFill] = useState(0);
+  const rotation = useRef(new Animated.Value(0)).current;
+  const rafRef   = useRef(null);
+  const startRef = useRef(Date.now());
+  const FILL_MS  = 3200;
+
+  useEffect(() => {
+    const tick = () => {
+      const progress = Math.min((Date.now() - startRef.current) / FILL_MS, 1);
+      setFill(progress);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        Animated.timing(rotation, {
+          toValue: 1, duration: 700, useNativeDriver: true,
+        }).start(() => {
+          rotation.setValue(0);
+          setFill(0);
+          startRef.current = Date.now();
+          rafRef.current = requestAnimationFrame(tick);
+        });
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const rotate = rotation.interpolate({
+    inputRange: [0, 1], outputRange: ['0deg', '180deg'],
+  });
+
+  // ── 기하학 ─────────────────────────────────────
+  const S   = size;
+  const cx  = S / 2;
+  const px  = S * 0.12;             // 좌우 여백
+  const ty  = S * 0.07;             // 최상단
+  const by  = S - ty;               // 최하단
+  const ch  = S * 0.09;             // 상하 캡 높이
+  const bty = ty + ch;              // 몸통 상단 (캡 아래)
+  const bby = by - ch;              // 몸통 하단 (캡 위)
+  const nk  = S * 0.04;             // 목 반폭
+  const nty = S / 2 - S * 0.06;    // 목 상단
+  const nby = S / 2 + S * 0.06;    // 목 하단
+
+  // 모래시계 전체 윤곽 (상하 캡 + 곡선 측면)
+  const hgPath =
+    `M ${px},${ty} L ${S-px},${ty} L ${S-px},${bty} ` +
+    `Q ${S-px},${nty} ${cx+nk},${nty} L ${cx+nk},${nby} ` +
+    `Q ${S-px},${nby} ${S-px},${bby} L ${S-px},${by} ` +
+    `L ${px},${by} L ${px},${bby} ` +
+    `Q ${px},${nby} ${cx-nk},${nby} L ${cx-nk},${nty} ` +
+    `Q ${px},${nty} ${px},${bty} Z`;
+
+  // 모래 수위 (클립 패스로 정확히 잘림)
+  const tsY = bty + fill * (nty - bty);       // 위쪽 모래 표면 (아래로 내려감)
+  const bsY = bby - fill * (bby - nby);       // 아래쪽 모래 표면 (위로 올라감)
+  const streaming = fill > 0.03 && fill < 0.97;
+
+  return (
+    <View style={{
+      marginBottom: 12,
+      shadowColor: col,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: C.isDark ? 0.5 : 0.2,
+      shadowRadius: 18,
+    }}>
+      <Animated.View style={{ transform: [{ rotate }] }}>
+        <Svg width={S} height={S} viewBox={`0 0 ${S} ${S}`}>
+          <Defs>
+            <ClipPath id="hgc">
+              <Path d={hgPath} />
+            </ClipPath>
+          </Defs>
+
+          {/* 유리 틴트 */}
+          <Path d={hgPath} fill={col} fillOpacity={0.06} />
+
+          {/* 위쪽 모래 */}
+          {fill < 0.99 && (
+            <Rect
+              x={0} y={tsY} width={S} height={Math.max(nty - tsY, 0)}
+              fill={col} fillOpacity={0.42} clipPath="url(#hgc)"
+            />
+          )}
+          {/* 위쪽 모래 표면 하이라이트 */}
+          {fill < 0.95 && (
+            <Rect
+              x={0} y={tsY} width={S} height={2}
+              fill={col} fillOpacity={0.8} clipPath="url(#hgc)"
+            />
+          )}
+
+          {/* 아래쪽 모래 */}
+          {fill > 0.01 && (
+            <Rect
+              x={0} y={bsY} width={S} height={Math.max(bby - bsY, 0)}
+              fill={col} fillOpacity={0.62} clipPath="url(#hgc)"
+            />
+          )}
+          {/* 아래쪽 모래 표면 하이라이트 */}
+          {fill > 0.05 && (
+            <Rect
+              x={0} y={bsY} width={S} height={2}
+              fill={col} fillOpacity={0.95} clipPath="url(#hgc)"
+            />
+          )}
+
+          {/* 모래 낙하 스트림 */}
+          {streaming && (
+            <Path
+              d={`M ${cx},${nty + 2} L ${cx},${nby - 2}`}
+              stroke={col} strokeWidth={2.5} strokeOpacity={0.55}
+              strokeLinecap="round"
+            />
+          )}
+
+          {/* 유리 윤곽선 */}
+          <Path
+            d={hgPath} fill="none"
+            stroke={col} strokeWidth={2} strokeOpacity={0.8}
+            strokeLinejoin="round" strokeLinecap="round"
+          />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+}
 
 const BADGE_IMAGES = {
   'badge_explore_lv01_initiate.png':        require('../assets/badge/badge_explore_lv01_initiate.png'),
@@ -236,6 +369,24 @@ const STEPS = [
   { icon: '📸', title: '인증 & 공유', desc: '완료하고 인증 카드로 자랑하기' },
 ];
 
+function WaitingTitle() {
+  const [dots, setDots] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setDots(d => (d + 1) % 4), 520);
+    return () => clearInterval(id);
+  }, []);
+
+  const dotStr = '.'.repeat(dots).padEnd(3, ' ');
+
+  return (
+    <View style={{ marginTop: 6, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+      <T v="title" size={25}>미션 대기 중 </T>
+      <T v="green" size={25}>{dotStr}</T>
+    </View>
+  );
+}
+
 function useCountdown(missionTime) {
   const calc = () => {
     const now = new Date();
@@ -263,9 +414,9 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={empty.waitCard}>
-        <Text style={empty.waitEmoji}>⏳</Text>
-        <T v="title" size={22} style={{ marginBottom: 6 }}>미션 대기 중</T>
-        <T v="sub" style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>매일 설정한 시간에{'\n'}오늘의 미션이 도착해요</T>
+        <HourglassAnimation size={88} />
+        <WaitingTitle />
+        <T v="sub" style={{ fontSize: 16,textAlign: 'center', lineHeight: 24, marginBottom: 24 }}>매일 설정한 시간에{'\n'}오늘의 미션이 도착해요</T>
         <View style={empty.countdownRow}>
           {[{ v: h, u: '시간' }, { v: m, u: '분' }, { v: s, u: '초' }].map(({ v, u }, i) => (
             <React.Fragment key={u}>
@@ -278,8 +429,8 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
           ))}
         </View>
         <TouchableOpacity style={empty.timeRow} onPress={onOpenTimeSettings} activeOpacity={0.7}>
-          <T v="sub">🕐  미션 알림 시간</T>
-          <T v="green">{timeLabel}  ›</T>
+          <T v="sub" style={{ fontSize: 16 }}>🕐  미션 알림 시간</T>
+          <T v="green" style={{ fontSize: 16 }}>{timeLabel}  ›</T>
         </TouchableOpacity>
       </View>
 
@@ -290,7 +441,7 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
         </LinearGradient>
       </TouchableOpacity>
 
-      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 14 }}>이렇게 하면 돼요</T>
+      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 20, fontSize: 16 }}>이렇게 하면 돼요</T>
       <View style={empty.stepsWrap}>
         {STEPS.map((step, i) => (
           <View key={i} style={empty.stepRow}>
@@ -299,14 +450,14 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
               {i < STEPS.length - 1 && <View style={empty.stepLine} />}
             </View>
             <View style={empty.stepContent}>
-              <T v="section" style={{ marginBottom: 4, marginTop: 2 }}>{step.title}</T>
-              <T v="sub" style={{ lineHeight: 19 }}>{step.desc}</T>
+              <T v="section" style={{ marginBottom: 4, marginTop: 2, fontSize: 16 }}>{step.title}</T>
+              <T v="sub" style={{ lineHeight: 19, fontSize: 14 }}>{step.desc}</T>
             </View>
           </View>
         ))}
       </View>
 
-      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 14 }}>지금 이 순간</T>
+      <T v="section" style={{ paddingHorizontal: 20, marginTop: 28, marginBottom: 20, fontSize: 16 }}>지금 이 순간</T>
       <View style={empty.statsRow}>
         {[
           { value: communityStats ? communityStats.activeToday.toLocaleString() : '-', label: '오늘 미션 중' },
@@ -314,22 +465,22 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
           { value: userStats ? `${userStats.streak}일` : '-',                          label: '나의 연속 기록' },
         ].map((st, i) => (
           <View key={i} style={[empty.statCard, i === 1 && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}>
-            <T v="title" size={20} style={{ marginBottom: 4 }} color={i === 1 ? C.green : undefined}>{st.value}</T>
-            <T v="caption" style={{ textAlign: 'center' }}>{st.label}</T>
+            <T v="title" size={20} style={{ marginBottom: 6 }} color={i === 1 ? C.green : undefined}>{st.value}</T>
+            <T v="caption" style={{ textAlign: 'center', fontSize: 14 }}>{st.label}</T>
           </View>
         ))}
       </View>
 
       {missionPool.length > 0 && (
         <View style={empty.hintCard}>
-          <T v="body" style={{ marginBottom: 14 }}>미션은 이런 거예요</T>
+          <T v="body" style={{ marginBottom: 14, fontSize: 16 }}>미션은 이런 거예요</T>
           {missionPool.slice(0, 4).map((m, i) => (
             <View key={i} style={empty.hintRow}>
               <View style={empty.hintDot} />
-              <T v="sub">{m.icon} {m.text}</T>
+              <T v="sub" style={{ fontSize: 15 }}>{m.icon}  {m.text}</T>
             </View>
           ))}
-          <T v="caption" style={{ opacity: 0.5, marginTop: 6 }}>* 매일 랜덤으로 새 미션이 도착해요</T>
+          <T v="sub" style={{ opacity: 0.6, marginTop: 6, fontSize: 14 }}>* 매일 랜덤으로 새 미션이 도착해요</T>
         </View>
       )}
     </ScrollView>
@@ -394,7 +545,7 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
             </TouchableOpacity>
           </View>
         </View>
-        <T v="body" style={{ lineHeight: 20 }}>스마트폰 밖의 진짜 세상으로,{'\n'}미션과 함께하는 나만의 로그아웃</T>
+        <T v="section" style={{ lineHeight: 20, fontSize: 17 }}>스크린 OFF. 일상 ON.</T>
       </View>
 
       <MarqueeBanner />
@@ -464,16 +615,15 @@ function makeAllStyles(C) {
 
   const empty = StyleSheet.create({
     waitCard: { marginHorizontal: 20, marginTop: 16, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 24, alignItems: 'center' },
-    waitEmoji: { fontSize: 40, marginBottom: 10 },
     countdownRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
     countdownBlock: { alignItems: 'center', backgroundColor: C.surface2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, minWidth: 64, borderWidth: 1, borderColor: C.border },
-    timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+    timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16 },
     stepsWrap:    { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },
     stepRow:      { flexDirection: 'row', gap: 14, minHeight: 60 },
     stepNumWrap:  { alignItems: 'center', width: 36 },
-    stepEmoji:    { fontSize: 24 },
+    stepEmoji:    { fontSize: 28 },
     stepLine:     { flex: 1, width: 1.5, backgroundColor: C.border, marginTop: 6, marginBottom: -10 },
-    stepContent:  { flex: 1, paddingBottom: 20 },
+    stepContent:  { flex: 1, paddingBottom: 21 },
     statsRow:     { flexDirection: 'row', marginHorizontal: 20, gap: 8 },
     statCard:     { flex: 1, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, alignItems: 'center' },
     hintCard:     { marginHorizontal: 20, marginTop: 16, marginBottom: 8, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 20 },

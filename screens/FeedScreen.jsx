@@ -170,13 +170,13 @@ function FeaturedCard({ item, onReact, onVerify }) {
         <View style={feat.userRow}>
           <View style={feat.avatar}><Text style={feat.avatarEmoji}>{item.avatar}</Text></View>
           <View style={{ flex: 1 }}>
-            <T v="sub" color="#fff">{item.user}</T>
-            <T v="caption" color="rgba(255,255,255,0.6)" style={{ marginTop: 1 }}>🕐 {item.time} {item.label}</T>
+            <T v="sub" color="#fff" style={{ fontSize:14 }}>{item.user}</T>
+            <T v="sub" color="rgba(255,255,255,0.6)" style={{ marginTop: 3 }}>🕐 {item.time} {item.label}</T>
           </View>
           {item.hip && <View style={feat.hipBadge}><T v="caption" color="#000">HIP</T></View>}
           {item.verified
-            ? <View style={feat.statusBadgeGreen}><T v="caption" size={9} color="#000">✓ 인증완료</T></View>
-            : <View style={feat.statusBadgePending}><T v="caption" size={9} color="rgba(255,255,255,0.8)">인증 대기</T></View>
+            ? <View style={feat.statusBadgeGreen}><T v="sub" size={11} color="#000">✓ 인증완료</T></View>
+            : <View style={feat.statusBadgePending}><T v="sub" size={11} color="rgba(255,255,255,0.8)">인증 대기</T></View>
           }
         </View>
         {item.caption && <View style={feat.captionWrap}><T v="sub" color="#fff">{item.caption}</T></View>}
@@ -236,8 +236,8 @@ function makeFeatStyles(C) {
     reactionEmoji: { fontSize: 15 },
     verifyBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
     verifyBtnDone:    { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
-    statusBadgeGreen: { backgroundColor: 'rgba(34,201,122,0.85)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
-    statusBadgePending: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+    statusBadgeGreen: { backgroundColor: 'rgba(34,201,122,0.85)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4 },
+    statusBadgePending: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
     addBtn:           { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: C.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface },
   });
 }
@@ -406,9 +406,9 @@ export default function FeedScreen() {
   return (
     <View style={s.screen}>
       <View style={s.header}>
-        <T v="logo" style={{ fontSize: 22, fontStyle: 'italic' }}>TODAY'S PROOF</T>
+        <T v="logo" style={{ fontSize: 28, fontStyle: 'italic' }}>TODAY'S PROOF</T>
         <View style={s.headerSub}>
-          <T v="sub">같은 미션을 완료한 사람들의 인증</T>
+          <T v="sub" style={{ fontSize:17 }}>같은 미션을 완료한 사람들의 인증</T>
         </View>
       </View>
       {loading ? <FeedSkeleton /> : (
@@ -416,14 +416,14 @@ export default function FeedScreen() {
           <View style={s.missionBar}>
             <View style={s.missionNameRow}>
               <Text style={s.missionIcon}>{todayMission?.missionIcon ?? featured?.missionIcon ?? '📋'}</Text>
-              <T v="section" style={{ flex: 1 }} numberOfLines={1}>{todayMission?.missionText ?? featured?.missionText ?? '오늘의 미션'}</T>
+              <T v="section" style={{ flex: 1, fontSize: 17 }} numberOfLines={1}>{todayMission?.missionText ?? featured?.missionText ?? '오늘의 미션'}</T>
             </View>
             <View style={s.participantRow}>
               <View style={s.progressTrack}>
                 <View style={[s.progressFill, { width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }]} />
               </View>
-              <T v="sub">
-                <T v="sub" color={C.green}>{doneCount}명</T>{' '}/ {totalCount}명 인증 완료
+              <T v="sub" style={{ fontSize: 16 }}>
+                <T v="sub" style={{ fontSize: 16, color: C.green }}>{doneCount}명</T>{' '}/ {totalCount}명 인증 완료
               </T>
             </View>
           </View>
@@ -438,13 +438,13 @@ export default function FeedScreen() {
 
           {featured && (
             <>
-              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>✦  가장 많은 리액션</T>
+              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15, fontSize: 15 }}>✦  가장 많은 리액션</T>
               <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} />
             </>
           )}
           {rest.length > 0 && (
             <>
-              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>모든 인증</T>
+              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15, fontSize: 15 }}>모든 인증</T>
               <View style={s.gridWrap}>
                 {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} />)}
               </View>
@@ -453,12 +453,9 @@ export default function FeedScreen() {
           {filtered.length === 0 && (
             <View style={s.empty}>
               <Text style={s.emptyEmoji}>🔍</Text>
-              <T v="sub" size={15}>아직 인증이 없어요</T>
+              <T v="sub" size={18}>아직 인증이 없어요</T>
             </View>
           )}
-          <View style={s.footer}>
-            <T v="green" style={{ fontStyle: 'italic', opacity: 0.4 }}>OFFMODE</T>
-          </View>
         </ScrollView>
       )}
     </View>
@@ -468,21 +465,20 @@ export default function FeedScreen() {
 function makeSStyles(C) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg, paddingBottom: 100 },
-    header: { alignItems: 'flex-start', paddingTop: 28, paddingBottom: 16, paddingHorizontal: 20 },
-    headerSub: { marginTop: 4 },
-    missionBar: { marginHorizontal: 16, marginBottom: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+    header: { alignItems: 'flex-start', paddingTop: 28, paddingBottom: 30, paddingHorizontal: 20 },
+    headerSub: { marginTop: 10 },
+    missionBar: { marginHorizontal: 16, marginBottom: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 20, gap: 10 },
     missionNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     missionIcon: { fontSize: 18 },
     participantRow: { gap: 6 },
     progressTrack: { height: 7, backgroundColor: C.surface2, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
     progressFill:  { height: '100%', borderRadius: 3, backgroundColor: C.green },
     filterRow:     { marginBottom: 20 },
-    filterChip:    { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    filterChip:    { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
     filterChipActive: { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
     filterTextActive: { color: C.green },
     gridWrap:      { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 },
-    empty:         { alignItems: 'center', paddingVertical: 60, gap: 12 },
-    emptyEmoji:    { fontSize: 40 },
-    footer:        { alignItems: 'center', paddingVertical: 20 },
+    empty:         { alignItems: 'center', paddingVertical: 60, gap: 15 },
+    emptyEmoji:    { fontSize: 60 },
   });
 }

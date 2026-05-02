@@ -32,8 +32,8 @@ function SettingRow({ icon, label, sub, right, onPress, last = false }) {
       <View style={row.left}>
         <Text style={row.icon}>{icon}</Text>
         <View style={{ gap: 6 }}>
-          <T v="section">{label}</T>
-          {sub ? <T v="label">{sub}</T> : null}
+          <T v="section" style={{ fontSize: 16 }}>{label}</T>
+          {sub ? <T v="label" style={{ fontSize: 14}}>{sub}</T> : null}
         </View>
       </View>
       <View style={row.right}>{right}</View>
@@ -45,7 +45,7 @@ function makeRowStyles(C) {
   return StyleSheet.create({
     wrap: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingVertical: 14,
+      paddingHorizontal: 16, paddingVertical: 16,
       borderBottomWidth: 1, borderBottomColor: C.border,
     },
     last:  { borderBottomWidth: 0 },
@@ -61,7 +61,11 @@ function Section({ title, children }) {
   const sec = useMemo(() => makeSecStyles(C), [C]);
   return (
     <View style={sec.wrap}>
-      {title ? <T v="section" style={sec.title}>{title}</T> : null}
+      {title ? (
+        <T v="section" style={[sec.title, { fontSize: 16 }]}>
+          {title}
+        </T>
+      ) : null}
       <View style={sec.card}>{children}</View>
     </View>
   );
@@ -128,7 +132,7 @@ export default function SettingsScreen({
         ) : (
           <View style={{ width: 40 }} />
         )}
-        <T v="section">설정</T>
+        <T v="title">설정</T>
         <View style={{ width: 40 }} />
       </View>
 
