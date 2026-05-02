@@ -16,10 +16,11 @@ import SignupScreen from './screens/SignupScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 import { signInWithApple, signInWithKakao } from './utils/auth';
 import { api, loadToken, clearToken } from './utils/api';
+import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
 
 const TABS = [
   { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
-  { key: 'feed',     label: '[VERIFY FEED]', ionicon: 'list-outline'     },
+  { key: 'feed',     label: '[FEED]',        ionicon: 'list-outline'     },
   { key: 'profile',  label: '[PROFILE]',     ionicon: 'person-outline'   },
   { key: 'settings', label: '[SETTINGS]',    ionicon: 'settings-outline' },
 ];
@@ -37,9 +38,12 @@ function AppInner() {
         try {
           const user = await api.get('/api/users/me');
           setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-          if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
+          const hour   = user.missionHour   ?? 8;
+          const minute = user.missionMinute ?? 0;
+          if (user.missionHour != null) setMissionTime({ hour, minute });
           if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
           await loadTodayMission();
+          scheduleMissionNotification(hour, minute);
           setAuthStatus('authenticated');
         } catch (e) {
           console.warn('자동 로그인 실패:', e);
@@ -81,9 +85,12 @@ function AppInner() {
       setAuthUser(user);
       if (!isNew) {
         setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
+        const hour   = user.missionHour   ?? 8;
+        const minute = user.missionMinute ?? 0;
+        if (user.missionHour != null) setMissionTime({ hour, minute });
         if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
         await loadTodayMission();
+        scheduleMissionNotification(hour, minute);
       }
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
@@ -97,9 +104,12 @@ function AppInner() {
       setAuthUser(user);
       if (!isNew) {
         setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        if (user.missionHour != null) setMissionTime({ hour: user.missionHour, minute: user.missionMinute });
+        const hour   = user.missionHour   ?? 8;
+        const minute = user.missionMinute ?? 0;
+        if (user.missionHour != null) setMissionTime({ hour, minute });
         if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
         await loadTodayMission();
+        scheduleMissionNotification(hour, minute);
       }
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
@@ -108,6 +118,7 @@ function AppInner() {
   };
 
   const handleLogout = async () => {
+    await cancelMissionNotification();
     await clearToken();
     setAuthUser(null);
     setProfile({ name: '오프모더', avatar: '01' });
@@ -142,6 +153,7 @@ function AppInner() {
     setProfile({ name, avatar });
     setMissionTime(mt);
     await loadTodayMission();
+    scheduleMissionNotification(mt.hour, mt.minute);
     setAuthStatus('authenticated');
   };
 
@@ -271,6 +283,7 @@ function AppInner() {
                 onSave={(t) => {
                   setMissionTime(t);
                   api.put('/api/users/me', { missionHour: t.hour, missionMinute: t.minute }).catch(e => console.warn('시간 저장 실패:', e));
+                  scheduleMissionNotification(t.hour, t.minute);
                   pop();
                 }}
                 initialTime={missionTime}

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Dimensions, ActivityIndicator, Image,
-  Modal, TextInput, KeyboardAvoidingView, Platform,
+  Modal, TextInput, KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -12,6 +12,48 @@ import T from '../components/ThemedText';
 const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 40 - 8) / 2;
+
+function SkeletonBox({ w, h, radius = 8, style }) {
+  const C = useColors();
+  const anim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1,   duration: 700, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[{ width: w, height: h, borderRadius: radius, backgroundColor: C.surface2, opacity: anim }, style]} />
+  );
+}
+
+function FeedSkeleton() {
+  const C = useColors();
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+      <View style={{ marginHorizontal: 16, marginTop: 16, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 15 }}>
+        <SkeletonBox w="100%" h={220} radius={0} />
+        <View style={{ padding: 14, gap: 8 }}>
+          <SkeletonBox w={120} h={12} />
+          <SkeletonBox w={80}  h={12} />
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 }}>
+        {[0, 1, 2, 3].map(i => (
+          <View key={i} style={{ width: CARD_W, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: C.border, backgroundColor: C.surface }}>
+            <SkeletonBox w="100%" h={150} radius={0} />
+            <View style={{ padding: 8, gap: 6 }}>
+              <SkeletonBox w={80} h={10} />
+              <SkeletonBox w={60} h={10} />
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
 
 const GRAD_PALETTE = [
   ['#87ceeb','#2a7ab8'], ['#acd8a7','#2e7d4f'], ['#c3aef0','#5a2da0'],
@@ -361,67 +403,64 @@ export default function FeedScreen() {
   const doneCount  = items.filter(i => i.verified).length;
   const totalCount = items.length;
 
-  if (loading) {
-    return (
-      <View style={[s.screen, { alignItems: 'center', justifyContent: 'center' }]}>
-        <ActivityIndicator color={C.green} />
-      </View>
-    );
-  }
-
   return (
     <View style={s.screen}>
       <View style={s.header}>
-        <T v="title" size={18}>동일 미션 인증 피드</T>
+        <T v="logo" style={{ fontSize: 22, fontStyle: 'italic' }}>TODAY'S PROOF</T>
+        <View style={s.headerSub}>
+          <T v="sub">같은 미션을 완료한 사람들의 인증</T>
+        </View>
       </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={s.missionBar}>
-          <View style={s.missionNameRow}>
-            <Text style={s.missionIcon}>{todayMission?.missionIcon ?? featured?.missionIcon ?? '📋'}</Text>
-            <T v="section" style={{ flex: 1 }} numberOfLines={1}>{todayMission?.missionText ?? featured?.missionText ?? '오늘의 미션'}</T>
-          </View>
-          <View style={s.participantRow}>
-            <View style={s.progressTrack}>
-              <View style={[s.progressFill, { width: `${(doneCount / totalCount) * 100}%` }]} />
+      {loading ? <FeedSkeleton /> : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={s.missionBar}>
+            <View style={s.missionNameRow}>
+              <Text style={s.missionIcon}>{todayMission?.missionIcon ?? featured?.missionIcon ?? '📋'}</Text>
+              <T v="section" style={{ flex: 1 }} numberOfLines={1}>{todayMission?.missionText ?? featured?.missionText ?? '오늘의 미션'}</T>
             </View>
-            <T v="sub">
-              <T v="sub" color={C.green}>{doneCount}명</T>{' '}/ {totalCount}명 인증 완료
-            </T>
+            <View style={s.participantRow}>
+              <View style={s.progressTrack}>
+                <View style={[s.progressFill, { width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%` }]} />
+              </View>
+              <T v="sub">
+                <T v="sub" color={C.green}>{doneCount}명</T>{' '}/ {totalCount}명 인증 완료
+              </T>
+            </View>
           </View>
-        </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterRow} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-          {FILTERS.map(f => (
-            <TouchableOpacity key={f} style={[s.filterChip, filter === f && s.filterChipActive]} onPress={() => setFilter(f)} activeOpacity={0.7}>
-              <T v="body" style={filter === f ? { color: C.green } : undefined}>{f}</T>
-            </TouchableOpacity>
-          ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterRow} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+            {FILTERS.map(f => (
+              <TouchableOpacity key={f} style={[s.filterChip, filter === f && s.filterChipActive]} onPress={() => setFilter(f)} activeOpacity={0.7}>
+                <T v="body" style={filter === f ? { color: C.green } : undefined}>{f}</T>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {featured && (
+            <>
+              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>✦  가장 많은 리액션</T>
+              <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} />
+            </>
+          )}
+          {rest.length > 0 && (
+            <>
+              <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>모든 인증</T>
+              <View style={s.gridWrap}>
+                {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} />)}
+              </View>
+            </>
+          )}
+          {filtered.length === 0 && (
+            <View style={s.empty}>
+              <Text style={s.emptyEmoji}>🔍</Text>
+              <T v="sub" size={15}>아직 인증이 없어요</T>
+            </View>
+          )}
+          <View style={s.footer}>
+            <T v="green" style={{ fontStyle: 'italic', opacity: 0.4 }}>OFFMODE</T>
+          </View>
         </ScrollView>
-
-        {featured && (
-          <>
-            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>✦  가장 많은 리액션</T>
-            <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} />
-          </>
-        )}
-        {rest.length > 0 && (
-          <>
-            <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15 }}>모든 인증</T>
-            <View style={s.gridWrap}>
-              {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} />)}
-            </View>
-          </>
-        )}
-        {filtered.length === 0 && (
-          <View style={s.empty}>
-            <Text style={s.emptyEmoji}>🔍</Text>
-            <T v="sub" size={15}>아직 인증이 없어요</T>
-          </View>
-        )}
-        <View style={s.footer}>
-          <T v="green" style={{ fontStyle: 'italic', opacity: 0.4 }}>OFFMODE</T>
-        </View>
-      </ScrollView>
+      )}
     </View>
   );
 }
@@ -429,7 +468,8 @@ export default function FeedScreen() {
 function makeSStyles(C) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg, paddingBottom: 100 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 20 },
+    header: { alignItems: 'flex-start', paddingTop: 28, paddingBottom: 16, paddingHorizontal: 20 },
+    headerSub: { marginTop: 4 },
     missionBar: { marginHorizontal: 16, marginBottom: 20, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
     missionNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     missionIcon: { fontSize: 18 },

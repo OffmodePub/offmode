@@ -121,6 +121,115 @@ function MissionIcon({ icon, styles, C }) {
   );
 }
 
+function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displayedText, onOpenVerify, styles, C }) {
+  const cat       = currentMission?.category;
+  const catColor  = cat === 'Intellect' ? C.purple  : cat === 'Vitality' ? C.blue   : C.green;
+  const catFaint  = cat === 'Intellect' ? C.purpleFaint  : cat === 'Vitality' ? C.blueFaint  : C.greenFaint;
+  const catBorder = cat === 'Intellect' ? C.purpleBorder : cat === 'Vitality' ? C.blueBorder : C.greenBorder;
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.cardWrapper}>
+        <View style={[styles.card, { borderColor: catBorder }]}>
+          <LinearGradient
+            colors={[catColor + '28', 'transparent']}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 70, borderRadius: 20 }}
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <T v="section" color={catColor} style={{ letterSpacing: 2, opacity: 0.85 }}>오늘의 미션</T>
+            {cat && (
+              <View style={{ backgroundColor: catFaint, borderWidth: 1, borderColor: catBorder, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <T v="label" color={catColor}>{cat}</T>
+              </View>
+            )}
+          </View>
+          <MissionIcon icon={currentMission?.icon} styles={styles} C={C} />
+          <T v="mission" style={{ marginBottom: 10 }}>{currentMission?.text ?? '창문 열고\n하늘 사진 찍기'}</T>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusClock}>
+              {currentMission?.status === 'verified' ? '✅' : currentMission?.photoUrl ? '⏳' : '🕐'}
+            </Text>
+            <T v="green16" style={{ opacity: 0.8 }}>
+              {currentMission?.status === 'verified'
+                ? '인증 완료!'
+                : currentMission?.photoUrl
+                  ? '인증 대기 중...'
+                  : displayedText}
+            </T>
+          </View>
+          <View style={styles.statsBlock}>
+            <StatBar label="Energy"    color={C.green}  fill={userStats?.energyFill    ?? 0} styles={styles} />
+            <StatBar label="Intellect" color={C.purple} fill={userStats?.intellectFill ?? 0} styles={styles} />
+            <StatBar label="Vitality"  color={C.blue}   fill={userStats?.vitalityFill  ?? 0} styles={styles} />
+          </View>
+          {(mainBadge || earnedBadges.length > 0) && (
+            <View style={styles.badgeRow}>
+              {mainBadge && (
+                <View style={styles.titleTag}>
+                  <T v="purple" size={14} style={{ letterSpacing: 0.3 }}>{mainBadge.name}</T>
+                </View>
+              )}
+              <View style={styles.badges}>
+                {earnedBadges.map((b, i) => {
+                  const colors = [
+                    { border: C.purpleBorder, bg: C.purpleFaint },
+                    { border: C.blueBorder,   bg: C.blueFaint   },
+                    { border: C.greenBorder,  bg: C.greenFaint  },
+                  ][i % 3];
+                  const badgeImg = b.imageFile ? BADGE_IMAGES[b.imageFile] : null;
+                  return (
+                    <View key={b.key ?? i} style={[styles.badge, { borderColor: colors.border, backgroundColor: colors.bg }]}>
+                      {badgeImg
+                        ? <Image source={badgeImg} style={styles.badgeImg} resizeMode="contain" />
+                        : <Text style={styles.badgeEmoji}>🏅</Text>
+                      }
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+          {currentMission?.photoUrl || currentMission?.status === 'verified' ? (
+            <View style={styles.verifiedResult}>
+              {currentMission.photoUrl ? (
+                <Image
+                  source={{ uri: currentMission.photoUrl.startsWith('/')
+                    ? `${BASE_URL}${currentMission.photoUrl}`
+                    : currentMission.photoUrl }}
+                  style={styles.verifiedPhoto}
+                  resizeMode="cover"
+                />
+              ) : null}
+              <View style={styles.verifiedInfo}>
+                <View style={styles.verifiedTag}>
+                  {currentMission.status === 'verified'
+                    ? <T v="green" size={13}>✅  인증 완료</T>
+                    : <T v="sub" size={13}>⏳  다른 사람의 인증을 기다리는 중</T>
+                  }
+                </View>
+                {currentMission.caption
+                  ? <T v="sub" style={{ marginTop: 6 }}>{currentMission.caption}</T>
+                  : null}
+                <T v="caption" style={{ marginTop: 6, opacity: 0.55 }}>
+                  {currentMission.status === 'verified'
+                    ? '피드에서 리액션을 확인해봐요 🎉'
+                    : '같은 미션을 받은 사람이 인증해주면 완료돼요'}
+                </T>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity activeOpacity={0.8} onPress={onOpenVerify}>
+              <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.verifyBtn}>
+                <T v="btn" size={17} style={{ letterSpacing: 0.5 }}>인증하기</T>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
 const STEPS = [
   { icon: '🕐', title: '시간 설정',   desc: '미션을 받고 싶은 시간을 정해요' },
   { icon: '📋', title: '미션 도착',   desc: '매일 딱 하나의 미션이 팡!' },
@@ -144,7 +253,7 @@ function useCountdown(missionTime) {
   return time;
 }
 
-function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, communityStats, missionPool }) {
+function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, communityStats, userStats, missionPool }) {
   const C = useColors();
   const { styles, empty } = useMemo(() => makeAllStyles(C), [C]);
   const pad = (n) => String(n).padStart(2, '0');
@@ -202,7 +311,7 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
         {[
           { value: communityStats ? communityStats.activeToday.toLocaleString() : '-', label: '오늘 미션 중' },
           { value: communityStats ? `${communityStats.verificationRate}%` : '-',       label: '인증 완료율' },
-          { value: communityStats ? `${communityStats.streakDays}일` : '-',            label: '나의 연속 기록' },
+          { value: userStats ? `${userStats.streak}일` : '-',                          label: '나의 연속 기록' },
         ].map((st, i) => (
           <View key={i} style={[empty.statCard, i === 1 && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}>
             <T v="title" size={20} style={{ marginBottom: 4 }} color={i === 1 ? C.green : undefined}>{st.value}</T>
@@ -272,10 +381,18 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <T v="logo">OFFMODE</T>
-          <TouchableOpacity style={styles.timeBtn} onPress={onOpenTimeSettings} activeOpacity={0.7}>
-            <Text style={styles.timeBtnIcon}>🕐</Text>
-            <T v="green" style={{ letterSpacing: 0.5 }}>{timeLabel}</T>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {userStats?.streak > 0 && (
+              <View style={styles.streakBadge}>
+                <Text style={{ fontSize: 13 }}>🔥</Text>
+                <T v="green" style={{ letterSpacing: 0.3 }}>{userStats.streak}일 연속</T>
+              </View>
+            )}
+            <TouchableOpacity style={styles.timeBtn} onPress={onOpenTimeSettings} activeOpacity={0.7}>
+              <Text style={styles.timeBtnIcon}>🕐</Text>
+              <T v="green" style={{ letterSpacing: 0.5 }}>{timeLabel}</T>
+            </TouchableOpacity>
+          </View>
         </View>
         <T v="body" style={{ lineHeight: 20 }}>스마트폰 밖의 진짜 세상으로,{'\n'}미션과 함께하는 나만의 로그아웃</T>
       </View>
@@ -283,100 +400,23 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
       <MarqueeBanner />
 
       {hasMission ? (
-        <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.cardWrapper}>
-            <View style={styles.card}>
-              <T v="section" color={C.green} style={{ letterSpacing: 2, marginBottom: 16, opacity: 0.75 }}>오늘의 미션</T>
-              <MissionIcon icon={currentMission?.icon} styles={styles} C={C} />
-              <T v="mission" style={{ marginBottom: 10 }}>{currentMission?.text ?? '창문 열고\n하늘 사진 찍기'}</T>
-              <View style={styles.statusRow}>
-                <Text style={styles.statusClock}>
-                  {currentMission?.status === 'verified' ? '✅' : currentMission?.photoUrl ? '⏳' : '🕐'}
-                </Text>
-                <T v="green16" style={{ opacity: 0.8 }}>
-                  {currentMission?.status === 'verified'
-                    ? '인증 완료!'
-                    : currentMission?.photoUrl
-                      ? '인증 대기 중...'
-                      : displayedText}
-                </T>
-              </View>
-              <View style={styles.statsBlock}>
-                <StatBar label="Energy"    color={C.green}  fill={userStats?.energyFill    ?? 0} styles={styles} />
-                <StatBar label="Intellect" color={C.purple} fill={userStats?.intellectFill ?? 0} styles={styles} />
-                <StatBar label="Vitality"  color={C.blue}   fill={userStats?.vitalityFill  ?? 0} styles={styles} />
-              </View>
-              {(mainBadge || earnedBadges.length > 0) && (
-                <View style={styles.badgeRow}>
-                  {mainBadge && (
-                    <View style={styles.titleTag}>
-                      <T v="purple" size={14} style={{ letterSpacing: 0.3 }}>{mainBadge.name}</T>
-                    </View>
-                  )}
-                  <View style={styles.badges}>
-                    {earnedBadges.map((b, i) => {
-                      const colors = [
-                        { border: C.purpleBorder, bg: C.purpleFaint },
-                        { border: C.blueBorder,   bg: C.blueFaint   },
-                        { border: C.greenBorder,  bg: C.greenFaint  },
-                      ][i % 3];
-                      const badgeImg = b.imageFile ? BADGE_IMAGES[b.imageFile] : null;
-                      return (
-                        <View key={b.key ?? i} style={[styles.badge, { borderColor: colors.border, backgroundColor: colors.bg }]}>
-                          {badgeImg
-                            ? <Image source={badgeImg} style={styles.badgeImg} resizeMode="contain" />
-                            : <Text style={styles.badgeEmoji}>🏅</Text>
-                          }
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-              {currentMission?.photoUrl || currentMission?.status === 'verified' ? (
-                <View style={styles.verifiedResult}>
-                  {currentMission.photoUrl ? (
-                    <Image
-                      source={{ uri: currentMission.photoUrl.startsWith('/')
-                        ? `${BASE_URL}${currentMission.photoUrl}`
-                        : currentMission.photoUrl }}
-                      style={styles.verifiedPhoto}
-                      resizeMode="cover"
-                    />
-                  ) : null}
-                  <View style={styles.verifiedInfo}>
-                    <View style={styles.verifiedTag}>
-                      {currentMission.status === 'verified'
-                        ? <T v="green" size={13}>✅  인증 완료</T>
-                        : <T v="sub" size={13}>⏳  다른 사람의 인증을 기다리는 중</T>
-                      }
-                    </View>
-                    {currentMission.caption ? (
-                      <T v="sub" style={{ marginTop: 6 }}>{currentMission.caption}</T>
-                    ) : null}
-                    <T v="caption" style={{ marginTop: 6, opacity: 0.55 }}>
-                      {currentMission.status === 'verified'
-                        ? '피드에서 리액션을 확인해봐요 🎉'
-                        : '같은 미션을 받은 사람이 인증해주면 완료돼요'}
-                    </T>
-                  </View>
-                </View>
-              ) : (
-                <TouchableOpacity activeOpacity={0.8} onPress={onOpenVerify}>
-                  <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.verifyBtn}>
-                    <T v="btn" size={17} style={{ letterSpacing: 0.5 }}>인증하기</T>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </ScrollView>
+        <MissionCard
+          currentMission={currentMission}
+          userStats={userStats}
+          mainBadge={mainBadge}
+          earnedBadges={earnedBadges}
+          displayedText={displayedText}
+          onOpenVerify={onOpenVerify}
+          styles={styles}
+          C={C}
+        />
       ) : (
         <EmptyMissionState
           missionTime={missionTime}
           onOpenTimeSettings={onOpenTimeSettings}
           onOpenRoulette={onOpenRoulette}
           communityStats={communityStats}
+          userStats={userStats}
           missionPool={missionPool}
         />
       )}
@@ -390,7 +430,8 @@ function makeAllStyles(C) {
     content: { paddingBottom: 130 },
     header:  { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16 },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    timeBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.surface, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    timeBtn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.surface, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
     timeBtnIcon: { fontSize: 14 },
     cardWrapper: { paddingHorizontal: 20, marginTop: 25 },
     card:        { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.greenBorder, borderRadius: 20, padding: 20 },

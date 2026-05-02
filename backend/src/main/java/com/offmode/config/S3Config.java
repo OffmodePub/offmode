@@ -10,6 +10,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.net.URI;
+import java.util.Optional;
 
 @Configuration
 public class S3Config {
@@ -24,16 +25,16 @@ public class S3Config {
     private String endpoint;
 
     @Bean
-    public S3Client s3Client() {
+    public Optional<S3Client> s3Client() {
         if (accessKey == null || accessKey.isBlank()) {
-            return null; // dev 환경: 로컬 파일 저장
+            return Optional.empty();
         }
-        return S3Client.builder()
+        return Optional.of(S3Client.builder()
                 .region(Region.of("auto"))
                 .endpointOverride(URI.create(endpoint))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
                 .httpClient(UrlConnectionHttpClient.builder().build())
-                .build();
+                .build());
     }
 }

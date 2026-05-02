@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -37,7 +38,7 @@ public class FeedService {
     private final UserMissionRepository         userMissionRepository;
     private final UserService                   userService;
     private final BadgeService                  badgeService;
-    private final S3Client                      s3Client;
+    private final Optional<S3Client>             s3Client;
 
     private static final int VERIFY_THRESHOLD = 1;
 
@@ -68,8 +69,8 @@ public class FeedService {
         if (photo != null && !photo.isEmpty()) {
             String ext      = getExtension(photo.getOriginalFilename());
             String filename = "verifications/" + UUID.randomUUID() + ext;
-            if (s3Client != null && !r2Bucket.isBlank()) {
-                s3Client.putObject(
+            if (s3Client.isPresent() && !r2Bucket.isBlank()) {
+                s3Client.get().putObject(
                         PutObjectRequest.builder()
                                 .bucket(r2Bucket)
                                 .key(filename)

@@ -29,6 +29,13 @@
     "plugins": [
       "expo-asset",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#22c97a"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "offmode가 미션 인증을 위해 카메라에 접근합니다.",

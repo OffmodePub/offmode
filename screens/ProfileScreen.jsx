@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Dimensions, Image, Modal, TextInput, Keyboard,
+  TouchableOpacity, Dimensions, Image, Modal, TextInput, Keyboard, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -36,6 +36,43 @@ const GRAD_FOR_CAT = {
   Intellect: ['#c3aef0', '#5a2da0'],
   Vitality:  ['#87ceeb', '#2a7ab8'],
 };
+
+function SkeletonBox({ w, h, radius = 8, style }) {
+  const C = useColors();
+  const anim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1,   duration: 700, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return <Animated.View style={[{ width: w, height: h, borderRadius: radius, backgroundColor: C.surface2, opacity: anim }, style]} />;
+}
+
+function ProfileSkeleton() {
+  const C = useColors();
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <View style={{ padding: 20, gap: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <SkeletonBox w={72} h={72} radius={36} />
+          <View style={{ gap: 8 }}>
+            <SkeletonBox w={120} h={18} />
+            <SkeletonBox w={80}  h={13} />
+          </View>
+        </View>
+        <SkeletonBox w="100%" h={80} radius={14} />
+      </View>
+      {[0, 1, 2].map(i => (
+        <View key={i} style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, overflow: 'hidden' }}>
+          <SkeletonBox w="100%" h={120} radius={16} />
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
 
 function parseLocalDT(val) {
   if (!val) return null;
@@ -245,9 +282,21 @@ function ZoomIcon({ color, size = 14 }) {
   );
 }
 
-function SparkLine({ w = 160, h = 44 }) {
+function SparkLine({ w = 160, h = 44, historyItems = [] }) {
   const C = useColors();
-  const pts = [12, 28, 20, 45, 38, 60, 52, 75, 65, 82, 70, 88];
+  // 최근 12주간 주별 인증 완료 누적 카운트
+  const pts = useMemo(() => {
+    const weekCounts = Array(12).fill(0);
+    const now = new Date();
+    historyItems.forEach(item => {
+      if (!item.verified || !item.dt) return;
+      const diffWeeks = Math.floor((now - item.dt) / (7 * 24 * 60 * 60 * 1000));
+      if (diffWeeks >= 0 && diffWeeks < 12) weekCounts[11 - diffWeeks]++;
+    });
+    // 누적합으로 변환 (우상향 그래프)
+    let sum = 0;
+    return weekCounts.map(v => { sum += v; return Math.max(sum, 0.5); });
+  }, [historyItems]);
   const max = Math.max(...pts);
   const coords = pts.map((p, i) => ({
     x: (i / (pts.length - 1)) * w,
@@ -480,17 +529,21 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   const [historyItems, setHistoryItems] = useState([]);
   const [userStats, setUserStats] = useState(null);
   const [editVisible, setEditVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
-    api.get('/api/users/me').then(setUserProfile).catch(e => console.warn('프로필 로딩 실패:', e));
     Promise.all([
+      api.get('/api/badges/me'),
+      api.get('/api/users/me'),
       api.get('/api/missions/history'),
       api.get('/api/users/me/stats'),
-    ]).then(([hist, stats]) => {
+    ]).then(([b, u, hist, stats]) => {
+      setBadges(b);
+      setUserProfile(u);
       setHistoryItems(hist.map(toHistoryItem).filter(Boolean));
       setUserStats(stats);
-    }).catch(e => console.warn('데이터 로딩 실패:', e));
+    }).catch(e => console.warn('데이터 로딩 실패:', e))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleSaveProfile = (updated) => {
@@ -514,6 +567,8 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   const avatarId     = profile?.avatar ?? '01';
   const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
+
+  if (loading) return <View style={s.screen}><ProfileSkeleton /></View>;
 
   return (
     <View style={s.screen}>
@@ -567,7 +622,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <T v="section" size={17}>갓생 스탯</T>
-          <SparkLine />
+          <SparkLine historyItems={historyItems} />
         </View>
         {STATS.map(st => <StatBar key={st.label} {...st} s={s} />)}
       </View>
