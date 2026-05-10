@@ -24,7 +24,6 @@ const BADGE_IMAGE_MAP = {
   'badge_explore_lv02_explorer.png':          require('../assets/badge/badge_explore_lv02_explorer.png'),
   'badge_real_world_ruler.png':               require('../assets/badge/badge_real_world_ruler.png'),
   'badge_unique_speedrunner_streakking.png':  require('../assets/badge/badge_unique_speedrunner_streakking.png'),
-  'badge_activity_routine_manager.png':    require('../assets/badge/badge_activity_routine_manager.png'),
   'image_45.png': require('../assets/expansion.png'),
 };
 

@@ -1,13 +1,27 @@
 module.exports = {
-  // Expo에서 권장하는 기본 규칙을 가져옵니다.
   extends: ['expo'],
-  
-  // 우리가 입맛대로 규칙을 바꿀 수 있는 곳이에요.
-  rules: {
-    // 안 쓰는 변수가 있으면 빨간 줄(error) 대신 노란 줄(warn)로 부드럽게 알려주기
-    'no-unused-vars': 'warn',
-    
-    // 개발하다가 콘솔 로그(console.log) 남겨둔 거 까먹지 않게 경고 띄우기 (원하면 꺼도 돼!)
-    'no-console': 'warn',
+  env: {
+    browser: true, // setTimeout, setInterval, requestAnimationFrame 등 전역 허용
   },
+  rules: {
+    'no-unused-vars': 'warn',
+    'no-console': 'warn',
+
+    // <Text> 직접 사용 금지 — 반드시 components/ThemedText.js의 <T> 사용
+    // 기존 위반은 issue #12에서 순차 수정 예정. 수정 완료 후 error로 격상
+    'no-restricted-imports': ['warn', {
+      paths: [{
+        name: 'react-native',
+        importNames: ['Text'],
+        message: '<Text> 직접 사용 금지. components/ThemedText.js의 <T> 컴포넌트를 사용하세요.',
+      }],
+    }],
+  },
+  overrides: [
+    {
+      // ThemedText.js 자체는 예외
+      files: ['components/ThemedText.js'],
+      rules: { 'no-restricted-imports': 'off' },
+    },
+  ],
 };
