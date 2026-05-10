@@ -1,18 +1,18 @@
 package com.offmode.feed;
 
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-
 public interface VerificationRepository extends JpaRepository<Verification, Long> {
 
-    boolean existsByUserMissionId(Long userMissionId);
+  boolean existsByUserMissionId(Long userMissionId);
 
-    @Query("""
+  @Query(
+      """
         SELECT new com.offmode.feed.FeedItemDto(
             v.id, v.photoUrl, v.caption, v.createdAt,
             u.name, u.avatar, u.level,
@@ -28,10 +28,11 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
         WHERE um.missionText = :missionText
         ORDER BY v.createdAt DESC
     """)
-    List<FeedItemDto> findFeedItems(Pageable pageable, @Param("userId") Long userId, @Param("missionText") String missionText);
+  List<FeedItemDto> findFeedItems(
+      Pageable pageable, @Param("userId") Long userId, @Param("missionText") String missionText);
 
-    // 유저의 verification 삭제 (user_id 기준)
-    @Modifying
-    @Query("DELETE FROM Verification v WHERE v.user.id = :userId")
-    void deleteByUserId(@Param("userId") Long userId);
+  // 유저의 verification 삭제 (user_id 기준)
+  @Modifying
+  @Query("DELETE FROM Verification v WHERE v.user.id = :userId")
+  void deleteByUserId(@Param("userId") Long userId);
 }

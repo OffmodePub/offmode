@@ -2,32 +2,35 @@ package com.offmode.feed;
 
 import com.offmode.user.User;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
-
 @Entity
-@Table(name = "reactions",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"verification_id", "user_id", "emoji"}))
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Table(
+    name = "reactions",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"verification_id", "user_id", "emoji"}))
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Reaction {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "verification_id", nullable = false)
-    private Verification verification;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "verification_id", nullable = false)
+  private Verification verification;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @Column(nullable = false, length = 10)
-    private String emoji;
+  @Column(nullable = false, length = 10)
+  private String emoji;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+  @CreationTimestamp private LocalDateTime createdAt;
 }

@@ -4,6 +4,6 @@ import lombok.Getter;
 
 @Getter
 public class AppleLoginRequest {
-    private String identityToken;
-    private String fullName;
+  private String identityToken;
+  private String fullName;
 }

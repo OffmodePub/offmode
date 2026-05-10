@@ -12,19 +12,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+  private final AuthService authService;
 
-    // POST /api/auth/kakao
-    // body: { "accessToken": "..." }
-    @PostMapping("/kakao")
-    public ResponseEntity<AuthResponse> kakao(@RequestBody KakaoLoginRequest req) {
-        return ResponseEntity.ok(authService.kakaoLogin(req.getAccessToken()));
-    }
+  // POST /api/auth/kakao
+  // body: { "accessToken": "..." }
+  @PostMapping("/kakao")
+  public ResponseEntity<AuthResponse> kakao(@RequestBody KakaoLoginRequest req) {
+    return ResponseEntity.ok(authService.kakaoLogin(req.getAccessToken()));
+  }
 
-    // POST /api/auth/apple
-    // body: { "identityToken": "...", "fullName": "..." }
-    @PostMapping("/apple")
-    public ResponseEntity<AuthResponse> apple(@RequestBody AppleLoginRequest req) {
-        return ResponseEntity.ok(authService.appleLogin(req.getIdentityToken(), req.getFullName()));
-    }
+  // POST /api/auth/apple
+  // body: { "identityToken": "...", "fullName": "..." }
+  @PostMapping("/apple")
+  public ResponseEntity<AuthResponse> apple(@RequestBody AppleLoginRequest req) {
+    return ResponseEntity.ok(authService.appleLogin(req.getIdentityToken(), req.getFullName()));
+  }
 }
