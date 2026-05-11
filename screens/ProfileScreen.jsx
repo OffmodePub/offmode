@@ -32,9 +32,9 @@ const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
 
 const GRAD_FOR_CAT = {
-  Energy:    ['#acd8a7', '#2e7d4f'],
+  Vitality:  ['#acd8a7', '#2e7d4f'],
   Intellect: ['#c3aef0', '#5a2da0'],
-  Vitality:  ['#87ceeb', '#2a7ab8'],
+  Energy:    ['#87ceeb', '#2a7ab8'],
 };
 
 function SkeletonBox({ w, h, radius = 8, style }) {
@@ -466,9 +466,9 @@ function MissionHistory({ s, hist, C, weekGroups, weekLabels }) {
   const items = weekGroups[weekIdx] ?? [];
 
   const catColor = (cat) => {
-    if (cat === 'Energy')    return C.green;
+    if (cat === 'Energy')    return C.blue;
     if (cat === 'Intellect') return C.purple;
-    return C.blue;
+    return C.green;
   };
 
   return (
@@ -553,9 +553,9 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   };
 
   const STATS = userStats ? [
-    { label: 'Energy',    color: C.green,  fill: userStats.energyFill,   level: userStats.energyLevel },
+    { label: 'Vitality',  color: C.green,  fill: userStats.vitalityFill,  level: userStats.vitalityLevel },
     { label: 'Intellect', color: C.purple, fill: userStats.intellectFill, level: userStats.intellectLevel },
-    { label: 'Vitality',  color: C.blue,   fill: userStats.vitalityFill,  level: userStats.vitalityLevel },
+    { label: 'Energy',    color: C.blue,   fill: userStats.energyFill,    level: userStats.energyLevel },
   ] : [];
   const totalMissions = userStats?.totalMissions ?? 0;
   const verifiedCount = userStats?.totalVerified ?? 0;

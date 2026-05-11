@@ -17,9 +17,9 @@ const REPEATS = 6;
 const SLOT_H  = ITEM_H * VISIBLE;
 
 function getCategoryColor(cat, C) {
-  if (cat === 'Energy')    return C.green;
+  if (cat === 'Energy')    return C.blue;
   if (cat === 'Intellect') return C.purple;
-  return C.blue;
+  return C.green;
 }
 
 function SlotMachine({ onDone, autoSpin = true, missions }) {

@@ -256,9 +256,9 @@ function MissionIcon({ icon, styles, C }) {
 
 function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displayedText, onOpenVerify, styles, C }) {
   const cat       = currentMission?.category;
-  const catColor  = cat === 'Intellect' ? C.purple  : cat === 'Vitality' ? C.blue   : C.green;
-  const catFaint  = cat === 'Intellect' ? C.purpleFaint  : cat === 'Vitality' ? C.blueFaint  : C.greenFaint;
-  const catBorder = cat === 'Intellect' ? C.purpleBorder : cat === 'Vitality' ? C.blueBorder : C.greenBorder;
+  const catColor  = cat === 'Intellect' ? C.purple  : cat === 'Energy' ? C.blue   : C.green;
+  const catFaint  = cat === 'Intellect' ? C.purpleFaint  : cat === 'Energy' ? C.blueFaint  : C.greenFaint;
+  const catBorder = cat === 'Intellect' ? C.purpleBorder : cat === 'Energy' ? C.blueBorder : C.greenBorder;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -291,9 +291,9 @@ function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displ
             </T>
           </View>
           <View style={styles.statsBlock}>
-            <StatBar label="Energy"    color={C.green}  fill={userStats?.energyFill    ?? 0} styles={styles} />
+            <StatBar label="Vitality"  color={C.green}  fill={userStats?.vitalityFill  ?? 0} styles={styles} />
             <StatBar label="Intellect" color={C.purple} fill={userStats?.intellectFill ?? 0} styles={styles} />
-            <StatBar label="Vitality"  color={C.blue}   fill={userStats?.vitalityFill  ?? 0} styles={styles} />
+            <StatBar label="Energy"    color={C.blue}   fill={userStats?.energyFill    ?? 0} styles={styles} />
           </View>
           {(mainBadge || earnedBadges.length > 0) && (
             <View style={styles.badgeRow}>
