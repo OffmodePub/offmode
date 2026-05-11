@@ -8,8 +8,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class AuthResponse {
-    private String token;
-    private User   user;
-    @JsonProperty("isNew")
-    private boolean isNew;   // true → 회원가입 화면으로 이동
+  private String token;
+  private User user;
+
+  @JsonProperty("isNew")
+  private boolean isNew; // true → 회원가입 화면으로 이동
 }

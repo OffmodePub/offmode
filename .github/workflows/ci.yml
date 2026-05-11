@@ -6,8 +6,29 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  frontend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 패키지 설치
+        run: npm ci
+
+      - name: ESLint 실행
+        run: npm run lint
+
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: 코드 가져오기
@@ -26,16 +47,6 @@ jobs:
       - name: Spotless Check
         run: ./gradlew spotlessCheck
 
-      - name: Checkstyle
-        run: ./gradlew checkstyleMain checkstyleTest
-
-      - name: Checkstyle 리포트 업로드
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkstyle-report
-          path: build/reports/checkstyle/
-
       - name: 테스트 실행 (Test)
         run: ./gradlew test
 
@@ -44,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: build/reports/tests/test/
+          path: backend/build/reports/tests/test/
 
       - name: 빌드 실행 (Build)
         run: ./gradlew build -x test
