@@ -55,8 +55,9 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
     translateY.setValue(0);
     Animated.timing(translateY, {
       toValue: targetY, duration: 3200,
-      easing: Easing.out(Easing.exp), useNativeDriver: true,
+      easing: Easing.out(Easing.cubic), useNativeDriver: true,
     }).start(() => {
+      translateY.setValue(targetY);
       setSpinning(false);
       setLanded(true);
       setFinalIdx(targetMissionIdx);
@@ -107,10 +108,10 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
 function makeSlotStyles(C) {
   return StyleSheet.create({
     root: {
-      height: SLOT_H, position: 'relative', overflow: 'hidden',
+      height: SLOT_H, overflow: 'hidden',
       borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
     },
-    window:    { height: SLOT_H, overflow: 'hidden' },
+    window:    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
     highlight: {
       position: 'absolute', top: ITEM_H, left: 0, right: 0, height: ITEM_H,
       borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
