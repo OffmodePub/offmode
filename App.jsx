@@ -363,9 +363,9 @@ function AppInner() {
                   <Ionicons
                     name={t.ionicon}
                     size={22}
-                    color={tab === t.key ? '#22c97a' : navIconColor}
+                    color={tab === t.key ? C.green : navIconColor}
                   />
-                  <T v="label" size={9} color={tab === t.key ? '#22c97a' : navIconColor} style={{ opacity: tab === t.key ? 1 : 0.7, letterSpacing: 0.2 }}>
+                  <T v="label" size={9} color={tab === t.key ? C.green : navIconColor} style={{ opacity: tab === t.key ? 1 : 0.7, letterSpacing: 0.2 }}>
                     {t.label}
                   </T>
                 </TouchableOpacity>
