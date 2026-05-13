@@ -20,7 +20,7 @@ import { signInWithApple, signInWithKakao } from './utils/auth';
 import { api, loadToken, clearToken } from './utils/api';
 import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const TABS = [
   { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
@@ -169,7 +169,7 @@ function AppInner() {
 
   useEffect(() => {
     if (fontsLoaded && authStatus !== 'loading') {
-      SplashScreen.hideAsync().then(() => {
+      SplashScreen.hideAsync().finally(() => {
         Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
       });
     }
