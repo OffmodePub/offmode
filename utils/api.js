@@ -1,14 +1,34 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-// 실기기 테스트 시: Mac의 로컬 IP 주소로 변경하세요
-// 예) const DEV_HOST = '192.168.0.10';
-//const DEV_HOST = Platform.OS === 'ios' ? 'localhost' : '10.0.2.2';
-const DEV_HOST = '192.168.219.185';
+const DEFAULT_DEV_PORT = '8080';
+const DEFAULT_PROD_BASE_URL = 'https://offmode-production.up.railway.app';
 
-export const BASE_URL = __DEV__
-  ? `http://${DEV_HOST}:8080`
-  : 'https://offmode-production.up.railway.app';
+const trimTrailingSlash = (url) => url.replace(/\/+$/, '');
+
+const getDefaultDevHost = () => {
+  if (Platform.OS === 'android') return '10.0.2.2';
+  return 'localhost';
+};
+
+const buildDevBaseUrl = () => {
+  const explicitBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicitBaseUrl) return trimTrailingSlash(explicitBaseUrl);
+
+  const host = process.env.EXPO_PUBLIC_DEV_API_HOST || getDefaultDevHost();
+  const port = process.env.EXPO_PUBLIC_DEV_API_PORT || DEFAULT_DEV_PORT;
+  return `http://${host}:${port}`;
+};
+
+const buildProdBaseUrl = () => (
+  process.env.EXPO_PUBLIC_PROD_API_BASE_URL || DEFAULT_PROD_BASE_URL
+);
+
+export const BASE_URL = trimTrailingSlash(__DEV__ ? buildDevBaseUrl() : buildProdBaseUrl());
+
+if (__DEV__) {
+  console.info(`[API] BASE_URL=${BASE_URL}`);
+}
 
 const TOKEN_KEY = 'auth_token';
 
@@ -28,11 +48,19 @@ async function request(method, path, body, isFormData = false) {
   if (!isFormData)  headers['Content-Type']  = 'application/json';
   console.log(`[API] ${method} ${path} | token: ${_token ? _token.slice(0, 20) + '...' : 'NONE'}`);
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e) {
+    if (__DEV__) {
+      console.warn(`[API] ${method} ${BASE_URL}${path} 네트워크 요청 실패`, e);
+    }
+    throw Object.assign(new Error(`API 서버에 연결할 수 없습니다. (${BASE_URL})`), { cause: e });
+  }
 
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;

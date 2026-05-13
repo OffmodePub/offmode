@@ -145,8 +145,11 @@ api.delete('/api/...')
 api.upload('/api/...', formData)
 ```
 
-로컬 개발 시 `utils/api.js`의 `DEV_HOST`를 현재 Mac IP로 변경해야 한다.
-(`ipconfig getifaddr en0`으로 확인)
+로컬 개발 API 주소는 `utils/api.js`를 직접 수정하지 않고 Expo 공개 환경 변수로 설정한다.
+
+- 기본값: iOS 시뮬레이터 `http://localhost:8080`, Android 에뮬레이터 `http://10.0.2.2:8080`
+- 실기기 테스트: `.env`에 `EXPO_PUBLIC_DEV_API_HOST=<백엔드 PC LAN IP>` 또는 `EXPO_PUBLIC_API_BASE_URL=http://<백엔드 PC LAN IP>:8080` 설정
+- 자세한 설정 방법은 `docs/development-api.md` 참고
 
 ### 이미지 URL 조합
 백엔드에서 받은 `photoUrl`은 상대경로(`/uploads/...`)다. 항상 `BASE_URL`과 조합해서 사용한다.
@@ -279,6 +282,6 @@ com.offmode/
 - 색상 추가 시 `constants/colors.js`의 dark/light 양쪽에 모두 추가
 - 새 API 엔드포인트 추가 시 `SecurityConfig`의 permitAll/authenticated 목록 확인
 - 백엔드 엔티티 변경 시 dev는 `ddl-auto: update`로 자동 반영, prod는 별도 마이그레이션 필요
-- `utils/api.js`의 `DEV_HOST`는 개발 네트워크 변경 시마다 갱신 필요 (커밋하지 않는 것 권장)
+- 개발 API 주소는 `.env`의 `EXPO_PUBLIC_*` 변수로 설정하고 `utils/api.js`에 로컬 IP를 하드코딩하지 않음
 - `AvatarSvg` 컴포넌트가 `ProfileScreen`·`SignupScreen`에 중복 정의됨 → `components/AvatarSvg.jsx`로 분리 예정
 - `BADGE_IMAGE_MAP`이 `MissionScreen`·`ProfileScreen`에 중복 정의됨 → `constants/badges.js`로 분리 예정
