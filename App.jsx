@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import T from './components/ThemedText';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -362,11 +363,11 @@ function AppInner() {
                   <Ionicons
                     name={t.ionicon}
                     size={22}
-                    color={tab === t.key ? '#22c97a' : navIconColor}
+                    color={tab === t.key ? C.green : navIconColor}
                   />
-                  <Text style={[styles.navLabel, { color: navIconColor }, tab === t.key && styles.navLabelActive]}>
+                  <T v="label" size={9} color={tab === t.key ? C.green : navIconColor} style={{ opacity: tab === t.key ? 1 : 0.7, letterSpacing: 0.2 }}>
                     {t.label}
-                  </Text>
+                  </T>
                 </TouchableOpacity>
               ))}
             </View>
@@ -411,6 +412,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  navLabel:       { fontFamily: 'Kkukkukk', fontSize: 9, opacity: 0.7, letterSpacing: 0.2 },
-  navLabelActive: { color: '#22c97a', opacity: 1 },
 });
