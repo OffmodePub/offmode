@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import T from './components/ThemedText';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -18,6 +19,8 @@ import { ThemeProvider, useTheme } from './utils/ThemeContext';
 import { signInWithApple, signInWithKakao } from './utils/auth';
 import { api, loadToken, clearToken } from './utils/api';
 import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
+
+SplashScreen.preventAutoHideAsync();
 
 const TABS = [
   { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
@@ -162,6 +165,16 @@ function AppInner() {
     Kkukkukk: require('./fonts/kkukkukk/MemomentKkukkukk.otf'),
   });
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (fontsLoaded && authStatus !== 'loading') {
+      SplashScreen.hideAsync().then(() => {
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
+    }
+  }, [fontsLoaded, authStatus, fadeAnim]);
+
   /* ── 설정 시간 감지 → 룰렛 표시 ──
      정책: 오늘 미션이 이미 있으면 시간을 바꿔도 룰렛을 다시 띄우지 않음 */
   useEffect(() => {
@@ -188,52 +201,7 @@ function AppInner() {
   const navShadow    = C.isDark ? '#22c97a' : 'transparent';
   const navIconColor = C.isDark ? '#aaa' : '#888';
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.green} />
-      </View>
-    );
-  }
-
-  // ── 토큰 복원 중 ──
-  if (authStatus === 'loading') {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.green} />
-      </View>
-    );
-  }
-
-  // ── 로그인 화면 ──
-  if (authStatus === 'unauthenticated') {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <LoginScreen
-            onKakaoLogin={handleKakaoLogin}
-            onAppleLogin={handleAppleLogin}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
-
-  // ── 회원가입 화면 ──
-  if (authStatus === 'signingUp') {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <SignupScreen
-            defaultName={authUser?.name ?? ''}
-            onComplete={handleSignupComplete}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
+  if (!fontsLoaded || authStatus === 'loading') return null;
 
   const push = (screen) => setStack(s => [...s, screen]);
   const pop  = ()       => setStack(s => s.slice(0, -1));
@@ -254,26 +222,39 @@ function AppInner() {
     }
   };
 
-  /* 룰렛 화면 (최상위 오버레이) */
-  if (showRoulette) {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <MissionRouletteScreen
-            onStart={handleRouletteStart}
-            onSkip={() => setShowRoulette(false)}
-            autoSpin={autoRoulette}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
-
   return (
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
     <SafeAreaProvider>
       <StatusBar style={statusStyle} backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+
+      {/* ── 로그인 화면 ── */}
+      {authStatus === 'unauthenticated' && (
+        <LoginScreen
+          onKakaoLogin={handleKakaoLogin}
+          onAppleLogin={handleAppleLogin}
+        />
+      )}
+
+      {/* ── 회원가입 화면 ── */}
+      {authStatus === 'signingUp' && (
+        <SignupScreen
+          defaultName={authUser?.name ?? ''}
+          onComplete={handleSignupComplete}
+        />
+      )}
+
+      {/* ── 룰렛 화면 ── */}
+      {authStatus === 'authenticated' && showRoulette && (
+        <MissionRouletteScreen
+          onStart={handleRouletteStart}
+          onSkip={() => setShowRoulette(false)}
+          autoSpin={autoRoulette}
+        />
+      )}
+
+      {/* ── 메인 탭 UI ── */}
+      {authStatus === 'authenticated' && !showRoulette && (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
 
           {/* ── 스택 화면 (오버레이) ── */}
@@ -373,8 +354,11 @@ function AppInner() {
             </View>
           )}
         </View>
+      )}
+
       </SafeAreaView>
     </SafeAreaProvider>
+    </Animated.View>
   );
 }
 
