@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch, Alert,
+  TouchableOpacity, Switch, Alert, Linking,
 } from 'react-native';
 import { useColors } from '../utils/useColors';
 import { useTheme } from '../utils/ThemeContext';
@@ -216,13 +216,19 @@ export default function SettingsScreen({
             icon="🛡️"
             label="개인정보 처리방침"
             right={<T v="sub">›</T>}
-            onPress={() => {}}
+            onPress={() => Linking.openURL('https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431')}
+          />
+          <SettingRow
+            icon="📄"
+            label="서비스 이용약관"
+            right={<T v="sub">›</T>}
+            onPress={() => Linking.openURL('https://fuchsia-belief-040.notion.site/35f09a0b0e3e80ffa48fde51b2de125b')}
           />
           <SettingRow
             icon="💬"
             label="문의하기"
             right={<T v="sub">›</T>}
-            onPress={() => {}}
+            onPress={() => Linking.openURL('https://fuchsia-belief-040.notion.site/Off-Mode-35f09a0b0e3e80af81a8ce27d686fd7d')}
           />
           <SettingRow
             icon="⭐"
