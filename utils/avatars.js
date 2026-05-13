@@ -2,8 +2,6 @@
  * profile_avatar SVG 매핑
  */
 
-export const AVATAR_COUNT = 6;
-
 // ✅ avatar_01
 import A01Default from '../assets/profile_avatar/avatar_01/avatar_01_default.svg';
 import A01Active from '../assets/profile_avatar/avatar_01/avatar_01_active.svg';
@@ -45,6 +43,8 @@ import A06Active from '../assets/profile_avatar/avatar_06/avatar_06_active.svg';
 import A06Done from '../assets/profile_avatar/avatar_06/avatar_06_done.svg';
 import A06Pending from '../assets/profile_avatar/avatar_06/avatar_06_pending.svg';
 import A06Verified from '../assets/profile_avatar/avatar_06/avatar_06_verified.svg';
+
+export const AVATAR_COUNT = 6;
 
 
 // 🔥 상태별 매핑
