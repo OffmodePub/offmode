@@ -1,8 +1,7 @@
 package com.offmode.boundedcontext.auth.app.dto.response;
 
-import com.offmode.boundedcontext.user.domain.entity.User;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.offmode.boundedcontext.user.domain.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

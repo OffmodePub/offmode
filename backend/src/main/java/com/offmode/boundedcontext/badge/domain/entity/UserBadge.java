@@ -1,8 +1,7 @@
 package com.offmode.boundedcontext.badge.domain.entity;
 
-import com.offmode.boundedcontext.user.domain.entity.User;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.offmode.boundedcontext.user.domain.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;

@@ -4,7 +4,6 @@ import com.offmode.boundedcontext.auth.app.dto.request.AppleLoginRequest;
 import com.offmode.boundedcontext.auth.app.dto.request.KakaoLoginRequest;
 import com.offmode.boundedcontext.auth.app.dto.response.AuthResponse;
 import com.offmode.boundedcontext.auth.app.service.AuthService;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

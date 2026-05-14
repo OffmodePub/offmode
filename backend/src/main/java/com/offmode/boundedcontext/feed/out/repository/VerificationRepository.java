@@ -2,7 +2,6 @@ package com.offmode.boundedcontext.feed.out.repository;
 
 import com.offmode.boundedcontext.feed.app.dto.response.FeedItemDto;
 import com.offmode.boundedcontext.feed.domain.entity.Verification;
-
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

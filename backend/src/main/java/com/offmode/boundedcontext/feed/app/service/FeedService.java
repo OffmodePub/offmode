@@ -15,7 +15,6 @@ import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
 import com.offmode.boundedcontext.user.app.dto.response.UserStatsDto;
 import com.offmode.boundedcontext.user.app.service.UserService;
 import com.offmode.boundedcontext.user.domain.entity.User;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

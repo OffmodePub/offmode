@@ -3,7 +3,6 @@ package com.offmode.boundedcontext.user.in.api.v1;
 import com.offmode.boundedcontext.user.app.dto.response.UserStatsDto;
 import com.offmode.boundedcontext.user.app.service.UserService;
 import com.offmode.boundedcontext.user.domain.entity.User;
-
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

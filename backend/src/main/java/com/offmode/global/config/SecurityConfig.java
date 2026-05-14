@@ -1,7 +1,6 @@
 package com.offmode.global.config;
 
 import com.offmode.global.jwt.JwtAuthFilter;
-
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

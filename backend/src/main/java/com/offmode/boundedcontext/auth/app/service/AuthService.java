@@ -1,11 +1,10 @@
 package com.offmode.boundedcontext.auth.app.service;
 
 import com.offmode.boundedcontext.auth.app.dto.response.AuthResponse;
-import com.offmode.global.jwt.JwtProvider;
 import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
 import com.offmode.boundedcontext.user.domain.entity.User;
 import com.offmode.boundedcontext.user.out.repository.UserRepository;
-
+import com.offmode.global.jwt.JwtProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.math.BigInteger;
