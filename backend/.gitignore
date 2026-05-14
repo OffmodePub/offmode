@@ -6,3 +6,5 @@ uploads/
 offmode-db*
 *.log
 out/
+!src/main/java/**/out/
+!src/main/java/**/out/**
