@@ -1,6 +1,5 @@
 <resources>
   <string name="app_name">offmode</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
-  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="kakao_app_key">62ae912ced27c2b48181b0a6d1c84353</string>
 </resources>

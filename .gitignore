@@ -133,6 +133,10 @@ vite.config.ts.timestamp-*
 # Gradle
 .gradle/
 build/
+/gradle/
+
+# Local database files
+offmode-db*.db
 
 # Mac
 .DS_Store
