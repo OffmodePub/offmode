@@ -7,6 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "expo lint",
+    "kakao:keyhash:android": "powershell -ExecutionPolicy Bypass -File ./scripts/print-android-kakao-keyhash.ps1",
     "prepare": "node ./scripts/setup-githooks.js"
   },
   "dependencies": {
