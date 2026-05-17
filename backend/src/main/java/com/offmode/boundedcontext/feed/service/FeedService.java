@@ -17,27 +17,18 @@ import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
+import com.offmode.global.file.ImageUploadService;
 import com.offmode.global.status.ErrorStatus;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Slf4j
 @Service
@@ -50,22 +41,12 @@ public class FeedService {
   private final UserMissionRepository userMissionRepository;
   private final UserService userService;
   private final BadgeService badgeService;
-  private final Optional<S3Client> s3Client;
+  private final ImageUploadService imageUploadService;
 
   private static final int VERIFY_THRESHOLD = 1;
 
-  @Value("${file.upload-dir:./uploads}")
-  private String uploadDir;
-
-  @Value("${r2.bucket:}")
-  private String r2Bucket;
-
-  @Value("${r2.public-url:}")
-  private String r2PublicUrl;
-
   @Transactional
-  public Verification verify(Long userId, Long userMissionId, MultipartFile photo, String caption)
-      throws IOException {
+  public Verification verify(Long userId, Long userMissionId, MultipartFile photo, String caption) {
     UserMission mission =
         userMissionRepository
             .findById(userMissionId)
@@ -82,26 +63,7 @@ public class FeedService {
     // 사진 저장 (R2 우선, 없으면 로컬)
     String photoUrl = null;
     if (photo != null && !photo.isEmpty()) {
-      String ext = getExtension(photo.getOriginalFilename());
-      String filename = "verifications/" + UUID.randomUUID() + ext;
-      if (s3Client.isPresent() && !r2Bucket.isBlank()) {
-        s3Client
-            .get()
-            .putObject(
-                PutObjectRequest.builder()
-                    .bucket(r2Bucket)
-                    .key(filename)
-                    .contentType(photo.getContentType())
-                    .build(),
-                RequestBody.fromInputStream(photo.getInputStream(), photo.getSize()));
-        photoUrl = r2PublicUrl + "/" + filename;
-      } else {
-        String localName = UUID.randomUUID() + ext;
-        Path dir = Paths.get(uploadDir).toAbsolutePath();
-        Files.createDirectories(dir);
-        photo.transferTo(dir.resolve(localName));
-        photoUrl = "/uploads/" + localName;
-      }
+      photoUrl = imageUploadService.uploadVerificationImage(photo);
     }
 
     // 인증 저장 (상태는 "pending" 유지 — 피어 인증 후 완료 처리)
@@ -231,10 +193,5 @@ public class FeedService {
     int streakDays = userStats.getStreak();
 
     return new FeedStatsResponse(activeToday, verificationRate, streakDays);
-  }
-
-  private String getExtension(String filename) {
-    if (filename == null || !filename.contains(".")) return ".jpg";
-    return filename.substring(filename.lastIndexOf('.'));
   }
 }
