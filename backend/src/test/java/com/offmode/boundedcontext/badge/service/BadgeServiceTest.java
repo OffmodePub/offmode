@@ -13,6 +13,7 @@ import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,8 @@ class BadgeServiceTest {
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
     when(userMissionRepository.existsByUserId(1L)).thenReturn(true);
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(Collections.emptyList());
     when(userRepository.getReferenceById(1L)).thenReturn(user);
     when(userBadgeRepository.save(any(UserBadge.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -53,6 +56,8 @@ class BadgeServiceTest {
     when(userMissionRepository.countByUserIdAndStatusAndMissionCategory(
             1L, MissionStatus.VERIFIED, MissionCategory.ENERGY))
         .thenReturn(10L);
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(Collections.emptyList());
     when(userRepository.getReferenceById(1L)).thenReturn(user);
     when(userBadgeRepository.save(any(UserBadge.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
