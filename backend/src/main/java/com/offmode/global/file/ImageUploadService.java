@@ -17,6 +17,7 @@ import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -26,7 +27,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @RequiredArgsConstructor
 public class ImageUploadService {
 
-  private static final long MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
   private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png");
   private static final Map<String, String> CONTENT_TYPES_BY_EXTENSION =
       Map.of(
@@ -45,6 +45,9 @@ public class ImageUploadService {
   @Value("${r2.public-url:}")
   private String r2PublicUrl;
 
+  @Value("${spring.servlet.multipart.max-file-size:10MB}")
+  private DataSize maxImageSize;
+
   public String uploadVerificationImage(MultipartFile file) {
     validateImage(file);
 
@@ -53,9 +56,10 @@ public class ImageUploadService {
     String storageKey = "verifications/" + UUID.randomUUID() + "." + extension;
 
     try {
-      if (s3Client.isPresent()) {
+      S3Client configuredS3Client = s3Client.orElse(null);
+      if (configuredS3Client != null) {
         validateR2StorageConfig();
-        uploadToR2(file, storageKey, contentType);
+        uploadToR2(configuredS3Client, file, storageKey, contentType);
         return r2PublicUrl + "/" + storageKey;
       }
 
@@ -73,8 +77,8 @@ public class ImageUploadService {
       throw new BusinessException(ErrorStatus.FILE_EMPTY);
     }
 
-    if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
-      throw new BusinessException(ErrorStatus.FILE_INVALID_TYPE);
+    if (file.getSize() > maxImageSize.toBytes()) {
+      throw new BusinessException(ErrorStatus.FILE_TOO_LARGE);
     }
 
     String extension = getAllowedExtension(file.getOriginalFilename());
@@ -114,17 +118,16 @@ public class ImageUploadService {
     }
   }
 
-  private void uploadToR2(MultipartFile file, String storageKey, String contentType)
+  private void uploadToR2(
+      S3Client configuredS3Client, MultipartFile file, String storageKey, String contentType)
       throws IOException {
-    s3Client
-        .get()
-        .putObject(
-            PutObjectRequest.builder()
-                .bucket(r2Bucket)
-                .key(storageKey)
-                .contentType(contentType)
-                .build(),
-            RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+    configuredS3Client.putObject(
+        PutObjectRequest.builder()
+            .bucket(r2Bucket)
+            .key(storageKey)
+            .contentType(contentType)
+            .build(),
+        RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
   }
 
   private String uploadToLocal(MultipartFile file, String extension) throws IOException {
