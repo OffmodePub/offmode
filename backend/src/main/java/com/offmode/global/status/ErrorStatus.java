@@ -31,7 +31,15 @@ public enum ErrorStatus {
       HttpStatus.CONFLICT, "VERIFICATION_409_001", "이미 인증 사진을 올린 미션입니다."),
   VERIFICATION_SELF_CONFIRM_NOT_ALLOWED(
       HttpStatus.BAD_REQUEST, "VERIFICATION_400_001", "자신의 인증은 확인할 수 없습니다."),
-  VERIFICATION_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "VERIFICATION_409_002", "이미 인증해준 게시물입니다.");
+  VERIFICATION_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "VERIFICATION_409_002", "이미 인증해준 게시물입니다."),
+
+  // File
+  FILE_EMPTY(HttpStatus.BAD_REQUEST, "FILE_400_001", "업로드할 파일이 비어있습니다."),
+  FILE_INVALID_TYPE(HttpStatus.BAD_REQUEST, "FILE_400_002", "허용되지 않은 파일 형식입니다."),
+  FILE_INVALID_IMAGE(HttpStatus.BAD_REQUEST, "FILE_400_003", "유효한 이미지 파일이 아닙니다."),
+  FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_500_001", "파일 업로드에 실패했습니다."),
+  FILE_STORAGE_CONFIG_INVALID(
+      HttpStatus.INTERNAL_SERVER_ERROR, "FILE_500_002", "파일 저장소 설정이 올바르지 않습니다.");
 
   private final HttpStatus httpStatus;
   private final String code;
