@@ -8,6 +8,6 @@ import lombok.Getter;
 public class ReactRequest {
 
   @NotBlank
-  @Size(max = 16)
+  @Size(max = 10)
   private String emoji;
 }
