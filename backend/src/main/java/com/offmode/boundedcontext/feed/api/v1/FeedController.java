@@ -1,11 +1,12 @@
 package com.offmode.boundedcontext.feed.api.v1;
 
-import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
+import com.offmode.boundedcontext.feed.dto.request.ReactRequest;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
+import com.offmode.boundedcontext.feed.dto.response.FeedStatsResponse;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.service.FeedService;
+import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,13 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/eed")
+@RequestMapping("/api/v1/feed")
 @RequiredArgsConstructor
 public class FeedController {
 
   private final FeedService feedService;
 
-  // POST /api/feed/verify
+  // POST /api/v1/feed/verify
   // multipart/form-data: photo (file), userMissionId, caption
   @PostMapping("/verify")
   public ResponseEntity<Verification> verify(
@@ -31,32 +32,32 @@ public class FeedController {
     return ResponseEntity.ok(feedService.verify(userId, userMissionId, photo, caption));
   }
 
-  // GET /api/feed/stats - 커뮤니티 통계
+  // GET /api/v1/feed/stats - 커뮤니티 통계
   @GetMapping("/stats")
-  public ResponseEntity<FeedStatsDto> getStats(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<FeedStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(feedService.getStats(userId));
   }
 
-  // POST /api/feed/{id}/react - 리액션 토글  body: { "emoji": "🔥" }
+  // POST /api/v1/feed/{id}/react - 리액션 토글  body: { "emoji": "🔥" }
   @PostMapping("/{id}/react")
   public ResponseEntity<Void> react(
       @AuthenticationPrincipal Long userId,
       @PathVariable Long id,
-      @RequestBody Map<String, String> body) {
-    feedService.react(userId, id, body.get("emoji"));
+      @Valid @RequestBody ReactRequest request) {
+    feedService.react(userId, id, request.getEmoji());
     return ResponseEntity.ok().build();
   }
 
-  // POST /api/feed/{id}/confirm - 피어 인증 (다른 사람의 인증 확인)
+  // POST /api/v1/feed/{id}/confirm - 피어 인증 (다른 사람의 인증 확인)
   @PostMapping("/{id}/confirm")
   public ResponseEntity<Void> confirm(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
     feedService.confirm(userId, id);
     return ResponseEntity.ok().build();
   }
 
-  // GET /api/feed?page=0&size=20
+  // GET /api/v1/feed?page=0&size=20
   @GetMapping
-  public ResponseEntity<List<FeedItemDto>> getFeed(
+  public ResponseEntity<List<FeedItemResponse>> getFeed(
       @AuthenticationPrincipal Long userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {

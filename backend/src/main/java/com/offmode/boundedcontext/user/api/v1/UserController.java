@@ -1,9 +1,10 @@
 package com.offmode.boundedcontext.user.api.v1;
 
-import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.dto.request.UpdateUserProfileRequest;
+import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
-import java.util.Map;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +25,7 @@ public class UserController {
 
   // GET /api/users/me/stats
   @GetMapping("/me/stats")
-  public ResponseEntity<UserStatsDto> getStats(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<UserStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(userService.getStats(userId));
   }
 
@@ -40,17 +41,15 @@ public class UserController {
   // true }
   @PutMapping("/me")
   public ResponseEntity<User> updateMe(
-      @AuthenticationPrincipal Long userId, @RequestBody Map<String, Object> body) {
-    String name = (String) body.get("name");
-    String avatar = (String) body.get("avatar");
-    Integer missionHour =
-        body.get("missionHour") != null ? ((Number) body.get("missionHour")).intValue() : null;
-    Integer missionMinute =
-        body.get("missionMinute") != null ? ((Number) body.get("missionMinute")).intValue() : null;
-    Boolean autoRoulette =
-        body.get("autoRoulette") != null ? (Boolean) body.get("autoRoulette") : null;
+      @AuthenticationPrincipal Long userId, @Valid @RequestBody UpdateUserProfileRequest request) {
     User updated =
-        userService.updateProfile(userId, name, avatar, missionHour, missionMinute, autoRoulette);
+        userService.updateProfile(
+            userId,
+            request.getName(),
+            request.getAvatar(),
+            request.getMissionHour(),
+            request.getMissionMinute(),
+            request.getAutoRoulette());
     return ResponseEntity.ok(updated);
   }
 }

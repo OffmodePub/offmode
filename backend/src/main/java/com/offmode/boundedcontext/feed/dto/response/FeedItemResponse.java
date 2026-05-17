@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Getter
 @AllArgsConstructor
-public class FeedItemDto {
+public class FeedItemResponse {
   private Long id;
   private String photoUrl;
   private String caption;
@@ -27,5 +27,5 @@ public class FeedItemDto {
   private boolean isOwn;
 
   // JPQL 쿼리 후 서비스에서 채움
-  @Setter private List<ReactionSummaryDto> reactions;
+  @Setter private List<ReactionSummaryResponse> reactions;
 }

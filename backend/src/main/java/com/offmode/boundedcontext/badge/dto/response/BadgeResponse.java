@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 
 @Getter
-public class BadgeDto {
+public class BadgeResponse {
   private final String key;
   private final String name;
   private final String badgeTitle;
@@ -16,7 +16,7 @@ public class BadgeDto {
   private final boolean earned;
   private final LocalDateTime earnedAt;
 
-  public BadgeDto(BadgeDefinition def, UserBadge userBadge) {
+  public BadgeResponse(BadgeDefinition def, UserBadge userBadge) {
     this.key = def.getKey();
     this.name = def.getName();
     this.badgeTitle = def.getBadgeTitle();

@@ -2,7 +2,7 @@ package com.offmode.boundedcontext.mission.dto.response;
 
 import java.time.LocalDateTime;
 
-public record UserMissionDto(
+public record UserMissionResponse(
     Long id,
     String missionIcon,
     String missionText,
