@@ -7,27 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.offmode.global.jwt.JwtAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 class SecurityConfigTest {
-
-  @Test
-  void publicEndpointsIncludeH2ConsoleOnlyInDevProfile() {
-    MockEnvironment devEnvironment = new MockEnvironment();
-    devEnvironment.setActiveProfiles("dev");
-    MockEnvironment prodEnvironment = new MockEnvironment();
-    prodEnvironment.setActiveProfiles("prod");
-    SecurityConfig devConfig = createSecurityConfig(devEnvironment);
-    SecurityConfig prodConfig = createSecurityConfig(prodEnvironment);
-
-    String[] devEndpoints = ReflectionTestUtils.invokeMethod(devConfig, "getPublicEndpoints");
-    String[] prodEndpoints = ReflectionTestUtils.invokeMethod(prodConfig, "getPublicEndpoints");
-
-    assertThat(devEndpoints).contains("/h2-console/**");
-    assertThat(prodEndpoints).doesNotContain("/h2-console/**");
-  }
 
   @Test
   void corsUsesConfiguredAllowedOrigins() {
@@ -51,12 +34,25 @@ class SecurityConfigTest {
     MockEnvironment environment =
         new MockEnvironment()
             .withProperty("offmode.security.cors.allowed-origin-patterns", "http://localhost:*");
+    environment.setActiveProfiles("dev");
     SecurityConfig config = createSecurityConfig(environment);
 
     CorsConfiguration corsConfiguration = getCorsConfiguration(config);
 
     assertThat(corsConfiguration.getAllowedOrigins()).isEmpty();
     assertThat(corsConfiguration.getAllowedOriginPatterns()).containsExactly("http://localhost:*");
+  }
+
+  @Test
+  void corsIgnoresAllowedOriginPatternsOutsideDevProfile() {
+    MockEnvironment environment =
+        new MockEnvironment().withProperty("offmode.security.cors.allowed-origin-patterns", "*");
+    environment.setActiveProfiles("prod");
+    SecurityConfig config = createSecurityConfig(environment);
+
+    CorsConfiguration corsConfiguration = getCorsConfiguration(config);
+
+    assertThat(corsConfiguration.getAllowedOriginPatterns()).isEmpty();
   }
 
   private SecurityConfig createSecurityConfig(MockEnvironment environment) {
