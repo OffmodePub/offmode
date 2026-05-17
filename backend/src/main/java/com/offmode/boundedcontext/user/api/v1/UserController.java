@@ -1,7 +1,7 @@
 package com.offmode.boundedcontext.user.api.v1;
 
 import com.offmode.boundedcontext.user.dto.request.UpdateUserProfileRequest;
-import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
 import jakarta.validation.Valid;
@@ -25,7 +25,7 @@ public class UserController {
 
   // GET /api/users/me/stats
   @GetMapping("/me/stats")
-  public ResponseEntity<UserStatsDto> getStats(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<UserStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(userService.getStats(userId));
   }
 

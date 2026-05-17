@@ -1,9 +1,9 @@
 package com.offmode.boundedcontext.feed.service;
 
 import com.offmode.boundedcontext.badge.service.BadgeService;
-import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
-import com.offmode.boundedcontext.feed.dto.response.ReactionSummaryDto;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
+import com.offmode.boundedcontext.feed.dto.response.FeedStatsResponse;
+import com.offmode.boundedcontext.feed.dto.response.ReactionSummaryResponse;
 import com.offmode.boundedcontext.feed.entity.Reaction;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.entity.VerificationConfirm;
@@ -12,7 +12,7 @@ import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationRepository;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
@@ -170,7 +170,7 @@ public class FeedService {
             });
   }
 
-  public List<FeedItemDto> getFeed(Long userId, int page, int size) {
+  public List<FeedItemResponse> getFeed(Long userId, int page, int size) {
     // 오늘 내 미션 텍스트 조회 — 없으면 빈 피드 반환
     LocalDateTime todayStart = LocalDate.now().atStartOfDay();
     LocalDateTime todayEnd = LocalDate.now().plusDays(1).atStartOfDay();
@@ -188,17 +188,17 @@ public class FeedService {
     if (todayMission == null) return List.of();
 
     String missionText = todayMission.getMissionText();
-    List<FeedItemDto> items =
+    List<FeedItemResponse> items =
         verificationRepository.findFeedItems(PageRequest.of(page, size), userId, missionText);
     log.info("[GET-FEED] 필터 missionText='{}' → 조회된 피드 {}건", missionText, items.size());
     if (items.isEmpty()) return items;
 
     // 한 번의 쿼리로 전체 리액션 요약 조회
-    List<Long> ids = items.stream().map(FeedItemDto::getId).toList();
+    List<Long> ids = items.stream().map(FeedItemResponse::getId).toList();
     List<Object[]> rows = reactionRepository.findSummaries(ids, userId);
 
-    // verificationId → List<ReactionSummaryDto> 맵 구성
-    Map<Long, List<ReactionSummaryDto>> reactionMap = new java.util.HashMap<>();
+    // verificationId → List<ReactionSummaryResponse> 맵 구성
+    Map<Long, List<ReactionSummaryResponse>> reactionMap = new java.util.HashMap<>();
     for (Object[] row : rows) {
       Long vId = (Long) row[0];
       String emoji = (String) row[1];
@@ -206,7 +206,7 @@ public class FeedService {
       boolean myReact = ((Number) row[3]).longValue() > 0;
       reactionMap
           .computeIfAbsent(vId, k -> new java.util.ArrayList<>())
-          .add(new ReactionSummaryDto(emoji, count, myReact));
+          .add(new ReactionSummaryResponse(emoji, count, myReact));
     }
 
     items.forEach(
@@ -214,7 +214,7 @@ public class FeedService {
     return items;
   }
 
-  public FeedStatsDto getStats(Long userId) {
+  public FeedStatsResponse getStats(Long userId) {
     // 오늘 자정부터 현재까지 미션을 수락한 유저 수
     LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
     long activeToday = userMissionRepository.countDistinctUsersSince(todayStart);
@@ -225,10 +225,10 @@ public class FeedService {
     int verificationRate = total == 0 ? 0 : (int) (verified * 100 / total);
 
     // 현재 유저 연속 달성 일수 (UserService의 getStats 재활용)
-    UserStatsDto userStats = userService.getStats(userId);
+    UserStatsResponse userStats = userService.getStats(userId);
     int streakDays = userStats.getStreak();
 
-    return new FeedStatsDto(activeToday, verificationRate, streakDays);
+    return new FeedStatsResponse(activeToday, verificationRate, streakDays);
   }
 
   private String getExtension(String filename) {

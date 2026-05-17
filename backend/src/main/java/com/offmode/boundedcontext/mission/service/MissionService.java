@@ -1,8 +1,8 @@
 package com.offmode.boundedcontext.mission.service;
 
 import com.offmode.boundedcontext.badge.service.BadgeService;
-import com.offmode.boundedcontext.mission.dto.response.MissionWeightDto;
-import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.dto.response.MissionWeightResponse;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionResponse;
 import com.offmode.boundedcontext.mission.entity.Mission;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.repository.MissionRepository;
@@ -42,11 +42,11 @@ public class MissionService {
   }
 
   // 오늘의 미션 조회 + 인증 사진/캡션 포함 (여러 개면 가장 최근 것)
-  public UserMissionDto getTodayMissionDto(Long userId) {
+  public UserMissionResponse getTodayMissionResponse(Long userId) {
     LocalDate today = LocalDate.now();
     LocalDateTime start = today.atStartOfDay();
     LocalDateTime end = today.plusDays(1).atStartOfDay();
-    UserMissionDto dto =
+    UserMissionResponse dto =
         userMissionRepository.findTodayWithPhoto(userId, start, end).stream()
             .findFirst()
             .orElse(null);
@@ -135,7 +135,7 @@ public class MissionService {
   }
 
   // 내 미션 기록 (최근 30개, 인증 사진 포함)
-  public List<UserMissionDto> getHistory(Long userId) {
+  public List<UserMissionResponse> getHistory(Long userId) {
     return userMissionRepository.findHistoryWithPhoto(userId).stream().limit(30).toList();
   }
 
@@ -149,7 +149,7 @@ public class MissionService {
   // - 7~14일: weight 0.3
   // - 14~30일: weight 0.5
   // - 30일 초과 or 미수행: weight 1.0
-  public List<MissionWeightDto> getWeightedPool(Long userId) {
+  public List<MissionWeightResponse> getWeightedPool(Long userId) {
     List<Mission> allMissions = missionRepository.findAll();
 
     Map<String, LocalDateTime> latestMap =
@@ -169,7 +169,7 @@ public class MissionService {
                 else if (daysSince < 14) weight = 0.3;
                 else if (daysSince < 30) weight = 0.5;
               }
-              return new MissionWeightDto(
+              return new MissionWeightResponse(
                   m.getId(), m.getIcon(), m.getText(), m.getCategory(), weight);
             })
         .toList();

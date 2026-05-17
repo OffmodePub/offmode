@@ -1,6 +1,6 @@
 package com.offmode.boundedcontext.mission.repository;
 
-import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionResponse;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,7 +48,7 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
   // 오늘 미션 + 인증 사진/캡션 포함
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionDto(
+        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionResponse(
             um.id, um.missionIcon, um.missionText, um.missionCategory,
             um.status, um.assignedAt, um.verifiedAt, v.photoUrl, v.caption
         )
@@ -57,7 +57,7 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
         WHERE um.user.id = :userId AND um.assignedAt >= :start AND um.assignedAt < :end
         ORDER BY um.assignedAt DESC
     """)
-  List<UserMissionDto> findTodayWithPhoto(
+  List<UserMissionResponse> findTodayWithPhoto(
       @Param("userId") Long userId,
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end);
@@ -70,7 +70,7 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
   // 히스토리 + 인증 사진 포함
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionDto(
+        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionResponse(
             um.id, um.missionIcon, um.missionText, um.missionCategory,
             um.status, um.assignedAt, um.verifiedAt, v.photoUrl, v.caption
         )
@@ -79,7 +79,7 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
         WHERE um.user.id = :userId
         ORDER BY um.assignedAt DESC
     """)
-  List<UserMissionDto> findHistoryWithPhoto(@Param("userId") Long userId);
+  List<UserMissionResponse> findHistoryWithPhoto(@Param("userId") Long userId);
 
   @Modifying
   @Query("DELETE FROM UserMission um WHERE um.user.id = :userId")

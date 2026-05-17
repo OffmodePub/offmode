@@ -1,6 +1,6 @@
 package com.offmode.boundedcontext.feed.repository;
 
-import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +15,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.feed.dto.response.FeedItemDto(
+        SELECT new com.offmode.boundedcontext.feed.dto.response.FeedItemResponse(
             v.id, v.photoUrl, v.caption, v.createdAt,
             u.name, u.avatar, u.level,
             um.missionIcon, um.missionText, um.missionCategory,
@@ -30,7 +30,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
         WHERE um.missionText = :missionText
         ORDER BY v.createdAt DESC
     """)
-  List<FeedItemDto> findFeedItems(
+  List<FeedItemResponse> findFeedItems(
       Pageable pageable, @Param("userId") Long userId, @Param("missionText") String missionText);
 
   // 유저의 verification 삭제 (user_id 기준)

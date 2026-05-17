@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class UserStatsDto {
+public class UserStatsResponse {
   private long totalMissions; // 전체 미션 수 (pending + verified)
   private long totalVerified; // 인증 완료 미션 수
   private int streak; // 현재 연속 달성 일수

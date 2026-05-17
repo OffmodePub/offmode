@@ -1,6 +1,6 @@
 package com.offmode.boundedcontext.badge.service;
 
-import com.offmode.boundedcontext.badge.dto.response.BadgeDto;
+import com.offmode.boundedcontext.badge.dto.response.BadgeResponse;
 import com.offmode.boundedcontext.badge.entity.UserBadge;
 import com.offmode.boundedcontext.badge.repository.UserBadgeRepository;
 import com.offmode.boundedcontext.badge.types.BadgeDefinition;
@@ -24,13 +24,13 @@ public class BadgeService {
   private final UserRepository userRepository;
 
   /** 모든 배지 정의 + 획득 여부 반환 */
-  public List<BadgeDto> getUserBadges(Long userId) {
+  public List<BadgeResponse> getUserBadges(Long userId) {
     Map<String, UserBadge> earned =
         userBadgeRepository.findByUserId(userId).stream()
             .collect(Collectors.toMap(UserBadge::getBadgeKey, ub -> ub));
 
     return Arrays.stream(BadgeDefinition.values())
-        .map(def -> new BadgeDto(def, earned.get(def.getKey())))
+        .map(def -> new BadgeResponse(def, earned.get(def.getKey())))
         .toList();
   }
 

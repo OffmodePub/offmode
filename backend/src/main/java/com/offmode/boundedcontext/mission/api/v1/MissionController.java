@@ -1,8 +1,8 @@
 package com.offmode.boundedcontext.mission.api.v1;
 
 import com.offmode.boundedcontext.mission.dto.request.SetTodayMissionRequest;
-import com.offmode.boundedcontext.mission.dto.response.MissionWeightDto;
-import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.dto.response.MissionWeightResponse;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionResponse;
 import com.offmode.boundedcontext.mission.entity.Mission;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.service.MissionService;
@@ -22,8 +22,8 @@ public class MissionController {
 
   // GET /api/missions/today
   @GetMapping("/today")
-  public ResponseEntity<UserMissionDto> today(@AuthenticationPrincipal Long userId) {
-    UserMissionDto mission = missionService.getTodayMissionDto(userId);
+  public ResponseEntity<UserMissionResponse> today(@AuthenticationPrincipal Long userId) {
+    UserMissionResponse mission = missionService.getTodayMissionResponse(userId);
     if (mission == null) return ResponseEntity.noContent().build();
     return ResponseEntity.ok(mission);
   }
@@ -40,7 +40,7 @@ public class MissionController {
 
   // GET /api/missions/history
   @GetMapping("/history")
-  public ResponseEntity<List<UserMissionDto>> history(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<List<UserMissionResponse>> history(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(missionService.getHistory(userId));
   }
 
@@ -53,7 +53,8 @@ public class MissionController {
   // GET /api/missions/weighted-pool
   // 사용자의 최근 수행 이력 기반으로 weight 가 낮은 미션은 룰렛에서 뽑힐 확률이 낮음
   @GetMapping("/weighted-pool")
-  public ResponseEntity<List<MissionWeightDto>> weightedPool(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<List<MissionWeightResponse>> weightedPool(
+      @AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(missionService.getWeightedPool(userId));
   }
 }

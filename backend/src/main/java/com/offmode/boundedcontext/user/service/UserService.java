@@ -5,7 +5,7 @@ import com.offmode.boundedcontext.feed.repository.ReactionRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
@@ -63,7 +63,7 @@ public class UserService {
     }
   }
 
-  public UserStatsDto getStats(Long userId) {
+  public UserStatsResponse getStats(Long userId) {
     long totalMissions = userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size();
     long totalVerified = userMissionRepository.countByUserIdAndStatus(userId, "verified");
 
@@ -80,7 +80,7 @@ public class UserService {
     List<LocalDateTime> verifiedTimes = userMissionRepository.findVerifiedDateTimes(userId);
     int streak = calcStreak(verifiedTimes);
 
-    return new UserStatsDto(
+    return new UserStatsResponse(
         totalMissions,
         totalVerified,
         streak,

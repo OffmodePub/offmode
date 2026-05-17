@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class MissionWeightDto {
+public class MissionWeightResponse {
   private Long id;
   private String icon;
   private String text;

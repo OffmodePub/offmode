@@ -1,6 +1,6 @@
 package com.offmode.boundedcontext.badge.api.v1;
 
-import com.offmode.boundedcontext.badge.dto.response.BadgeDto;
+import com.offmode.boundedcontext.badge.dto.response.BadgeResponse;
 import com.offmode.boundedcontext.badge.service.BadgeService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class BadgeController {
 
   // GET /api/badges/me  — 전체 배지 정의 + 획득 여부
   @GetMapping("/me")
-  public ResponseEntity<List<BadgeDto>> getMyBadges(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<List<BadgeResponse>> getMyBadges(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(badgeService.getUserBadges(userId));
   }
 }

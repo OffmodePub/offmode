@@ -1,8 +1,8 @@
 package com.offmode.boundedcontext.feed.api.v1;
 
 import com.offmode.boundedcontext.feed.dto.request.ReactRequest;
-import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
+import com.offmode.boundedcontext.feed.dto.response.FeedStatsResponse;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.service.FeedService;
 import jakarta.validation.Valid;
@@ -34,7 +34,7 @@ public class FeedController {
 
   // GET /api/feed/stats - 커뮤니티 통계
   @GetMapping("/stats")
-  public ResponseEntity<FeedStatsDto> getStats(@AuthenticationPrincipal Long userId) {
+  public ResponseEntity<FeedStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(feedService.getStats(userId));
   }
 
@@ -57,7 +57,7 @@ public class FeedController {
 
   // GET /api/feed?page=0&size=20
   @GetMapping
-  public ResponseEntity<List<FeedItemDto>> getFeed(
+  public ResponseEntity<List<FeedItemResponse>> getFeed(
       @AuthenticationPrincipal Long userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
