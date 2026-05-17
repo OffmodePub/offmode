@@ -23,9 +23,15 @@ public class S3Config {
   @Value("${r2.endpoint:}")
   private String endpoint;
 
+  @Value("${r2.bucket:}")
+  private String bucket;
+
+  @Value("${r2.public-url:}")
+  private String publicUrl;
+
   @Bean
   public Optional<S3Client> s3Client() {
-    if (accessKey == null || accessKey.isBlank()) {
+    if (!hasCompleteR2Config()) {
       return Optional.empty();
     }
     return Optional.of(
@@ -36,5 +42,17 @@ public class S3Config {
                 StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
             .httpClient(UrlConnectionHttpClient.builder().build())
             .build());
+  }
+
+  private boolean hasCompleteR2Config() {
+    return hasText(accessKey)
+        && hasText(secretKey)
+        && hasText(endpoint)
+        && hasText(bucket)
+        && hasText(publicUrl);
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }
