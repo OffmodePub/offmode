@@ -40,10 +40,20 @@ public class GlobalExceptionHandler {
     return ApiResponse.onFailure(ErrorStatus.AUTH_ACCESS_DENIED);
   }
 
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValidException(
+      MethodArgumentNotValidException e) {
+    return ApiResponse.onFailure(ErrorStatus.VALIDATION_ERROR);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiResponse<?>> handleMethodArgumentTypeMismatchException(
+      MethodArgumentTypeMismatchException e) {
+    return ApiResponse.onFailure(ErrorStatus.VALIDATION_ERROR);
+  }
+
   @ExceptionHandler({
     HttpMessageNotReadableException.class,
-    MethodArgumentNotValidException.class,
-    MethodArgumentTypeMismatchException.class,
     MissingServletRequestParameterException.class,
     MultipartException.class,
     IllegalArgumentException.class
