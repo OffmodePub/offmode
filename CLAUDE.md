@@ -70,6 +70,7 @@ const C = useColors();                      // 색상만 필요할 때
 - `C.green`, `C.greenFaint`, `C.greenBorder` — 주 강조색 (Vitality)
 - `C.purple`, `C.purpleFaint`, `C.purpleBorder` — 보조 강조색 (Intellect)
 - `C.blue`, `C.blueFaint`, `C.blueBorder` — 3번째 강조색 (Energy)
+- `C.danger` — 오류/삭제 등 위험 상태
 - `C.text`, `C.textSub` — 텍스트
 - `C.border` — 구분선
 - `C.isDark` — 다크모드 여부 boolean
