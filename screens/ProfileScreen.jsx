@@ -532,10 +532,10 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   useEffect(() => {
     Promise.all([
-      api.get('/api/badges/me'),
-      api.get('/api/users/me'),
-      api.get('/api/missions/history'),
-      api.get('/api/users/me/stats'),
+      api.get('/api/v1/badges/me'),
+      api.get('/api/v1/users/me'),
+      api.get('/api/v1/missions/history'),
+      api.get('/api/v1/users/me/stats'),
     ]).then(([b, u, hist, stats]) => {
       setBadges(b);
       setUserProfile(u);
@@ -547,7 +547,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   const handleSaveProfile = (updated) => {
     onSaveProfile?.(updated);
-    api.put('/api/users/me', { name: updated.name, avatar: updated.avatar })
+    api.put('/api/v1/users/me', { name: updated.name, avatar: updated.avatar })
       .catch(e => console.warn('프로필 저장 실패:', e));
   };
 

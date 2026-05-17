@@ -155,7 +155,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
           formData.append('photo', { uri: photoUri, type: 'image/jpeg', name: 'photo.jpg' });
         }
         if (caption) formData.append('caption', caption);
-        await api.upload('/api/feed/verify', formData);
+        await api.upload('/api/v1/feed/verify', formData);
       } catch (e) {
         console.warn('인증 업로드 실패:', e);
       }

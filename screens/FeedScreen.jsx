@@ -331,11 +331,11 @@ export default function FeedScreen() {
   const [todayMission, setTodayMission] = useState(null);
 
   useEffect(() => {
-    api.get('/api/missions/today')
+    api.get('/api/v1/missions/today')
       .then(setTodayMission)
       .catch(() => {});
 
-    api.get('/api/feed')
+    api.get('/api/v1/feed')
       .then(data => setItems(data.map(apiItemToCard)))
       .catch(e => console.warn('피드 로딩 실패:', e))
       .finally(() => setLoading(false));
@@ -363,7 +363,7 @@ export default function FeedScreen() {
       return { ...item, reactions: toggle(item.reactions, emoji, already ? -1 : 1) };
     }));
 
-    api.post(`/api/feed/${id}/react`, { emoji }).catch(e => {
+    api.post(`/api/v1/feed/${id}/react`, { emoji }).catch(e => {
       console.warn('리액션 실패:', e);
       // 롤백
       setItems(prev => prev.map(item => {
@@ -382,7 +382,7 @@ export default function FeedScreen() {
       return { ...item, myVerify: true, verifyCount: newCount, verified: newCount >= VERIFY_THRESHOLD };
     }));
     try {
-      await api.post(`/api/feed/${id}/confirm`);
+      await api.post(`/api/v1/feed/${id}/confirm`);
     } catch (e) {
       console.warn('인증 실패:', e);
       // 롤백

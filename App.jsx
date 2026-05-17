@@ -40,7 +40,7 @@ function AppInner() {
     loadToken().then(async (token) => {
       if (token) {
         try {
-          const user = await api.get('/api/users/me');
+          const user = await api.get('/api/v1/users/me');
           setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
           const hour   = user.missionHour   ?? 8;
           const minute = user.missionMinute ?? 0;
@@ -72,7 +72,7 @@ function AppInner() {
 
   const loadTodayMission = async () => {
     try {
-      const mission = await api.get('/api/missions/today');
+      const mission = await api.get('/api/v1/missions/today');
       if (mission) {
         setCurrentMission({ icon: mission.missionIcon, text: mission.missionText, category: mission.missionCategory, status: mission.status, photoUrl: mission.photoUrl, caption: mission.caption });
         setCurrentMissionId(mission.id);
@@ -135,7 +135,7 @@ function AppInner() {
 
   const handleDeleteAccount = async () => {
     try {
-      await api.delete('/api/users/me');
+      await api.delete('/api/v1/users/me');
     } catch (e) {
       console.warn('회원탈퇴 실패:', e);
     }
@@ -145,7 +145,7 @@ function AppInner() {
   const handleSignupComplete = async (profileData) => {
     const { name, avatar, missionTime: mt } = profileData;
     try {
-      await api.put('/api/users/me', {
+      await api.put('/api/v1/users/me', {
         name,
         avatar,
         missionHour:   mt.hour,
@@ -213,7 +213,7 @@ function AppInner() {
     setHasMission(true);
     setShowRoulette(false);
     try {
-      const saved = await api.post('/api/missions/today', {
+      const saved = await api.post('/api/v1/missions/today', {
         icon: mission.icon, text: mission.text, category: mission.category,
       });
       setCurrentMissionId(saved.id);
@@ -264,7 +264,7 @@ function AppInner() {
                 onBack={pop}
                 onSave={(t) => {
                   setMissionTime(t);
-                  api.put('/api/users/me', { missionHour: t.hour, missionMinute: t.minute }).catch(e => console.warn('시간 저장 실패:', e));
+                  api.put('/api/v1/users/me', { missionHour: t.hour, missionMinute: t.minute }).catch(e => console.warn('시간 저장 실패:', e));
                   scheduleMissionNotification(t.hour, t.minute);
                   pop();
                 }}
@@ -319,7 +319,7 @@ function AppInner() {
                 autoRoulette={autoRoulette}
                 onSetAutoRoulette={(val) => {
                   setAutoRoulette(val);
-                  api.put('/api/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
+                  api.put('/api/v1/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
                 }}
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}

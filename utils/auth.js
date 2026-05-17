@@ -5,7 +5,7 @@ import { api, setToken } from './api';
 // ── Kakao ────────────────────────────────────────────────
 export async function signInWithKakao() {
   const token   = await kakaoLogin();
-  const { token: jwt, user, isNew } = await api.post('/api/auth/kakao', {
+  const { token: jwt, user, isNew } = await api.post('/api/v1/auth/kakao', {
     accessToken: token.accessToken,
   });
   await setToken(jwt);
@@ -26,7 +26,7 @@ export async function signInWithApple() {
         .filter(Boolean).join(' ')
     : null;
 
-  const { token: jwt, user, isNew } = await api.post('/api/auth/apple', {
+  const { token: jwt, user, isNew } = await api.post('/api/v1/auth/apple', {
     identityToken: credential.identityToken,
     fullName,
   });

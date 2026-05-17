@@ -17,7 +17,7 @@ public class BadgeController {
 
   private final BadgeService badgeService;
 
-  // GET /api/badges/me  — 전체 배지 정의 + 획득 여부
+  // GET /api/v1/badges/me  — 전체 배지 정의 + 획득 여부
   @GetMapping("/me")
   public ResponseEntity<List<BadgeResponse>> getMyBadges(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(badgeService.getUserBadges(userId));

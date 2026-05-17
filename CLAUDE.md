@@ -138,11 +138,11 @@ push('myScreen')   // → currentStack === 'myScreen'
 ```js
 import { api } from '../utils/api';
 
-api.get('/api/...')
-api.post('/api/...', body)
-api.put('/api/...', body)
-api.delete('/api/...')
-api.upload('/api/...', formData)
+api.get('/api/v1/...')
+api.post('/api/v1/...', body)
+api.put('/api/v1/...', body)
+api.delete('/api/v1/...')
+api.upload('/api/v1/...', formData)
 ```
 
 로컬 개발 API 주소는 `utils/api.js`를 직접 수정하지 않고 Expo 공개 환경 변수로 설정한다.
@@ -269,10 +269,10 @@ com.offmode/
 ---
 
 ## 주요 플로우
-1. 앱 시작 → 토큰 복원 → `/api/users/me` 자동 로그인
+1. 앱 시작 → 토큰 복원 → `/api/v1/users/me` 자동 로그인
 2. 설정한 시간 도달 → 미션 룰렛 자동 표시
-3. 룰렛에서 미션 선택 → `/api/missions/today` POST
-4. 미션 완료 → 사진 촬영 → `/api/feed/verify` POST (multipart)
+3. 룰렛에서 미션 선택 → `/api/v1/missions/today` POST
+4. 미션 완료 → 사진 촬영 → `/api/v1/feed/verify` POST (multipart)
 5. 피드에서 다른 유저 인증 확인 → 리액션 or 피어 인증
 
 ---

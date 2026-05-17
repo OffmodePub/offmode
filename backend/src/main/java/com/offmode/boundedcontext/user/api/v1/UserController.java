@@ -17,26 +17,26 @@ public class UserController {
 
   private final UserService userService;
 
-  // GET /api/users/me
+  // GET /api/v1/users/me
   @GetMapping("/me")
   public ResponseEntity<User> getMe(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(userService.getById(userId));
   }
 
-  // GET /api/users/me/stats
+  // GET /api/v1/users/me/stats
   @GetMapping("/me/stats")
   public ResponseEntity<UserStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(userService.getStats(userId));
   }
 
-  // DELETE /api/users/me
+  // DELETE /api/v1/users/me
   @DeleteMapping("/me")
   public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal Long userId) {
     userService.deleteAccount(userId);
     return ResponseEntity.noContent().build();
   }
 
-  // PUT /api/users/me
+  // PUT /api/v1/users/me
   // body: { "name": "...", "avatar": "...", "missionHour": 8, "missionMinute": 0, "autoRoulette":
   // true }
   @PutMapping("/me")

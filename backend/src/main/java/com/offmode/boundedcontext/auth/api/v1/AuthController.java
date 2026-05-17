@@ -15,14 +15,14 @@ public class AuthController {
 
   private final AuthService authService;
 
-  // POST /api/auth/kakao
+  // POST /api/v1/auth/kakao
   // body: { "accessToken": "..." }
   @PostMapping("/kakao")
   public ResponseEntity<AuthResponse> kakao(@RequestBody KakaoLoginRequest req) {
     return ResponseEntity.ok(authService.kakaoLogin(req.getAccessToken()));
   }
 
-  // POST /api/auth/apple
+  // POST /api/v1/auth/apple
   // body: { "identityToken": "...", "fullName": "..." }
   @PostMapping("/apple")
   public ResponseEntity<AuthResponse> apple(@RequestBody AppleLoginRequest req) {

@@ -501,10 +501,10 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
   const fullText = "미션 수행 중...";
 
   useEffect(() => {
-    api.get('/api/feed/stats').then(setCommunityStats).catch(e => console.warn('커뮤니티 통계 로딩 실패:', e));
-    api.get('/api/users/me/stats').then(setUserStats).catch(e => console.warn('유저 통계 로딩 실패:', e));
-    api.get('/api/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
-    api.get('/api/missions/pool').then(setMissionPool).catch(e => console.warn('미션 풀 로딩 실패:', e));
+    api.get('/api/v1/feed/stats').then(setCommunityStats).catch(e => console.warn('커뮤니티 통계 로딩 실패:', e));
+    api.get('/api/v1/users/me/stats').then(setUserStats).catch(e => console.warn('유저 통계 로딩 실패:', e));
+    api.get('/api/v1/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
+    api.get('/api/v1/missions/pool').then(setMissionPool).catch(e => console.warn('미션 풀 로딩 실패:', e));
   }, []);
 
   const mainBadge    = badges.find(b => b.earned) ?? null;

@@ -28,7 +28,7 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void unexpectedExceptionReturnsGenericServerError() {
-    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/users/me");
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/me");
 
     ResponseEntity<ApiResponse<?>> response =
         handler.handleException(new IllegalStateException("hidden detail"), request);

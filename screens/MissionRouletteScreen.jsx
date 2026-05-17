@@ -142,11 +142,11 @@ export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true
       toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true,
     }).start();
 
-    api.get('/api/missions/weighted-pool')
+    api.get('/api/v1/missions/weighted-pool')
       .then(data => { setMissions(data); setLoadingMissions(false); })
       .catch(() => {
         // weighted-pool 실패 시 기본 pool 폴백 (weight 없이 균등 확률)
-        api.get('/api/missions/pool')
+        api.get('/api/v1/missions/pool')
           .then(data => { setMissions(data); setLoadingMissions(false); })
           .catch(e => { console.warn('미션 풀 로딩 실패:', e); setLoadingMissions(false); });
       });

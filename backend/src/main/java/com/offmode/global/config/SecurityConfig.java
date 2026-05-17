@@ -74,7 +74,7 @@ public class SecurityConfig {
   }
 
   private String[] getPublicEndpoints() {
-    List<String> endpoints = new ArrayList<>(List.of("/api/auth/**", "/health", "/uploads/**"));
+    List<String> endpoints = new ArrayList<>(List.of("/api/v1/auth/**", "/health", "/uploads/**"));
     if (isDevProfile()) {
       endpoints.add("/h2-console/**");
     }
