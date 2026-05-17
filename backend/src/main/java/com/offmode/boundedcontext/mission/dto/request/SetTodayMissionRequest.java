@@ -1,7 +1,7 @@
 package com.offmode.boundedcontext.mission.dto.request;
 
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
@@ -16,7 +16,9 @@ public class SetTodayMissionRequest {
   @Size(max = 100)
   private String text;
 
-  @NotBlank
-  @Pattern(regexp = "Energy|Intellect|Vitality")
-  private String category;
+  @NotBlank @ValidMissionCategory private String category;
+
+  public MissionCategory getMissionCategory() {
+    return MissionCategory.from(category);
+  }
 }

@@ -34,7 +34,7 @@ public class MissionController {
       @AuthenticationPrincipal Long userId, @Valid @RequestBody SetTodayMissionRequest request) {
     UserMission mission =
         missionService.setTodayMission(
-            userId, request.getIcon(), request.getText(), request.getCategory());
+            userId, request.getIcon(), request.getText(), request.getMissionCategory());
     return ResponseEntity.ok(mission);
   }
 

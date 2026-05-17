@@ -1,5 +1,6 @@
 package com.offmode.boundedcontext.mission.entity;
 
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,5 +23,5 @@ public class Mission {
   private String text;
 
   @Column(nullable = false)
-  private String category; // "Vitality" | "Energy" | "Intellect"
+  private MissionCategory category;
 }

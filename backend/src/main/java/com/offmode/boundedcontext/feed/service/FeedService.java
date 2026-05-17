@@ -12,6 +12,7 @@ import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationRepository;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
@@ -138,14 +139,15 @@ public class FeedService {
     long count = confirmRepository.countByVerificationId(verificationId);
     if (count >= VERIFY_THRESHOLD) {
       UserMission mission = v.getUserMission();
-      if (!"verified".equals(mission.getStatus())) {
-        mission.setStatus("verified");
+      if (!MissionStatus.VERIFIED.equals(mission.getStatus())) {
+        mission.setStatus(MissionStatus.VERIFIED);
         mission.setVerifiedAt(LocalDateTime.now());
         userMissionRepository.save(mission);
 
         // 레벨업 + 배지 체크 (미션 주인에게)
         Long ownerId = mission.getUser().getId();
-        long verifiedCount = userMissionRepository.countByUserIdAndStatus(ownerId, "verified");
+        long verifiedCount =
+            userMissionRepository.countByUserIdAndStatus(ownerId, MissionStatus.VERIFIED);
         userService.levelUp(ownerId, (int) verifiedCount);
         badgeService.checkAndAward(ownerId);
       }
@@ -221,7 +223,7 @@ public class FeedService {
 
     // 전체 인증 완료율
     long total = userMissionRepository.count();
-    long verified = userMissionRepository.countByStatus("verified");
+    long verified = userMissionRepository.countByStatus(MissionStatus.VERIFIED);
     int verificationRate = total == 0 ? 0 : (int) (verified * 100 / total);
 
     // 현재 유저 연속 달성 일수 (UserService의 getStats 재활용)
