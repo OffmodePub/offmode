@@ -17,6 +17,7 @@ jwt:
 
 kakao:
   user-info-url: https://kapi.kakao.com/v2/user/me
+  request-timeout-seconds: 5
 
 apple:
   bundle-id: com.minnnj.offmode
