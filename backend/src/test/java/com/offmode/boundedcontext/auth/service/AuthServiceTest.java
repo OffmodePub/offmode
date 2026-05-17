@@ -76,6 +76,10 @@ class AuthServiceTest {
 
   @Test
   void appleLoginRejectsMalformedIdentityToken() {
+    authService = new AuthService(userRepository, jwtProvider, appleKeysBuilder());
+    ReflectionTestUtils.setField(authService, "appleBundleId", "com.minnnj.offmode");
+    ReflectionTestUtils.setField(authService, "appleKeysUrl", "https://apple.test/keys");
+
     assertThatThrownBy(() -> authService.appleLogin("malformed-token", "Apple User"))
         .isInstanceOf(BusinessException.class)
         .hasMessage("OAuth 인증에 실패했습니다.");
@@ -111,6 +115,20 @@ class AuthServiceTest {
                     ClientResponse.create(HttpStatus.UNAUTHORIZED)
                         .header("Content-Type", "application/json")
                         .body("{}")
+                        .build()));
+  }
+
+  private WebClient.Builder appleKeysBuilder() {
+    return WebClient.builder()
+        .exchangeFunction(
+            request ->
+                Mono.just(
+                    ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(
+                            """
+                            { "keys": [] }
+                            """)
                         .build()));
   }
 }
