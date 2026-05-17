@@ -7,6 +7,8 @@ import com.offmode.boundedcontext.mission.entity.Mission;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.repository.MissionRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
+import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDate;
@@ -62,7 +64,8 @@ public class MissionService {
   // 룰렛에서 선택한 미션을 오늘 미션으로 저장
   // 이미 오늘 미션이 있으면 새로 선택한 미션으로 덮어씀 (단, 이미 verified면 유지)
   @Transactional
-  public UserMission setTodayMission(Long userId, String icon, String text, String category) {
+  public UserMission setTodayMission(
+      Long userId, String icon, String text, MissionCategory category) {
     LocalDate today = LocalDate.now();
     LocalDateTime start = today.atStartOfDay();
     LocalDateTime end = today.plusDays(1).atStartOfDay();
@@ -80,7 +83,7 @@ public class MissionService {
                       existing.getId(),
                       existing.getMissionText(),
                       existing.getStatus());
-                  if ("verified".equals(existing.getStatus())) {
+                  if (MissionStatus.VERIFIED.equals(existing.getStatus())) {
                     // 이미 완료된 미션은 수정하지 않고 새 미션을 추가 생성
                     log.info("[SET-MISSION] 기존 미션이 verified → 새 미션 신규 생성");
                     User user = userRepository.getReferenceById(userId);
@@ -101,7 +104,7 @@ public class MissionService {
                   existing.setMissionIcon(icon);
                   existing.setMissionText(text);
                   existing.setMissionCategory(category);
-                  existing.setStatus("pending");
+                  existing.setStatus(MissionStatus.PENDING);
                   existing.setVerifiedAt(null);
                   UserMission saved = userMissionRepository.save(existing);
                   log.info(

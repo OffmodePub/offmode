@@ -1,6 +1,8 @@
 package com.offmode.boundedcontext.mission.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
+import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -32,11 +34,11 @@ public class UserMission {
   private String missionText;
 
   @Column(nullable = false)
-  private String missionCategory;
+  private MissionCategory missionCategory;
 
   @Column(nullable = false)
   @Builder.Default
-  private String status = "pending"; // "pending" | "verified"
+  private MissionStatus status = MissionStatus.PENDING;
 
   @CreationTimestamp private LocalDateTime assignedAt;
 

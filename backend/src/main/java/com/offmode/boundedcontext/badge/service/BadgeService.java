@@ -5,6 +5,8 @@ import com.offmode.boundedcontext.badge.entity.UserBadge;
 import com.offmode.boundedcontext.badge.repository.UserBadgeRepository;
 import com.offmode.boundedcontext.badge.types.BadgeDefinition;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
+import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDate;
@@ -60,9 +62,9 @@ public class BadgeService {
       case REAL_WORLD_RULER -> verifiedCount(userId) >= 100;
 
         // 유형별
-      case WALKER -> verifiedByCategory(userId, "Energy") >= 10;
-      case BEAUTY_CURATOR -> verifiedByCategory(userId, "Intellect") >= 10;
-      case LOCAL_HIPSTER -> verifiedByCategory(userId, "Vitality") >= 10;
+      case WALKER -> verifiedByCategory(userId, MissionCategory.ENERGY) >= 10;
+      case BEAUTY_CURATOR -> verifiedByCategory(userId, MissionCategory.INTELLECT) >= 10;
+      case LOCAL_HIPSTER -> verifiedByCategory(userId, MissionCategory.VITALITY) >= 10;
 
         // 시간대
       case DAWN_MASTER -> verifiedByHour(userId, 0, 6) >= 5;
@@ -74,7 +76,9 @@ public class BadgeService {
 
         // 유니크
       case OFFMODE_ENTRY -> userMissionRepository.existsByUserId(userId);
-      case SKY_COLLECTOR -> userMissionRepository.countVerifiedByTextKeyword(userId, "하늘") >= 10;
+      case SKY_COLLECTOR ->
+          userMissionRepository.countByStatusAndTextKeyword(userId, MissionStatus.VERIFIED, "하늘")
+              >= 10;
       case SPEEDRUNNER -> maxConsecutiveDays(userId) >= 7;
     };
   }
@@ -82,22 +86,23 @@ public class BadgeService {
   // ── 공통 쿼리 헬퍼 ───────────────────────────────────────
 
   private long verifiedCount(Long userId) {
-    return userMissionRepository.countByUserIdAndStatus(userId, "verified");
+    return userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED);
   }
 
-  private long verifiedByCategory(Long userId, String category) {
+  private long verifiedByCategory(Long userId, MissionCategory category) {
     return userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-        userId, "verified", category);
+        userId, MissionStatus.VERIFIED, category);
   }
 
   private long verifiedByHour(Long userId, int fromHour, int toHour) {
-    return userMissionRepository.countVerifiedByHourRange(userId, fromHour, toHour);
+    return userMissionRepository.countByStatusAndHourRange(
+        userId, MissionStatus.VERIFIED, fromHour, toHour);
   }
 
   /** 최대 연속 미션 달성 일수 계산 */
   private int maxConsecutiveDays(Long userId) {
     List<LocalDate> dates =
-        userMissionRepository.findVerifiedDateTimes(userId).stream()
+        userMissionRepository.findVerifiedDateTimes(userId, MissionStatus.VERIFIED).stream()
             .map(LocalDateTime::toLocalDate)
             .distinct()
             .sorted()

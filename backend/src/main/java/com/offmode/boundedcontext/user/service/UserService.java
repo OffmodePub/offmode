@@ -5,6 +5,8 @@ import com.offmode.boundedcontext.feed.repository.ReactionRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
 import com.offmode.boundedcontext.feed.repository.VerificationRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
+import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
@@ -65,19 +67,21 @@ public class UserService {
 
   public UserStatsResponse getStats(Long userId) {
     long totalMissions = userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size();
-    long totalVerified = userMissionRepository.countByUserIdAndStatus(userId, "verified");
+    long totalVerified =
+        userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED);
 
     long energy =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, "verified", "Energy");
+            userId, MissionStatus.VERIFIED, MissionCategory.ENERGY);
     long intellect =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, "verified", "Intellect");
+            userId, MissionStatus.VERIFIED, MissionCategory.INTELLECT);
     long vitality =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, "verified", "Vitality");
+            userId, MissionStatus.VERIFIED, MissionCategory.VITALITY);
 
-    List<LocalDateTime> verifiedTimes = userMissionRepository.findVerifiedDateTimes(userId);
+    List<LocalDateTime> verifiedTimes =
+        userMissionRepository.findVerifiedDateTimes(userId, MissionStatus.VERIFIED);
     int streak = calcStreak(verifiedTimes);
 
     return new UserStatsResponse(
