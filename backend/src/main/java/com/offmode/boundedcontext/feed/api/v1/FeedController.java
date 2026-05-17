@@ -20,7 +20,7 @@ public class FeedController {
 
   private final FeedService feedService;
 
-  // POST /api/feed/verify
+  // POST /api/v1/feed/verify
   // multipart/form-data: photo (file), userMissionId, caption
   @PostMapping("/verify")
   public ResponseEntity<Verification> verify(
@@ -32,13 +32,13 @@ public class FeedController {
     return ResponseEntity.ok(feedService.verify(userId, userMissionId, photo, caption));
   }
 
-  // GET /api/feed/stats - 커뮤니티 통계
+  // GET /api/v1/feed/stats - 커뮤니티 통계
   @GetMapping("/stats")
   public ResponseEntity<FeedStatsResponse> getStats(@AuthenticationPrincipal Long userId) {
     return ResponseEntity.ok(feedService.getStats(userId));
   }
 
-  // POST /api/feed/{id}/react - 리액션 토글  body: { "emoji": "🔥" }
+  // POST /api/v1/feed/{id}/react - 리액션 토글  body: { "emoji": "🔥" }
   @PostMapping("/{id}/react")
   public ResponseEntity<Void> react(
       @AuthenticationPrincipal Long userId,
@@ -48,14 +48,14 @@ public class FeedController {
     return ResponseEntity.ok().build();
   }
 
-  // POST /api/feed/{id}/confirm - 피어 인증 (다른 사람의 인증 확인)
+  // POST /api/v1/feed/{id}/confirm - 피어 인증 (다른 사람의 인증 확인)
   @PostMapping("/{id}/confirm")
   public ResponseEntity<Void> confirm(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
     feedService.confirm(userId, id);
     return ResponseEntity.ok().build();
   }
 
-  // GET /api/feed?page=0&size=20
+  // GET /api/v1/feed?page=0&size=20
   @GetMapping
   public ResponseEntity<List<FeedItemResponse>> getFeed(
       @AuthenticationPrincipal Long userId,
