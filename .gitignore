@@ -137,6 +137,7 @@ build/
 
 # Local database files
 offmode-db*.db
+backend/offmode-db*
 
 # Mac
 .DS_Store
