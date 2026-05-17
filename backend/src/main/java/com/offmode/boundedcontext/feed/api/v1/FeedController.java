@@ -1,11 +1,12 @@
 package com.offmode.boundedcontext.feed.api.v1;
 
+import com.offmode.boundedcontext.feed.dto.request.ReactRequest;
 import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
 import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.service.FeedService;
+import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/eed")
+@RequestMapping("/api/v1/feed")
 @RequiredArgsConstructor
 public class FeedController {
 
@@ -42,8 +43,8 @@ public class FeedController {
   public ResponseEntity<Void> react(
       @AuthenticationPrincipal Long userId,
       @PathVariable Long id,
-      @RequestBody Map<String, String> body) {
-    feedService.react(userId, id, body.get("emoji"));
+      @Valid @RequestBody ReactRequest request) {
+    feedService.react(userId, id, request.getEmoji());
     return ResponseEntity.ok().build();
   }
 
