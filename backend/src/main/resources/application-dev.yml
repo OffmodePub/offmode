@@ -19,3 +19,9 @@ spring:
   sql:
     init:
       mode: always
+
+offmode:
+  security:
+    cors:
+      allowed-origin-patterns:
+        - "*"

@@ -5,10 +5,14 @@ import com.offmode.global.dto.response.ApiResponse;
 import com.offmode.global.jwt.JwtAuthFilter;
 import com.offmode.global.status.ErrorStatus;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -28,18 +32,16 @@ public class SecurityConfig {
 
   private final JwtAuthFilter jwtAuthFilter;
   private final ObjectMapper objectMapper;
+  private final Environment environment;
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    return http.csrf(AbstractHttpConfigurer::disable)
+    http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsSource()))
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/auth/**", "/h2-console/**", "/health", "/uploads/**")
-                    .permitAll()
-                    .anyRequest()
-                    .authenticated())
+                auth.requestMatchers(getPublicEndpoints()).permitAll().anyRequest().authenticated())
         .exceptionHandling(
             exception ->
                 exception
@@ -49,21 +51,59 @@ public class SecurityConfig {
                     .accessDeniedHandler(
                         (request, response, accessDeniedException) ->
                             writeErrorResponse(response, ErrorStatus.AUTH_ACCESS_DENIED)))
-        .headers(h -> h.frameOptions(FrameOptionsConfig::disable)) // H2 콘솔용
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        .build();
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+    if (isDevProfile()) {
+      http.headers(h -> h.frameOptions(FrameOptionsConfig::disable));
+    }
+
+    return http.build();
   }
 
   @Bean
   public CorsConfigurationSource corsSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOriginPatterns(List.of("*"));
+    config.setAllowedOrigins(getCorsAllowedOrigins());
+    config.setAllowedOriginPatterns(getCorsAllowedOriginPatterns());
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(List.of("*"));
     config.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
+  }
+
+  private String[] getPublicEndpoints() {
+    List<String> endpoints = new ArrayList<>(List.of("/api/auth/**", "/health", "/uploads/**"));
+    if (isDevProfile()) {
+      endpoints.add("/h2-console/**");
+    }
+    return endpoints.toArray(String[]::new);
+  }
+
+  private boolean isDevProfile() {
+    return environment.matchesProfiles("dev");
+  }
+
+  private List<String> getCorsAllowedOrigins() {
+    return getStringListProperty("offmode.security.cors.allowed-origins");
+  }
+
+  private List<String> getCorsAllowedOriginPatterns() {
+    if (!isDevProfile()) {
+      return List.of();
+    }
+    return getStringListProperty("offmode.security.cors.allowed-origin-patterns");
+  }
+
+  private List<String> getStringListProperty(String key) {
+    return Binder.get(environment)
+        .bind(key, Bindable.listOf(String.class))
+        .orElseGet(List::of)
+        .stream()
+        .map(String::trim)
+        .filter(value -> !value.isBlank())
+        .toList();
   }
 
   private void writeErrorResponse(HttpServletResponse response, ErrorStatus errorStatus)
