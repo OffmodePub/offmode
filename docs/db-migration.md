@@ -57,6 +57,24 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ---
 
+## dev 로컬 DB 전환 절차
+
+`dev` 프로필은 파일 기반 H2 DB(`jdbc:h2:file:./offmode-db`)를 사용합니다. 기존에 `ddl-auto: update`로 생성된 로컬 DB 파일이 남아 있고 Flyway 이력 테이블이 없으면, Flyway가 `V1__init_schema.sql`을 적용할 때 이미 존재하는 테이블 때문에 실패할 수 있습니다.
+
+Flyway 전환 후 처음 실행하기 전에 로컬 개발 DB를 초기화하세요.
+
+```powershell
+# 프로젝트 루트 또는 backend 실행 위치에 생성된 H2 파일을 삭제
+Remove-Item .\offmode-db.mv.db -ErrorAction SilentlyContinue
+Remove-Item .\offmode-db.trace.db -ErrorAction SilentlyContinue
+Remove-Item .\backend\offmode-db.mv.db -ErrorAction SilentlyContinue
+Remove-Item .\backend\offmode-db.trace.db -ErrorAction SilentlyContinue
+```
+
+로컬 데이터를 보존해야 한다면 삭제하지 말고 백업한 뒤, 현재 스키마와 `V1__init_schema.sql`을 비교해서 dev 전용 baseline 전략을 잡아야 합니다. 단, 운영 환경에서는 임의로 baseline을 켜지 말고 백업/검증 절차를 먼저 진행해야 합니다.
+
+---
+
 ## 프로덕션(운영) 배포
 
 운영 환경에 마이그레이션을 반영하기 전, 다음 사항을 확인하고 진행하세요.
