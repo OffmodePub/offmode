@@ -145,3 +145,4 @@ backend/offmode-db*
 # Ignore Kotlin plugin data
 .kotlin
 /.expo/
+/uploads/*

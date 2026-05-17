@@ -2,10 +2,13 @@ package com.offmode.boundedcontext.feed.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.badge.service.BadgeService;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
 import com.offmode.boundedcontext.feed.entity.Reaction;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.repository.ReactionRepository;
@@ -19,6 +22,7 @@ import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.file.ImageUploadService;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,5 +132,38 @@ class FeedServiceTest {
     feedService.react(1L, 20L, "🔥");
 
     verify(reactionRepository).delete(reaction);
+  }
+
+  @Test
+  void getFeedReturnsEmptyListWhenUserHasNoTodayMission() {
+    when(userMissionRepository.findFirstByUserIdAndAssignedAtBetweenOrderByAssignedAtDesc(
+            eq(1L), any(), any()))
+        .thenReturn(Optional.empty());
+
+    List<FeedItemResponse> result = feedService.getFeed(1L, 0, 20);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getFeedQueriesFeedByTodayMissionText() {
+    User user = User.builder().id(1L).provider("kakao").providerId("viewer").build();
+    UserMission todayMission =
+        UserMission.builder()
+            .id(10L)
+            .user(user)
+            .missionText("같은 미션")
+            .missionCategory(MissionCategory.VITALITY)
+            .status(MissionStatus.PENDING)
+            .build();
+    when(userMissionRepository.findFirstByUserIdAndAssignedAtBetweenOrderByAssignedAtDesc(
+            eq(1L), any(), any()))
+        .thenReturn(Optional.of(todayMission));
+    when(verificationRepository.findFeedItems(any(), eq(1L), eq("같은 미션"))).thenReturn(List.of());
+
+    List<FeedItemResponse> result = feedService.getFeed(1L, 0, 20);
+
+    assertThat(result).isEmpty();
+    verify(verificationRepository).findFeedItems(any(), eq(1L), eq("같은 미션"));
   }
 }
