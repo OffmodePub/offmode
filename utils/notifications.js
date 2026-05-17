@@ -41,3 +41,26 @@ export async function scheduleMissionNotification(hour, minute) {
 export async function cancelMissionNotification() {
   await Notifications.cancelScheduledNotificationAsync('daily-mission');
 }
+
+export async function scheduleReminderNotification() {
+  await cancelReminderNotification();
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+  await Notifications.scheduleNotificationAsync({
+    identifier: 'daily-reminder',
+    content: {
+      title: '⏰ 오늘 미션 아직 완료 안 했어요!',
+      body: '지금 완료하고 오늘 하루 마무리해요 🌙',
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 21,
+      minute: 0,
+    },
+  });
+}
+
+export async function cancelReminderNotification() {
+  await Notifications.cancelScheduledNotificationAsync('daily-reminder');
+}
