@@ -1,12 +1,13 @@
 package com.offmode.boundedcontext.mission.api.v1;
 
+import com.offmode.boundedcontext.mission.dto.request.SetTodayMissionRequest;
 import com.offmode.boundedcontext.mission.dto.response.MissionWeightDto;
 import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
 import com.offmode.boundedcontext.mission.entity.Mission;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.service.MissionService;
+import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,10 +31,10 @@ public class MissionController {
   // POST /api/missions/today  body: { "icon": "...", "text": "...", "category": "..." }
   @PostMapping("/today")
   public ResponseEntity<UserMission> setToday(
-      @AuthenticationPrincipal Long userId, @RequestBody Map<String, String> body) {
+      @AuthenticationPrincipal Long userId, @Valid @RequestBody SetTodayMissionRequest request) {
     UserMission mission =
         missionService.setTodayMission(
-            userId, body.get("icon"), body.get("text"), body.get("category"));
+            userId, request.getIcon(), request.getText(), request.getCategory());
     return ResponseEntity.ok(mission);
   }
 
