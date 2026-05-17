@@ -9,18 +9,6 @@ public class BusinessException extends RuntimeException {
   private final ErrorStatus errorStatus;
   private final Object data;
 
-  public BusinessException(String message) {
-    super(message);
-    this.errorStatus = ErrorStatus.INTERNAL_SERVER_ERROR;
-    this.data = null;
-  }
-
-  public BusinessException(String message, Throwable cause) {
-    super(message, cause);
-    this.errorStatus = ErrorStatus.INTERNAL_SERVER_ERROR;
-    this.data = null;
-  }
-
   public BusinessException(ErrorStatus errorStatus) {
     super(errorStatus.getMessage());
     this.errorStatus = errorStatus;
