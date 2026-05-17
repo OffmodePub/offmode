@@ -1,13 +1,15 @@
-package com.offmode.boundedcontext.user.app.service;
+package com.offmode.boundedcontext.user.service;
 
-import com.offmode.boundedcontext.badge.out.repository.UserBadgeRepository;
-import com.offmode.boundedcontext.feed.out.repository.ReactionRepository;
-import com.offmode.boundedcontext.feed.out.repository.VerificationConfirmRepository;
-import com.offmode.boundedcontext.feed.out.repository.VerificationRepository;
-import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.app.dto.response.UserStatsDto;
-import com.offmode.boundedcontext.user.domain.entity.User;
-import com.offmode.boundedcontext.user.out.repository.UserRepository;
+import com.offmode.boundedcontext.badge.repository.UserBadgeRepository;
+import com.offmode.boundedcontext.feed.repository.ReactionRepository;
+import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
+import com.offmode.boundedcontext.feed.repository.VerificationRepository;
+import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.repository.UserRepository;
+import com.offmode.global.exception.BusinessException;
+import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +31,9 @@ public class UserService {
   private final UserBadgeRepository userBadgeRepository;
 
   public User getById(Long id) {
-    return userRepository.findById(id).orElseThrow(() -> new RuntimeException("유저 없음"));
+    return userRepository
+        .findById(id)
+        .orElseThrow(() -> new BusinessException(ErrorStatus.USER_NOT_FOUND));
   }
 
   @Transactional

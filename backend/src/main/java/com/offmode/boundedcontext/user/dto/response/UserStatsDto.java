@@ -1,4 +1,4 @@
-package com.offmode.boundedcontext.user.app.dto.response;
+package com.offmode.boundedcontext.user.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.offmode.boundedcontext.user.domain.entity;
+package com.offmode.boundedcontext.user.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

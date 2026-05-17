@@ -1,4 +1,4 @@
-package com.offmode.boundedcontext.badge.domain.types;
+package com.offmode.boundedcontext.badge.types;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

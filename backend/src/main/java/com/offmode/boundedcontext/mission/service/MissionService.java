@@ -1,14 +1,14 @@
-package com.offmode.boundedcontext.mission.app.service;
+package com.offmode.boundedcontext.mission.service;
 
-import com.offmode.boundedcontext.badge.app.service.BadgeService;
-import com.offmode.boundedcontext.mission.app.dto.response.MissionWeightDto;
-import com.offmode.boundedcontext.mission.app.dto.response.UserMissionDto;
-import com.offmode.boundedcontext.mission.domain.entity.Mission;
-import com.offmode.boundedcontext.mission.domain.entity.UserMission;
-import com.offmode.boundedcontext.mission.out.repository.MissionRepository;
-import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.domain.entity.User;
-import com.offmode.boundedcontext.user.out.repository.UserRepository;
+import com.offmode.boundedcontext.badge.service.BadgeService;
+import com.offmode.boundedcontext.mission.dto.response.MissionWeightDto;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.entity.Mission;
+import com.offmode.boundedcontext.mission.entity.UserMission;
+import com.offmode.boundedcontext.mission.repository.MissionRepository;
+import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

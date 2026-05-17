@@ -1,7 +1,7 @@
-package com.offmode.boundedcontext.badge.app.dto.response;
+package com.offmode.boundedcontext.badge.dto.response;
 
-import com.offmode.boundedcontext.badge.domain.entity.UserBadge;
-import com.offmode.boundedcontext.badge.domain.types.BadgeDefinition;
+import com.offmode.boundedcontext.badge.entity.UserBadge;
+import com.offmode.boundedcontext.badge.types.BadgeDefinition;
 import java.time.LocalDateTime;
 import lombok.Getter;
 

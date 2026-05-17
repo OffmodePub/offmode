@@ -1,13 +1,19 @@
 package com.offmode.global.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.offmode.global.dto.response.ApiResponse;
 import com.offmode.global.jwt.JwtAuthFilter;
+import com.offmode.global.status.ErrorStatus;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -21,6 +27,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   private final JwtAuthFilter jwtAuthFilter;
+  private final ObjectMapper objectMapper;
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -33,7 +40,16 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .headers(h -> h.frameOptions(f -> f.disable())) // H2 콘솔용
+        .exceptionHandling(
+            exception ->
+                exception
+                    .authenticationEntryPoint(
+                        (request, response, authException) ->
+                            writeErrorResponse(response, ErrorStatus.UNAUTHORIZED))
+                    .accessDeniedHandler(
+                        (request, response, accessDeniedException) ->
+                            writeErrorResponse(response, ErrorStatus.AUTH_ACCESS_DENIED)))
+        .headers(h -> h.frameOptions(FrameOptionsConfig::disable)) // H2 콘솔용
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
   }
@@ -48,5 +64,13 @@ public class SecurityConfig {
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
+  }
+
+  private void writeErrorResponse(HttpServletResponse response, ErrorStatus errorStatus)
+      throws java.io.IOException {
+    response.setStatus(errorStatus.getHttpStatus().value());
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setCharacterEncoding("UTF-8");
+    objectMapper.writeValue(response.getWriter(), ApiResponse.onFailure(errorStatus).getBody());
   }
 }

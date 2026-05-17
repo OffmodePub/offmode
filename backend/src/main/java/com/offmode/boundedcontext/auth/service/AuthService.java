@@ -1,10 +1,11 @@
-package com.offmode.boundedcontext.auth.app.service;
+package com.offmode.boundedcontext.auth.service;
 
-import com.offmode.boundedcontext.auth.app.dto.response.AuthResponse;
-import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.domain.entity.User;
-import com.offmode.boundedcontext.user.out.repository.UserRepository;
+import com.offmode.boundedcontext.auth.dto.response.AuthResponse;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.repository.UserRepository;
+import com.offmode.global.exception.BusinessException;
 import com.offmode.global.jwt.JwtProvider;
+import com.offmode.global.status.ErrorStatus;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.math.BigInteger;
@@ -24,7 +25,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class AuthService {
 
   private final UserRepository userRepository;
-  private final UserMissionRepository userMissionRepository;
   private final JwtProvider jwtProvider;
   private final WebClient.Builder webClientBuilder;
 
@@ -53,10 +53,10 @@ public class AuthService {
               .block();
     } catch (Exception e) {
       // Kakao API 오류(만료된 토큰 등)를 그대로 전파하지 않도록 래핑
-      throw new RuntimeException("카카오 토큰 검증 실패: " + e.getMessage());
+      throw new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED, e);
     }
 
-    if (kakaoUser == null) throw new RuntimeException("카카오 토큰 검증 실패");
+    if (kakaoUser == null) throw new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED);
 
     String providerId = String.valueOf(kakaoUser.get("id"));
     Map<?, ?> account = (Map<?, ?>) kakaoUser.get("kakao_account");
@@ -87,7 +87,7 @@ public class AuthService {
               .filter(k -> kid.equals(((Map<?, ?>) k).get("kid")))
               .map(k -> (Map<?, ?>) k)
               .findFirst()
-              .orElseThrow(() -> new RuntimeException("Apple 공개키 없음"));
+              .orElseThrow(() -> new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED));
 
       // RSA 공개키 생성
       byte[] nBytes = Base64.getUrlDecoder().decode((String) matchedKey.get("n"));
@@ -106,15 +106,17 @@ public class AuthService {
               .getPayload();
 
       if (!appleBundleId.equals(claims.getAudience().iterator().next())) {
-        throw new RuntimeException("Bundle ID 불일치");
+        throw new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED);
       }
 
       String providerId = claims.getSubject();
       String email = claims.get("email", String.class);
 
       return buildResponse("apple", providerId, email, fullName);
+    } catch (BusinessException e) {
+      throw e;
     } catch (Exception e) {
-      throw new RuntimeException("Apple 로그인 실패: " + e.getMessage(), e);
+      throw new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED, e);
     }
   }
 

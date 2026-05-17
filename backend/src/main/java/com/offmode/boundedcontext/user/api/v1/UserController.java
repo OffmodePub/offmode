@@ -1,8 +1,8 @@
-package com.offmode.boundedcontext.user.in.api.v1;
+package com.offmode.boundedcontext.user.api.v1;
 
-import com.offmode.boundedcontext.user.app.dto.response.UserStatsDto;
-import com.offmode.boundedcontext.user.app.service.UserService;
-import com.offmode.boundedcontext.user.domain.entity.User;
+import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.service.UserService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

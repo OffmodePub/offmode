@@ -1,20 +1,22 @@
-package com.offmode.boundedcontext.feed.app.service;
+package com.offmode.boundedcontext.feed.service;
 
-import com.offmode.boundedcontext.badge.app.service.BadgeService;
-import com.offmode.boundedcontext.feed.app.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.app.dto.response.FeedStatsDto;
-import com.offmode.boundedcontext.feed.app.dto.response.ReactionSummaryDto;
-import com.offmode.boundedcontext.feed.domain.entity.Reaction;
-import com.offmode.boundedcontext.feed.domain.entity.Verification;
-import com.offmode.boundedcontext.feed.domain.entity.VerificationConfirm;
-import com.offmode.boundedcontext.feed.out.repository.ReactionRepository;
-import com.offmode.boundedcontext.feed.out.repository.VerificationConfirmRepository;
-import com.offmode.boundedcontext.feed.out.repository.VerificationRepository;
-import com.offmode.boundedcontext.mission.domain.entity.UserMission;
-import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.app.dto.response.UserStatsDto;
-import com.offmode.boundedcontext.user.app.service.UserService;
-import com.offmode.boundedcontext.user.domain.entity.User;
+import com.offmode.boundedcontext.badge.service.BadgeService;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
+import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
+import com.offmode.boundedcontext.feed.dto.response.ReactionSummaryDto;
+import com.offmode.boundedcontext.feed.entity.Reaction;
+import com.offmode.boundedcontext.feed.entity.Verification;
+import com.offmode.boundedcontext.feed.entity.VerificationConfirm;
+import com.offmode.boundedcontext.feed.repository.ReactionRepository;
+import com.offmode.boundedcontext.feed.repository.VerificationConfirmRepository;
+import com.offmode.boundedcontext.feed.repository.VerificationRepository;
+import com.offmode.boundedcontext.mission.entity.UserMission;
+import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.user.dto.response.UserStatsDto;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.service.UserService;
+import com.offmode.global.exception.BusinessException;
+import com.offmode.global.status.ErrorStatus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,14 +68,14 @@ public class FeedService {
     UserMission mission =
         userMissionRepository
             .findById(userMissionId)
-            .orElseThrow(() -> new RuntimeException("미션 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorStatus.MISSION_NOT_FOUND));
 
     if (!mission.getUser().getId().equals(userId)) {
-      throw new RuntimeException("권한 없음");
+      throw new BusinessException(ErrorStatus.AUTH_ACCESS_DENIED);
     }
 
     if (verificationRepository.existsByUserMissionId(userMissionId)) {
-      throw new RuntimeException("이미 인증 사진을 올린 미션입니다");
+      throw new BusinessException(ErrorStatus.VERIFICATION_ALREADY_SUBMITTED);
     }
 
     // 사진 저장 (R2 우선, 없으면 로컬)
@@ -117,16 +119,16 @@ public class FeedService {
     Verification v =
         verificationRepository
             .findById(verificationId)
-            .orElseThrow(() -> new RuntimeException("인증 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorStatus.VERIFICATION_NOT_FOUND));
 
     // 본인 인증은 불가
     if (v.getUser().getId().equals(userId)) {
-      throw new RuntimeException("자신의 인증은 확인할 수 없습니다");
+      throw new BusinessException(ErrorStatus.VERIFICATION_SELF_CONFIRM_NOT_ALLOWED);
     }
 
     // 이미 인증해줬는지 확인
     if (confirmRepository.existsByVerificationIdAndUserId(verificationId, userId)) {
-      throw new RuntimeException("이미 인증해준 게시물입니다");
+      throw new BusinessException(ErrorStatus.VERIFICATION_ALREADY_CONFIRMED);
     }
 
     User confirmer = userService.getById(userId);
@@ -155,7 +157,7 @@ public class FeedService {
     Verification v =
         verificationRepository
             .findById(verificationId)
-            .orElseThrow(() -> new RuntimeException("인증 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorStatus.VERIFICATION_NOT_FOUND));
 
     reactionRepository
         .findByVerificationIdAndUserIdAndEmoji(verificationId, userId, emoji)

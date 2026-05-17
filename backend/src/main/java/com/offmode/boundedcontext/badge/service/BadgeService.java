@@ -1,12 +1,12 @@
-package com.offmode.boundedcontext.badge.app.service;
+package com.offmode.boundedcontext.badge.service;
 
-import com.offmode.boundedcontext.badge.app.dto.response.BadgeDto;
-import com.offmode.boundedcontext.badge.domain.entity.UserBadge;
-import com.offmode.boundedcontext.badge.domain.types.BadgeDefinition;
-import com.offmode.boundedcontext.badge.out.repository.UserBadgeRepository;
-import com.offmode.boundedcontext.mission.out.repository.UserMissionRepository;
-import com.offmode.boundedcontext.user.domain.entity.User;
-import com.offmode.boundedcontext.user.out.repository.UserRepository;
+import com.offmode.boundedcontext.badge.dto.response.BadgeDto;
+import com.offmode.boundedcontext.badge.entity.UserBadge;
+import com.offmode.boundedcontext.badge.repository.UserBadgeRepository;
+import com.offmode.boundedcontext.badge.types.BadgeDefinition;
+import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;

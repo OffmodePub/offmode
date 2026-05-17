@@ -1,7 +1,7 @@
-package com.offmode.boundedcontext.badge.in.api.v1;
+package com.offmode.boundedcontext.badge.api.v1;
 
-import com.offmode.boundedcontext.badge.app.dto.response.BadgeDto;
-import com.offmode.boundedcontext.badge.app.service.BadgeService;
+import com.offmode.boundedcontext.badge.dto.response.BadgeDto;
+import com.offmode.boundedcontext.badge.service.BadgeService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

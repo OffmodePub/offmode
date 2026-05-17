@@ -1,9 +1,9 @@
-package com.offmode.boundedcontext.auth.in.api.v1;
+package com.offmode.boundedcontext.auth.api.v1;
 
-import com.offmode.boundedcontext.auth.app.dto.request.AppleLoginRequest;
-import com.offmode.boundedcontext.auth.app.dto.request.KakaoLoginRequest;
-import com.offmode.boundedcontext.auth.app.dto.response.AuthResponse;
-import com.offmode.boundedcontext.auth.app.service.AuthService;
+import com.offmode.boundedcontext.auth.dto.request.AppleLoginRequest;
+import com.offmode.boundedcontext.auth.dto.request.KakaoLoginRequest;
+import com.offmode.boundedcontext.auth.dto.response.AuthResponse;
+import com.offmode.boundedcontext.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

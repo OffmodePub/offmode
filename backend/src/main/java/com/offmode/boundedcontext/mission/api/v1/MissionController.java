@@ -1,10 +1,10 @@
-package com.offmode.boundedcontext.mission.in.api.v1;
+package com.offmode.boundedcontext.mission.api.v1;
 
-import com.offmode.boundedcontext.mission.app.dto.response.MissionWeightDto;
-import com.offmode.boundedcontext.mission.app.dto.response.UserMissionDto;
-import com.offmode.boundedcontext.mission.app.service.MissionService;
-import com.offmode.boundedcontext.mission.domain.entity.Mission;
-import com.offmode.boundedcontext.mission.domain.entity.UserMission;
+import com.offmode.boundedcontext.mission.dto.response.MissionWeightDto;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.entity.Mission;
+import com.offmode.boundedcontext.mission.entity.UserMission;
+import com.offmode.boundedcontext.mission.service.MissionService;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.offmode.boundedcontext.mission.domain.entity;
+package com.offmode.boundedcontext.mission.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

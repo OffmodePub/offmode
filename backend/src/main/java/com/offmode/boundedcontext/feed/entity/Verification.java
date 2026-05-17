@@ -1,7 +1,7 @@
-package com.offmode.boundedcontext.feed.domain.entity;
+package com.offmode.boundedcontext.feed.entity;
 
-import com.offmode.boundedcontext.mission.domain.entity.UserMission;
-import com.offmode.boundedcontext.user.domain.entity.User;
+import com.offmode.boundedcontext.mission.entity.UserMission;
+import com.offmode.boundedcontext.user.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;

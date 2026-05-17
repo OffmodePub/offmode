@@ -1,7 +1,7 @@
-package com.offmode.boundedcontext.feed.out.repository;
+package com.offmode.boundedcontext.feed.repository;
 
-import com.offmode.boundedcontext.feed.app.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.domain.entity.Verification;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
+import com.offmode.boundedcontext.feed.entity.Verification;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +15,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.feed.app.dto.response.FeedItemDto(
+        SELECT new com.offmode.boundedcontext.feed.dto.response.FeedItemDto(
             v.id, v.photoUrl, v.caption, v.createdAt,
             u.name, u.avatar, u.level,
             um.missionIcon, um.missionText, um.missionCategory,

@@ -1,9 +1,9 @@
-package com.offmode.boundedcontext.feed.in.api.v1;
+package com.offmode.boundedcontext.feed.api.v1;
 
-import com.offmode.boundedcontext.feed.app.dto.response.FeedItemDto;
-import com.offmode.boundedcontext.feed.app.dto.response.FeedStatsDto;
-import com.offmode.boundedcontext.feed.app.service.FeedService;
-import com.offmode.boundedcontext.feed.domain.entity.Verification;
+import com.offmode.boundedcontext.feed.dto.response.FeedItemDto;
+import com.offmode.boundedcontext.feed.dto.response.FeedStatsDto;
+import com.offmode.boundedcontext.feed.entity.Verification;
+import com.offmode.boundedcontext.feed.service.FeedService;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

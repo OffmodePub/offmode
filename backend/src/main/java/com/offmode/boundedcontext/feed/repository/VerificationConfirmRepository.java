@@ -1,6 +1,6 @@
-package com.offmode.boundedcontext.feed.out.repository;
+package com.offmode.boundedcontext.feed.repository;
 
-import com.offmode.boundedcontext.feed.domain.entity.VerificationConfirm;
+import com.offmode.boundedcontext.feed.entity.VerificationConfirm;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

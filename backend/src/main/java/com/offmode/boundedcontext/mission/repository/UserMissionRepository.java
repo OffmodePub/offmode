@@ -1,7 +1,7 @@
-package com.offmode.boundedcontext.mission.out.repository;
+package com.offmode.boundedcontext.mission.repository;
 
-import com.offmode.boundedcontext.mission.app.dto.response.UserMissionDto;
-import com.offmode.boundedcontext.mission.domain.entity.UserMission;
+import com.offmode.boundedcontext.mission.dto.response.UserMissionDto;
+import com.offmode.boundedcontext.mission.entity.UserMission;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -48,12 +48,12 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
   // 오늘 미션 + 인증 사진/캡션 포함
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.mission.app.dto.response.UserMissionDto(
+        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionDto(
             um.id, um.missionIcon, um.missionText, um.missionCategory,
             um.status, um.assignedAt, um.verifiedAt, v.photoUrl, v.caption
         )
         FROM UserMission um
-        LEFT JOIN com.offmode.boundedcontext.feed.domain.entity.Verification v ON v.userMission = um
+        LEFT JOIN com.offmode.boundedcontext.feed.entity.Verification v ON v.userMission = um
         WHERE um.user.id = :userId AND um.assignedAt >= :start AND um.assignedAt < :end
         ORDER BY um.assignedAt DESC
     """)
@@ -70,12 +70,12 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
   // 히스토리 + 인증 사진 포함
   @Query(
       """
-        SELECT new com.offmode.boundedcontext.mission.app.dto.response.UserMissionDto(
+        SELECT new com.offmode.boundedcontext.mission.dto.response.UserMissionDto(
             um.id, um.missionIcon, um.missionText, um.missionCategory,
             um.status, um.assignedAt, um.verifiedAt, v.photoUrl, v.caption
         )
         FROM UserMission um
-        LEFT JOIN com.offmode.boundedcontext.feed.domain.entity.Verification v ON v.userMission = um
+        LEFT JOIN com.offmode.boundedcontext.feed.entity.Verification v ON v.userMission = um
         WHERE um.user.id = :userId
         ORDER BY um.assignedAt DESC
     """)

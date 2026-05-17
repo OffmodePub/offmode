@@ -1,6 +1,6 @@
-package com.offmode.boundedcontext.badge.out.repository;
+package com.offmode.boundedcontext.badge.repository;
 
-import com.offmode.boundedcontext.badge.domain.entity.UserBadge;
+import com.offmode.boundedcontext.badge.entity.UserBadge;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

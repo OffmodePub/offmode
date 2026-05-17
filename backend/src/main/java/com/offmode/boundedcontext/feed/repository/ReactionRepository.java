@@ -1,6 +1,6 @@
-package com.offmode.boundedcontext.feed.out.repository;
+package com.offmode.boundedcontext.feed.repository;
 
-import com.offmode.boundedcontext.feed.domain.entity.Reaction;
+import com.offmode.boundedcontext.feed.entity.Reaction;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
