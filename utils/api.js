@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const DEFAULT_DEV_PORT = '8080';
 const DEFAULT_PROD_BASE_URL = 'https://offmode-production.up.railway.app';
+const REQUEST_TIMEOUT_MS = 15000;
 
 const trimTrailingSlash = (url) => url.replace(/\/+$/, '');
 
@@ -46,25 +47,47 @@ async function request(method, path, body, isFormData = false) {
   const headers = {};
   if (_token)       headers['Authorization'] = `Bearer ${_token}`;
   if (!isFormData)  headers['Content-Type']  = 'application/json';
+  const url = `${BASE_URL}${path}`;
   console.log(`[API] ${method} ${path} | token: ${_token ? _token.slice(0, 20) + '...' : 'NONE'}`);
 
   let res;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
+    res = await fetch(url, {
       method,
       headers,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
   } catch (e) {
     if (__DEV__) {
-      console.warn(`[API] ${method} ${BASE_URL}${path} 네트워크 요청 실패`, e);
+      console.warn(`[API] ${method} ${url} 네트워크 요청 실패`, e);
     }
-    throw Object.assign(new Error(`API 서버에 연결할 수 없습니다. (${BASE_URL})`), { cause: e });
+    const timeoutMessage =
+      e?.name === 'AbortError' ? `요청 시간이 초과되었습니다. (${BASE_URL})` : null;
+    const networkMessage =
+      `API 서버에 연결할 수 없습니다. (${BASE_URL}) ` +
+      '실기기 테스트 중이라면 .env의 API 서버 주소가 현재 PC LAN IP인지 확인하세요.';
+    throw Object.assign(new Error(timeoutMessage || networkMessage), { cause: e });
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw Object.assign(new Error(data?.message || `요청 실패 (${res.status})`), { status: res.status });
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      if (__DEV__) console.warn('[API] JSON 응답 파싱 실패', text);
+    }
+  }
+  if (__DEV__) {
+    console.info(`[API] ${method} ${url} -> ${res.status}`);
+    if (!res.ok && data) console.warn('[API] error body', data);
+  }
+  if (!res.ok) throw Object.assign(new Error(data?.message || text || `요청 실패 (${res.status})`), { status: res.status });
   return data;
 }
 

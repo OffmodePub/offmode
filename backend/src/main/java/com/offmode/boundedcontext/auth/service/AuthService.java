@@ -12,16 +12,19 @@ import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.RSAPublicKeySpec;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
   private final UserRepository userRepository;
@@ -30,6 +33,9 @@ public class AuthService {
 
   @Value("${kakao.user-info-url}")
   private String kakaoUserInfoUrl;
+
+  @Value("${kakao.request-timeout-seconds:5}")
+  private long kakaoRequestTimeoutSeconds;
 
   @Value("${apple.bundle-id}")
   private String appleBundleId;
@@ -40,8 +46,10 @@ public class AuthService {
   // ── Kakao ──────────────────────────────────────────────
   public AuthResponse kakaoLogin(String accessToken) {
     // 카카오 API로 사용자 정보 조회
+    log.info("Kakao login requested");
     Map<?, ?> kakaoUser;
     try {
+      log.debug("Requesting Kakao user info");
       kakaoUser =
           webClientBuilder
               .build()
@@ -50,9 +58,11 @@ public class AuthService {
               .header("Authorization", "Bearer " + accessToken)
               .retrieve()
               .bodyToMono(Map.class)
+              .timeout(Duration.ofSeconds(kakaoRequestTimeoutSeconds))
               .block();
     } catch (Exception e) {
       // Kakao API 오류(만료된 토큰 등)를 그대로 전파하지 않도록 래핑
+      log.warn("Kakao user info request failed", e);
       throw new BusinessException(ErrorStatus.AUTH_OAUTH_FAILED, e);
     }
 
@@ -64,7 +74,10 @@ public class AuthService {
     Map<?, ?> profile = account != null ? (Map<?, ?>) account.get("profile") : null;
     String name = profile != null ? (String) profile.get("nickname") : null;
 
-    return buildResponse("kakao", providerId, email, name);
+    AuthResponse response = buildResponse("kakao", providerId, email, name);
+    log.info(
+        "Kakao login succeeded, userId={}, isNew={}", response.getUser().getId(), response.isNew());
+    return response;
   }
 
   // ── Apple ──────────────────────────────────────────────

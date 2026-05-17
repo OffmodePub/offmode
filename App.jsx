@@ -35,6 +35,8 @@ function AppInner() {
   // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
   const [authStatus, setAuthStatus] = useState('loading');
   const [authUser,   setAuthUser]   = useState(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
     loadToken().then(async (token) => {
@@ -84,6 +86,8 @@ function AppInner() {
   };
 
   const handleKakaoLogin = async () => {
+    setLoginLoading(true);
+    setLoginError('');
     try {
       const { user, isNew } = await signInWithKakao();
       setAuthUser(user);
@@ -99,10 +103,15 @@ function AppInner() {
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
       console.warn(e);
+      setLoginError(e?.message || '카카오 로그인에 실패했습니다.');
+    } finally {
+      setLoginLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError('');
     try {
       const { user, isNew } = await signInWithApple();
       setAuthUser(user);
@@ -117,7 +126,12 @@ function AppInner() {
       }
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
-      if (e?.code !== 'ERR_CANCELED') console.warn(e);
+      if (e?.code !== 'ERR_CANCELED') {
+        console.warn(e);
+        setLoginError(e?.message || 'Apple 로그인에 실패했습니다.');
+      }
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -233,6 +247,8 @@ function AppInner() {
         <LoginScreen
           onKakaoLogin={handleKakaoLogin}
           onAppleLogin={handleAppleLogin}
+          loading={loginLoading}
+          error={loginError}
         />
       )}
 
