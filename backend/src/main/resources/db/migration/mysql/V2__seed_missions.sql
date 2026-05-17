@@ -100,9 +100,9 @@ INSERT INTO missions (id, icon, text, category) VALUES
   (87, '🛏️', '이불 정리하고 하루 시작하기',         'Vitality'),
   (88, '🌺', '꽃이나 나무 한 그루 사진 찍기',        'Vitality'),
   (89, '🍫', '작은 간식 하나 천천히 음미하기',       'Vitality'),
-  (90, '🌠', '오늘 밤 별 보러 나가기',               'Vitality')
+  (90, '🌠', '오늘 밤 별 보러 나가기',               'Vitality') AS new_mission
 ON DUPLICATE KEY UPDATE
-  icon = VALUES(icon),
-  text = VALUES(text),
-  category = VALUES(category);
+  icon = new_mission.icon,
+  text = new_mission.text,
+  category = new_mission.category;
 
