@@ -348,7 +348,6 @@ class AuthServiceTest {
   private WebClient.Builder appleKeysErrorBuilder() {
     return WebClient.builder()
         .exchangeFunction(
-            request ->
-                Mono.just(ClientResponse.create(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+            request -> Mono.just(ClientResponse.create(HttpStatus.INTERNAL_SERVER_ERROR).build()));
   }
 }

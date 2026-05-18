@@ -17,10 +17,8 @@ public enum ErrorStatus {
 
   // Auth
   AUTH_OAUTH_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_401_001", "OAuth 인증에 실패했습니다."),
-  AUTH_APPLE_INVALID_TOKEN(
-      HttpStatus.UNAUTHORIZED, "AUTH_401_002", "Apple 인증 토큰이 유효하지 않습니다."),
-  AUTH_APPLE_KEY_UNAVAILABLE(
-      HttpStatus.BAD_GATEWAY, "AUTH_502_001", "Apple 공개키를 조회하지 못했습니다."),
+  AUTH_APPLE_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_002", "Apple 인증 토큰이 유효하지 않습니다."),
+  AUTH_APPLE_KEY_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "AUTH_502_001", "Apple 공개키를 조회하지 못했습니다."),
   AUTH_ACCESS_DENIED(HttpStatus.FORBIDDEN, "AUTH_403_001", "접근 권한이 없습니다."),
 
   // User

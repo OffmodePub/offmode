@@ -147,10 +147,7 @@ public class AuthService {
       log.warn("Apple public keys response was empty or malformed");
       throw new BusinessException(ErrorStatus.AUTH_APPLE_KEY_UNAVAILABLE);
     }
-    return keys.stream()
-        .filter(Map.class::isInstance)
-        .map(k -> (Map<String, Object>) k)
-        .toList();
+    return keys.stream().filter(Map.class::isInstance).map(k -> (Map<String, Object>) k).toList();
   }
 
   // kid 기반으로 Apple 공개키를 선택. JJWT가 서명 검증·exp 만료 검증을 담당한다.
