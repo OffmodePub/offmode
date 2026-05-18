@@ -1,12 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Switch, Alert, Linking,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { useColors } from '../utils/useColors';
 import { useTheme } from '../utils/ThemeContext';
 import T from '../components/ThemedText';
 import * as H from '../utils/haptics';
+import {
+  requestNotificationPermission,
+  scheduleMissionNotification, cancelMissionNotification,
+  scheduleReminderNotification, cancelReminderNotification,
+} from '../utils/notifications';
 
 const openLink = (url) =>
   Linking.openURL(url).catch(() =>
@@ -117,13 +123,69 @@ export default function SettingsScreen({
     ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}`
     : '08:00';
 
-  const [haptic, setHaptic] = useState(H.isEnabled());
-  const [sound,  setSound]  = useState(false);
+  const [haptic,    setHaptic]    = useState(H.isEnabled());
+  const [sound,     setSound]     = useState(false);
+  const [pushNotif, setPushNotif] = useState(false);
+  const [reminder,  setReminder]  = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const pn = await SecureStore.getItemAsync('notif_push');
+      const rm = await SecureStore.getItemAsync('notif_reminder');
+      if (pn !== null) setPushNotif(pn === 'true');
+      if (rm !== null) setReminder(rm === 'true');
+    })();
+  }, []);
 
   const handleHapticToggle = (v) => {
     H.setEnabled(v);
     setHaptic(v);
     if (v) H.tap();
+  };
+
+  const handlePushNotif = async (v) => {
+    if (v) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          '알림 권한 필요',
+          '설정 > offmode > 알림에서 권한을 허용해주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+      const time = missionTime ?? { hour: 8, minute: 0 };
+      await scheduleMissionNotification(time.hour, time.minute);
+    } else {
+      await cancelMissionNotification();
+    }
+    setPushNotif(v);
+    await SecureStore.setItemAsync('notif_push', String(v));
+  };
+
+  const handleReminder = async (v) => {
+    if (v) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          '알림 권한 필요',
+          '설정 > offmode > 알림에서 권한을 허용해주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+      await scheduleReminderNotification();
+    } else {
+      await cancelReminderNotification();
+    }
+    setReminder(v);
+    await SecureStore.setItemAsync('notif_reminder', String(v));
   };
 
   return (
@@ -171,24 +233,22 @@ export default function SettingsScreen({
           />
         </Section>
 
-        {/* 알림 — 푸시 알림은 미구현으로 주석 처리 */}
-        {/*
+        {/* 알림 */}
         <Section title="알림">
           <SettingRow
             icon="🔔"
             label="푸시 알림"
             sub="미션 도착 알림 받기"
-            right={<OffSwitch value={pushNotif} onValueChange={setPushNotif} />}
+            right={<OffSwitch value={pushNotif} onValueChange={handlePushNotif} />}
           />
           <SettingRow
             icon="⏰"
             label="일일 리마인더"
-            sub="미완료 미션 저녁 알림"
-            right={<OffSwitch value={reminder} onValueChange={setReminder} />}
+            sub="미완료 미션 저녁 알림 (21:00)"
+            right={<OffSwitch value={reminder} onValueChange={handleReminder} />}
             last
           />
         </Section>
-        */}
 
         {/* 앱 */}
         <Section title="앱">
