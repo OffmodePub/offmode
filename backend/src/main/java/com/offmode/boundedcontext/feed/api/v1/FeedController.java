@@ -3,7 +3,7 @@ package com.offmode.boundedcontext.feed.api.v1;
 import com.offmode.boundedcontext.feed.dto.request.ReactRequest;
 import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
 import com.offmode.boundedcontext.feed.dto.response.FeedStatsResponse;
-import com.offmode.boundedcontext.feed.entity.Verification;
+import com.offmode.boundedcontext.feed.dto.response.VerificationResponse;
 import com.offmode.boundedcontext.feed.service.FeedService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -23,13 +23,14 @@ public class FeedController {
   // POST /api/v1/feed/verify
   // multipart/form-data: photo (file), userMissionId, caption
   @PostMapping("/verify")
-  public ResponseEntity<Verification> verify(
+  public ResponseEntity<VerificationResponse> verify(
       @AuthenticationPrincipal Long userId,
       @RequestParam Long userMissionId,
       @RequestParam(required = false) MultipartFile photo,
       @RequestParam(required = false) String caption)
       throws Exception {
-    return ResponseEntity.ok(feedService.verify(userId, userMissionId, photo, caption));
+    return ResponseEntity.ok(
+        VerificationResponse.from(feedService.verify(userId, userMissionId, photo, caption)));
   }
 
   // GET /api/v1/feed/stats - 커뮤니티 통계
