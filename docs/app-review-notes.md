@@ -57,7 +57,7 @@ The login screen shows two options:
    Step 1 - enter a nickname and pick an avatar, then tap "다음 →".
    Step 2 - choose a "mission time" (5-minute increments) and tap
    "시작하기 →". Any time is fine for the review; the value only controls
-   the daily reminder notification.
+   when the daily mission notification is delivered.
 3. The Mission tab opens with an empty state. Tap the "🎰 미션 돌리기"
    button to open the mission roulette immediately. You do NOT need to
    wait for the chosen mission time - the button is always available
@@ -75,10 +75,11 @@ The login screen shows two options:
   mission. The app uses still-photo capture only - no video, no audio,
   no background capture. (iOS NSCameraUsageDescription is localized in
   Korean: "offmode가 미션 인증을 위해 카메라에 접근합니다.")
-- Notifications: used only to remind the user once per day at their
-  chosen mission time. Declining notifications does not block any
-  feature - the roulette can still be opened manually from the Mission
-  tab.
+- Notifications: used to deliver the daily mission notification at the
+  user's chosen time, and an additional 9pm reminder when the day's
+  mission has not been completed. Declining notifications does not
+  block any feature - the roulette can still be opened manually from
+  the Mission tab.
 
 [Backend]
 The backend is deployed on Railway and configured for production. No
@@ -109,7 +110,7 @@ listed in App Review Information. We will respond same-day.
   6. Feed 탭에서 다른 유저 인증 확인 / 이모지 리액션 / 피어 확인
 - 권한 사유
   - 카메라: 미션 인증용 사진 촬영 전용. 비디오/마이크/백그라운드 캡처 없음. iOS 시스템 다이얼로그 사유는 한국어로 로컬라이즈됨
-  - 알림: 사용자가 설정한 미션 시간에 1일 1회 리마인더만. 거부해도 모든 기능 정상 동작
+  - 알림: 사용자 설정 미션 시간에 미션 알림 (`daily-mission`) + 당일 미완료 시 21시 고정 리마인더 (`daily-reminder`). 거부해도 모든 기능 정상 동작
 - 백엔드: Railway 프로덕션 배포, 리뷰어 별도 설정 불필요
 - 연락처: ASC Contact 이메일로 답변 (당일 회신)
 
@@ -119,13 +120,15 @@ listed in App Review Information. We will respond same-day.
 
 ASC Notes에 적은 권한 설명과 `app.json` / 코드의 사유 문구가 일치해야 한다.
 
-| 권한 | repo 문구 | 출처 | 영문 ASC Notes 대응 |
+출처는 라인 번호 대신 JSON 경로로 표기 (라인 번호는 파일 변경에 따라 어긋나기 쉬움).
+
+| 권한 | repo 문구 | 출처 (`app.json`) | 영문 ASC Notes 대응 |
 |---|---|---|---|
-| iOS 카메라 | "offmode가 미션 인증을 위해 카메라에 접근합니다." | `app.json:43` (`expo-camera.cameraPermission`) | "used only when the user takes a photo to verify a completed mission" |
-| iOS 마이크 | 미사용 — 권한 요청 자체 없음 | `app.json:44` (`microphonePermission: false`) | "no audio" |
-| iOS 알림 | (별도 사유 문구 없음 — 시스템 기본) | `app.json:30-37` (`expo-notifications` plugin) | "used only to remind the user once per day" |
-| Android 카메라 | — | `app.json:24` (`android.permissions`) | (Android 심사 무관) |
-| Android RECORD_AUDIO | — | `app.json:25` | (Android 심사 무관, expo-camera Android 기본 추가) |
+| iOS 카메라 | "offmode가 미션 인증을 위해 카메라에 접근합니다." | `expo.plugins["expo-camera"].cameraPermission` | "used only when the user takes a photo to verify a completed mission" |
+| iOS 마이크 | 미사용 — 권한 요청 자체 없음 | `expo.plugins["expo-camera"].microphonePermission` (= `false`) | "no audio" |
+| iOS 알림 | (별도 사유 문구 없음 — 시스템 기본) | `expo.plugins["expo-notifications"]` | "deliver the daily mission notification + 9pm reminder" |
+| Android 카메라 | — | `expo.android.permissions[]` 의 `android.permission.CAMERA` | (Android 심사 무관) |
+| Android RECORD_AUDIO | — | `expo.android.permissions[]` 의 `android.permission.RECORD_AUDIO` | (Android 심사 무관, expo-camera Android 기본 추가) |
 
 > **주의**: iOS 카메라 사유 문구가 한국어로만 정의되어 있다. 영어 시스템 언어로 설정된 리뷰어 기기에서는 한국어 문구가 그대로 다이얼로그에 표시될 수 있다.
 > 이번 심사 제출에서는 §2 영문 Notes에 사유를 풀어 적어 리뷰어가 의도를 이해할 수 있게 한다.
