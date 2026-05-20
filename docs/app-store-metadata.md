@@ -220,6 +220,6 @@ ASC 입력 후 "심사 제출" 직전 마지막 점검.
 - [ ] Support URL이 실제 접근 가능한 페이지를 가리킴
 - [ ] Privacy Policy URL이 실제 접근 가능한 페이지를 가리킴
 - [ ] [`app-review-notes.md`](./app-review-notes.md) §1의 Sign-In Information 입력 완료
-- [ ] [`app-review-notes.md`](./app-review-notes.md) §2의 영문 Notes 가 App Review Information > Notes 에 그대로 입력됨
+- [ ] [`app-review-notes.md`](./app-review-notes.md) §2의 영문 Notes가 App Review Information > Notes에 그대로 입력됨
 - [ ] 빌드 업로드(EAS Submit)가 ASC에 도달함
 - [ ] 본인이 [`app-review-notes.md`](./app-review-notes.md) §5의 시연 체크리스트를 한 번 통과함
