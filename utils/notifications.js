@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+const SILENT_NOTIFICATION_CHANNEL_ID = 'offmode-silent-notifications';
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -17,12 +19,23 @@ export async function requestNotificationPermission() {
   return status === 'granted';
 }
 
+async function ensureSilentNotificationChannel() {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync(SILENT_NOTIFICATION_CHANNEL_ID, {
+    name: 'Offmode notifications',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: null,
+  });
+}
+
 // 매일 설정한 시간에 반복 알림 예약 (기존 미션 알림 교체)
 export async function scheduleMissionNotification(hour, minute) {
   await cancelMissionNotification();
 
   const granted = await requestNotificationPermission();
   if (!granted) return;
+  await ensureSilentNotificationChannel();
 
   await Notifications.scheduleNotificationAsync({
     identifier: 'daily-mission',
@@ -36,6 +49,7 @@ export async function scheduleMissionNotification(hour, minute) {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
+      channelId: SILENT_NOTIFICATION_CHANNEL_ID,
     },
   });
 }
@@ -48,6 +62,7 @@ export async function scheduleReminderNotification() {
   await cancelReminderNotification();
   const granted = await requestNotificationPermission();
   if (!granted) return;
+  await ensureSilentNotificationChannel();
   await Notifications.scheduleNotificationAsync({
     identifier: 'daily-reminder',
     content: {
@@ -60,6 +75,7 @@ export async function scheduleReminderNotification() {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: 21,
       minute: 0,
+      channelId: SILENT_NOTIFICATION_CHANNEL_ID,
     },
   });
 }
