@@ -8,3 +8,6 @@ offmode-db*
 out/
 !src/main/java/**/out/
 !src/main/java/**/out/**
+.env
+.env.*
+!.env.example

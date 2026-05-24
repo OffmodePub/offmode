@@ -146,3 +146,6 @@ backend/offmode-db*
 .kotlin
 /.expo/
 /uploads/*
+
+# Claude Code local cache
+.claude/
