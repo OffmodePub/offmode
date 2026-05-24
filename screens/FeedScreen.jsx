@@ -70,14 +70,14 @@ function normalizeEmojiKey(emoji) {
 function normalizeReactions(sourceReactions) {
   // 고정 3개는 항상 표시, 커스텀 이모지는 그 뒤에 추가
   const safeReactions = Array.isArray(sourceReactions) ? sourceReactions : [];
-  const reactionMap = {};
+  const reactionMap = new Map();
   safeReactions.forEach(r => {
     const emoji = normalizeEmojiKey(r.emoji);
-    if (emoji) reactionMap[emoji] = { ...r, emoji };
+    if (emoji) reactionMap.set(emoji, { ...r, emoji });
   });
   return [
-    ...FIXED_EMOJIS.map(e => reactionMap[e] ?? { emoji: e, count: 0, myReact: false }),
-    ...Object.values(reactionMap).filter(r => !FIXED_EMOJIS.includes(r.emoji)),
+    ...FIXED_EMOJIS.map(e => reactionMap.get(e) ?? { emoji: e, count: 0, myReact: false }),
+    ...Array.from(reactionMap.values()).filter(r => !FIXED_EMOJIS.includes(r.emoji)),
   ];
 }
 
