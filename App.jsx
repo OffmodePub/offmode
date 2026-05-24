@@ -1,8 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, LogBox } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+
+// [WORKAROUND] RN 0.83 iOS newArch에서 release 빌드 시 RCTFatal abort로 escalate되는
+// 알려진 native bridge 노이즈 에러들을 silent suppress.
+// - RCTEventEmitter 조기 emit: React renderer 등록 이전의 cosmetic view event
+// - Promise 이중 처리: 카카오/Apple 등 SDK의 known race condition (이미 우리 try/catch로 첫 reject는 처리됨)
+LogBox.ignoreLogs([
+  /Module has not been registered as callable/,
+  /RCTEventEmitter\.receiveEvent/,
+  /Tried to reject a promise after it'?s already been resolved/,
+  /Tried to resolve a promise after it'?s already been resolved/,
+]);
+if (global.ErrorUtils) {
+  const originalHandler = global.ErrorUtils.getGlobalHandler();
+  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+    const msg = String(error?.message || error || '');
+    const isNoiseError =
+      (msg.includes('RCTEventEmitter') && msg.includes('not been registered as callable')) ||
+      msg.includes('Tried to reject a promise after') ||
+      msg.includes('Tried to resolve a promise after') ||
+      msg.includes("already been resolved");
+    if (isNoiseError) {
+      console.warn('[RN0.83 workaround] suppressed bridge noise:', msg.slice(0, 200));
+      return;
+    }
+    originalHandler?.(error, isFatal);
+  });
+}
 import T from './components/ThemedText';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,6 +85,9 @@ function AppInner() {
       } else {
         setAuthStatus('unauthenticated');
       }
+    }).catch((e) => {
+      console.warn('자동 로그인 토큰 로드 실패:', e);
+      setAuthStatus('unauthenticated');
     });
   }, []);
 
@@ -238,7 +268,7 @@ function AppInner() {
 
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <StatusBar style={statusStyle} backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
 
