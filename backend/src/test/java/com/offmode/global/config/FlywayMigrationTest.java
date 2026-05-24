@@ -39,6 +39,6 @@ class FlywayMigrationTest {
         Arrays.stream(flyway.info().applied()).filter(info -> info.getVersion() != null).count();
 
     assertThat(missionCount).isEqualTo(90);
-    assertThat(migrationCount).isEqualTo(2);
+    assertThat(migrationCount).isEqualTo(3);
   }
 }
