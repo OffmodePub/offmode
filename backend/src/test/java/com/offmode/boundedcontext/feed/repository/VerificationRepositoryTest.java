@@ -3,6 +3,7 @@ package com.offmode.boundedcontext.feed.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
+import com.offmode.boundedcontext.feed.entity.Reaction;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.mission.entity.UserMission;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 class VerificationRepositoryTest {
 
   @Autowired private VerificationRepository verificationRepository;
+  @Autowired private ReactionRepository reactionRepository;
   @Autowired private UserMissionRepository userMissionRepository;
   @Autowired private UserRepository userRepository;
 
@@ -37,12 +39,30 @@ class VerificationRepositoryTest {
     assertThat(result).extracting(FeedItemResponse::getMissionText).containsExactly("물 마시기");
   }
 
+  @Test
+  void findByVerificationIdReturnsEachEmojiReactionSeparately() {
+    User owner = saveUser("owner");
+    User viewer = saveUser("viewer");
+    User reactor = saveUser("reactor");
+    Verification verification = saveVerification(owner, "물 마시기", "caption");
+    reactionRepository.save(
+        Reaction.builder().verification(verification).user(viewer).emoji("🔥").build());
+    reactionRepository.save(
+        Reaction.builder().verification(verification).user(reactor).emoji("🔥").build());
+    reactionRepository.save(
+        Reaction.builder().verification(verification).user(reactor).emoji("👍").build());
+
+    List<Reaction> result = reactionRepository.findByVerificationId(verification.getId());
+
+    assertThat(result).extracting(Reaction::getEmoji).containsExactlyInAnyOrder("🔥", "🔥", "👍");
+  }
+
   private User saveUser(String providerId) {
     return userRepository.save(
         User.builder().provider("kakao").providerId(providerId).name(providerId).build());
   }
 
-  private void saveVerification(User user, String missionText, String caption) {
+  private Verification saveVerification(User user, String missionText, String caption) {
     UserMission mission =
         userMissionRepository.save(
             UserMission.builder()
@@ -51,7 +71,7 @@ class VerificationRepositoryTest {
                 .missionText(missionText)
                 .missionCategory(MissionCategory.VITALITY)
                 .build());
-    verificationRepository.save(
+    return verificationRepository.save(
         Verification.builder().user(user).userMission(mission).caption(caption).build());
   }
 }

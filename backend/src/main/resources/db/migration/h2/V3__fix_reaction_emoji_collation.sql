@@ -1,0 +1,2 @@
+ALTER TABLE reactions
+  ALTER COLUMN emoji VARCHAR(10) NOT NULL;

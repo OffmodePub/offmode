@@ -3,6 +3,7 @@ package com.offmode.boundedcontext.feed.api.v1;
 import com.offmode.boundedcontext.feed.dto.request.ReactRequest;
 import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
 import com.offmode.boundedcontext.feed.dto.response.FeedStatsResponse;
+import com.offmode.boundedcontext.feed.dto.response.ReactionSummaryResponse;
 import com.offmode.boundedcontext.feed.dto.response.VerificationResponse;
 import com.offmode.boundedcontext.feed.service.FeedService;
 import jakarta.validation.Valid;
@@ -41,12 +42,11 @@ public class FeedController {
 
   // POST /api/v1/feed/{id}/react - 리액션 토글  body: { "emoji": "🔥" }
   @PostMapping("/{id}/react")
-  public ResponseEntity<Void> react(
+  public ResponseEntity<List<ReactionSummaryResponse>> react(
       @AuthenticationPrincipal Long userId,
       @PathVariable Long id,
       @Valid @RequestBody ReactRequest request) {
-    feedService.react(userId, id, request.getEmoji());
-    return ResponseEntity.ok().build();
+    return ResponseEntity.ok(feedService.react(userId, id, request.getEmoji()));
   }
 
   // POST /api/v1/feed/{id}/confirm - 피어 인증 (다른 사람의 인증 확인)

@@ -21,6 +21,9 @@ import com.offmode.global.file.ImageUploadService;
 import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -117,23 +120,31 @@ public class FeedService {
   }
 
   @Transactional
-  public void react(Long userId, Long verificationId, String emoji) {
+  public List<ReactionSummaryResponse> react(Long userId, Long verificationId, String emoji) {
     Verification v =
         verificationRepository
             .findById(verificationId)
             .orElseThrow(() -> new BusinessException(ErrorStatus.VERIFICATION_NOT_FOUND));
 
-    reactionRepository
-        .findByVerificationIdAndUserIdAndEmoji(verificationId, userId, emoji)
-        .ifPresentOrElse(
-            reactionRepository::delete, // 이미 있으면 취소(토글)
-            () -> { // 없으면 추가
-              User user = userService.getById(userId);
-              reactionRepository.save(
-                  Reaction.builder().verification(v).user(user).emoji(emoji).build());
-            });
+    List<Reaction> userReactions =
+        reactionRepository.findByVerificationIdAndUserId(verificationId, userId);
+    Reaction existing =
+        userReactions.stream()
+            .filter(reaction -> reaction.getEmoji().equals(emoji))
+            .findFirst()
+            .orElse(null);
+
+    if (existing != null) {
+      reactionRepository.delete(existing);
+    } else {
+      User user = userService.getById(userId);
+      reactionRepository.save(Reaction.builder().verification(v).user(user).emoji(emoji).build());
+    }
+
+    return toReactionSummaries(reactionRepository.findByVerificationId(verificationId), userId);
   }
 
+  @Transactional(readOnly = true)
   public List<FeedItemResponse> getFeed(Long userId, int page, int size) {
     // 오늘 내 미션 텍스트 조회 — 없으면 빈 피드 반환
     LocalDateTime todayStart = LocalDate.now().atStartOfDay();
@@ -157,25 +168,72 @@ public class FeedService {
     log.info("[GET-FEED] 필터 missionText='{}' → 조회된 피드 {}건", missionText, items.size());
     if (items.isEmpty()) return items;
 
-    // 한 번의 쿼리로 전체 리액션 요약 조회
+    // DB collation에 따른 이모지 GROUP BY 병합을 피하기 위해 애플리케이션에서 정확히 집계한다.
     List<Long> ids = items.stream().map(FeedItemResponse::getId).toList();
-    List<Object[]> rows = reactionRepository.findSummaries(ids, userId);
-
-    // verificationId → List<ReactionSummaryResponse> 맵 구성
-    Map<Long, List<ReactionSummaryResponse>> reactionMap = new java.util.HashMap<>();
-    for (Object[] row : rows) {
-      Long vId = (Long) row[0];
-      String emoji = (String) row[1];
-      long count = ((Number) row[2]).longValue();
-      boolean myReact = ((Number) row[3]).longValue() > 0;
-      reactionMap
-          .computeIfAbsent(vId, k -> new java.util.ArrayList<>())
-          .add(new ReactionSummaryResponse(emoji, count, myReact));
-    }
+    Map<Long, List<ReactionSummaryResponse>> reactionMap =
+        toReactionSummaryMap(reactionRepository.findByVerificationIdIn(ids), userId);
 
     items.forEach(
         item -> item.setReactions(reactionMap.getOrDefault(item.getId(), java.util.List.of())));
     return items;
+  }
+
+  private Map<Long, List<ReactionSummaryResponse>> toReactionSummaryMap(
+      List<Reaction> reactions, Long userId) {
+    Map<Long, Map<String, ReactionAggregate>> grouped = new HashMap<>();
+    for (Reaction reaction : reactions) {
+      Long verificationId = reaction.getVerification().getId();
+      grouped
+          .computeIfAbsent(verificationId, key -> new LinkedHashMap<>())
+          .computeIfAbsent(reaction.getEmoji(), key -> new ReactionAggregate())
+          .add(reaction, userId);
+    }
+
+    Map<Long, List<ReactionSummaryResponse>> result = new HashMap<>();
+    grouped.forEach(
+        (verificationId, emojiMap) ->
+            result.put(
+                verificationId,
+                emojiMap.entrySet().stream()
+                    .map(
+                        entry ->
+                            new ReactionSummaryResponse(
+                                entry.getKey(),
+                                entry.getValue().count(),
+                                entry.getValue().myReact()))
+                    .sorted(
+                        Comparator.comparingLong(ReactionSummaryResponse::count)
+                            .reversed()
+                            .thenComparing(ReactionSummaryResponse::emoji))
+                    .toList()));
+    return result;
+  }
+
+  private List<ReactionSummaryResponse> toReactionSummaries(List<Reaction> reactions, Long userId) {
+    Map<Long, List<ReactionSummaryResponse>> reactionMap = toReactionSummaryMap(reactions, userId);
+    if (reactions.isEmpty()) return List.of();
+    Long verificationId = reactions.getFirst().getVerification().getId();
+    return reactionMap.getOrDefault(verificationId, List.of());
+  }
+
+  private static class ReactionAggregate {
+    private long count;
+    private boolean myReact;
+
+    void add(Reaction reaction, Long viewerId) {
+      count++;
+      if (reaction.getUser().getId().equals(viewerId)) {
+        myReact = true;
+      }
+    }
+
+    long count() {
+      return count;
+    }
+
+    boolean myReact() {
+      return myReact;
+    }
   }
 
   public FeedStatsResponse getStats(Long userId) {

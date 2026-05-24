@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.badge.service.BadgeService;
 import com.offmode.boundedcontext.feed.dto.response.FeedItemResponse;
+import com.offmode.boundedcontext.feed.dto.response.ReactionSummaryResponse;
 import com.offmode.boundedcontext.feed.entity.Reaction;
 import com.offmode.boundedcontext.feed.entity.Verification;
 import com.offmode.boundedcontext.feed.repository.ReactionRepository;
@@ -126,12 +127,63 @@ class FeedServiceTest {
     Reaction reaction =
         Reaction.builder().id(30L).verification(verification).user(user).emoji("🔥").build();
     when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
-    when(reactionRepository.findByVerificationIdAndUserIdAndEmoji(20L, 1L, "🔥"))
-        .thenReturn(Optional.of(reaction));
+    when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(reaction));
+    when(reactionRepository.findByVerificationId(20L)).thenReturn(List.of());
 
-    feedService.react(1L, 20L, "🔥");
+    List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "🔥");
 
+    assertThat(result).isEmpty();
     verify(reactionRepository).delete(reaction);
+  }
+
+  @Test
+  void reactReturnsCountsGroupedByExactEmoji() {
+    User viewer = User.builder().id(1L).provider("kakao").providerId("viewer").build();
+    User reactor = User.builder().id(2L).provider("kakao").providerId("reactor").build();
+    Verification verification = Verification.builder().id(20L).build();
+    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of());
+    when(userService.getById(1L)).thenReturn(viewer);
+    when(reactionRepository.findByVerificationId(20L))
+        .thenReturn(
+            List.of(
+                Reaction.builder().verification(verification).user(viewer).emoji("💜").build(),
+                Reaction.builder().verification(verification).user(reactor).emoji("🔥").build(),
+                Reaction.builder().verification(verification).user(reactor).emoji("👍").build()));
+
+    List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "💜");
+
+    assertThat(result)
+        .extracting(ReactionSummaryResponse::emoji)
+        .containsExactlyInAnyOrder("👍", "🔥", "💜");
+    assertThat(result).extracting(ReactionSummaryResponse::count).containsOnly(1L);
+    assertThat(result)
+        .filteredOn(reaction -> reaction.emoji().equals("💜"))
+        .extracting(ReactionSummaryResponse::myReact)
+        .containsExactly(true);
+  }
+
+  @Test
+  void reactDoesNotToggleDifferentEmojiFromSameUser() {
+    User viewer = User.builder().id(1L).provider("kakao").providerId("viewer").build();
+    Verification verification = Verification.builder().id(20L).build();
+    Reaction heart =
+        Reaction.builder().id(30L).verification(verification).user(viewer).emoji("💜").build();
+    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(heart));
+    when(userService.getById(1L)).thenReturn(viewer);
+    when(reactionRepository.findByVerificationId(20L))
+        .thenReturn(
+            List.of(
+                heart,
+                Reaction.builder().verification(verification).user(viewer).emoji("👍").build()));
+
+    List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "👍");
+
+    assertThat(result)
+        .extracting(ReactionSummaryResponse::emoji)
+        .containsExactlyInAnyOrder("💜", "👍");
+    assertThat(result).extracting(ReactionSummaryResponse::count).containsOnly(1L);
   }
 
   @Test
