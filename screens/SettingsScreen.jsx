@@ -123,8 +123,9 @@ export default function SettingsScreen({
     ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}`
     : '08:00';
 
-  const [haptic,    setHaptic]    = useState(H.isEnabled());
-  const [sound,     setSound]     = useState(false);
+  // TODO: 햅틱/효과음 정식 도입 시 설정 상태와 화면 노출을 복구한다.
+  // const [haptic,    setHaptic]    = useState(H.isEnabled());
+  // const [sound,     setSound]     = useState(false);
   const [pushNotif, setPushNotif] = useState(false);
   const [reminder,  setReminder]  = useState(false);
 
@@ -137,11 +138,12 @@ export default function SettingsScreen({
     })();
   }, []);
 
-  const handleHapticToggle = (v) => {
-    H.setEnabled(v);
-    setHaptic(v);
-    if (v) H.tap();
-  };
+  // TODO: 햅틱 정식 도입 시 복구한다.
+  // const handleHapticToggle = (v) => {
+  //   H.setEnabled(v);
+  //   setHaptic(v);
+  //   if (v) H.tap();
+  // };
 
   const handlePushNotif = async (v) => {
     if (v) {
@@ -261,7 +263,10 @@ export default function SettingsScreen({
                 onValueChange={(v) => setScheme(v ? 'dark' : 'light')}
               />
             }
+            last
           />
+          {/* TODO: 햅틱/효과음 정식 도입 시 설정 항목을 복구한다. */}
+          {/*
           <SettingRow
             icon="📳"
             label="햅틱 피드백"
@@ -273,6 +278,7 @@ export default function SettingsScreen({
             right={<OffSwitch value={sound} onValueChange={setSound} />}
             last
           />
+          */}
         </Section>
 
         {/* 정보 */}
