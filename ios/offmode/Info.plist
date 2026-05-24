@@ -80,7 +80,7 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>offmode가 개발 서버(Metro)에 연결하기 위해 로컬 네트워크에 접근합니다.</string>
 	<key>RCTNewArchEnabled</key>
-	<true/>
+	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
