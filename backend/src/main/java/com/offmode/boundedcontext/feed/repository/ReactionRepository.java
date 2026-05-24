@@ -11,9 +11,21 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
   List<Reaction> findByVerificationIdAndUserId(Long verificationId, Long userId);
 
-  List<Reaction> findByVerificationIdIn(List<Long> ids);
+  @Query(
+      """
+        SELECT r.verification.id, r.emoji, r.user.id
+        FROM Reaction r
+        WHERE r.verification.id IN :ids
+    """)
+  List<Object[]> findRowsByVerificationIdIn(@Param("ids") List<Long> ids);
 
-  List<Reaction> findByVerificationId(Long verificationId);
+  @Query(
+      """
+        SELECT r.verification.id, r.emoji, r.user.id
+        FROM Reaction r
+        WHERE r.verification.id = :verificationId
+    """)
+  List<Object[]> findRowsByVerificationId(@Param("verificationId") Long verificationId);
 
   // 유저가 남긴 reaction 삭제
   @Modifying

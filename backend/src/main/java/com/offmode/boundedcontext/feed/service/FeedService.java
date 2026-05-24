@@ -141,7 +141,7 @@ public class FeedService {
       reactionRepository.save(Reaction.builder().verification(v).user(user).emoji(emoji).build());
     }
 
-    return toReactionSummaries(reactionRepository.findByVerificationId(verificationId), userId);
+    return toReactionSummaries(reactionRepository.findRowsByVerificationId(verificationId), userId);
   }
 
   @Transactional(readOnly = true)
@@ -171,7 +171,7 @@ public class FeedService {
     // DB collation에 따른 이모지 GROUP BY 병합을 피하기 위해 애플리케이션에서 정확히 집계한다.
     List<Long> ids = items.stream().map(FeedItemResponse::getId).toList();
     Map<Long, List<ReactionSummaryResponse>> reactionMap =
-        toReactionSummaryMap(reactionRepository.findByVerificationIdIn(ids), userId);
+        toReactionSummaryMap(reactionRepository.findRowsByVerificationIdIn(ids), userId);
 
     items.forEach(
         item -> item.setReactions(reactionMap.getOrDefault(item.getId(), java.util.List.of())));
@@ -179,14 +179,16 @@ public class FeedService {
   }
 
   private Map<Long, List<ReactionSummaryResponse>> toReactionSummaryMap(
-      List<Reaction> reactions, Long userId) {
+      List<Object[]> reactionRows, Long userId) {
     Map<Long, Map<String, ReactionAggregate>> grouped = new HashMap<>();
-    for (Reaction reaction : reactions) {
-      Long verificationId = reaction.getVerification().getId();
+    for (Object[] row : reactionRows) {
+      Long verificationId = ((Number) row[0]).longValue();
+      String emoji = (String) row[1];
+      Long reactorId = ((Number) row[2]).longValue();
       grouped
           .computeIfAbsent(verificationId, key -> new LinkedHashMap<>())
-          .computeIfAbsent(reaction.getEmoji(), key -> new ReactionAggregate())
-          .add(reaction, userId);
+          .computeIfAbsent(emoji, key -> new ReactionAggregate())
+          .add(reactorId, userId);
     }
 
     Map<Long, List<ReactionSummaryResponse>> result = new HashMap<>();
@@ -209,10 +211,12 @@ public class FeedService {
     return result;
   }
 
-  private List<ReactionSummaryResponse> toReactionSummaries(List<Reaction> reactions, Long userId) {
-    Map<Long, List<ReactionSummaryResponse>> reactionMap = toReactionSummaryMap(reactions, userId);
-    if (reactions.isEmpty()) return List.of();
-    Long verificationId = reactions.getFirst().getVerification().getId();
+  private List<ReactionSummaryResponse> toReactionSummaries(
+      List<Object[]> reactionRows, Long userId) {
+    Map<Long, List<ReactionSummaryResponse>> reactionMap =
+        toReactionSummaryMap(reactionRows, userId);
+    if (reactionRows.isEmpty()) return List.of();
+    Long verificationId = ((Number) reactionRows.getFirst()[0]).longValue();
     return reactionMap.getOrDefault(verificationId, List.of());
   }
 
@@ -220,9 +224,9 @@ public class FeedService {
     private long count;
     private boolean myReact;
 
-    void add(Reaction reaction, Long viewerId) {
+    void add(Long reactorId, Long viewerId) {
       count++;
-      if (reaction.getUser().getId().equals(viewerId)) {
+      if (reactorId.equals(viewerId)) {
         myReact = true;
       }
     }
