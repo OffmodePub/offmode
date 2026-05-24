@@ -52,9 +52,11 @@ class VerificationRepositoryTest {
     reactionRepository.save(
         Reaction.builder().verification(verification).user(reactor).emoji("👍").build());
 
-    List<Reaction> result = reactionRepository.findByVerificationId(verification.getId());
+    List<Object[]> result = reactionRepository.findRowsByVerificationId(verification.getId());
 
-    assertThat(result).extracting(Reaction::getEmoji).containsExactlyInAnyOrder("🔥", "🔥", "👍");
+    assertThat(result)
+        .extracting(row -> (String) row[1])
+        .containsExactlyInAnyOrder("🔥", "🔥", "👍");
   }
 
   private User saveUser(String providerId) {

@@ -128,7 +128,7 @@ class FeedServiceTest {
         Reaction.builder().id(30L).verification(verification).user(user).emoji("🔥").build();
     when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(reaction));
-    when(reactionRepository.findByVerificationId(20L)).thenReturn(List.of());
+    when(reactionRepository.findRowsByVerificationId(20L)).thenReturn(List.of());
 
     List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "🔥");
 
@@ -144,12 +144,12 @@ class FeedServiceTest {
     when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of());
     when(userService.getById(1L)).thenReturn(viewer);
-    when(reactionRepository.findByVerificationId(20L))
+    when(reactionRepository.findRowsByVerificationId(20L))
         .thenReturn(
             List.of(
-                Reaction.builder().verification(verification).user(viewer).emoji("💜").build(),
-                Reaction.builder().verification(verification).user(reactor).emoji("🔥").build(),
-                Reaction.builder().verification(verification).user(reactor).emoji("👍").build()));
+                new Object[] {20L, "💜", 1L},
+                new Object[] {20L, "🔥", 2L},
+                new Object[] {20L, "👍", 2L}));
 
     List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "💜");
 
@@ -172,11 +172,8 @@ class FeedServiceTest {
     when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(heart));
     when(userService.getById(1L)).thenReturn(viewer);
-    when(reactionRepository.findByVerificationId(20L))
-        .thenReturn(
-            List.of(
-                heart,
-                Reaction.builder().verification(verification).user(viewer).emoji("👍").build()));
+    when(reactionRepository.findRowsByVerificationId(20L))
+        .thenReturn(List.of(new Object[] {20L, "💜", 1L}, new Object[] {20L, "👍", 1L}));
 
     List<ReactionSummaryResponse> result = feedService.react(1L, 20L, "👍");
 
