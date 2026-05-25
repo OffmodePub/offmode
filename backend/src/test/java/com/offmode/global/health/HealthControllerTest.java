@@ -23,9 +23,9 @@ class HealthControllerTest {
   @MockitoBean private JwtProvider jwtProvider;
 
   @Test
-  void healthReturnsUpWithoutAuthentication() throws Exception {
+  void apiV1HealthReturnsUpWithoutAuthentication() throws Exception {
     mockMvc
-        .perform(get("/health"))
+        .perform(get("/api/v1/health"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("UP"));
   }
