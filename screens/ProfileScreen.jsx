@@ -24,7 +24,6 @@ const BADGE_IMAGE_MAP = {
   'badge_explore_lv02_explorer.png':          require('../assets/badge/badge_explore_lv02_explorer.png'),
   'badge_real_world_ruler.png':               require('../assets/badge/badge_real_world_ruler.png'),
   'badge_unique_speedrunner_streakking.png':  require('../assets/badge/badge_unique_speedrunner_streakking.png'),
-  'badge_activity_routine_manager.png':    require('../assets/badge/badge_activity_routine_manager.png'),
   'image_45.png': require('../assets/expansion.png'),
 };
 
@@ -32,9 +31,9 @@ const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
 
 const GRAD_FOR_CAT = {
-  Energy:    ['#acd8a7', '#2e7d4f'],
+  Vitality:  ['#acd8a7', '#2e7d4f'],
   Intellect: ['#c3aef0', '#5a2da0'],
-  Vitality:  ['#87ceeb', '#2a7ab8'],
+  Energy:    ['#87ceeb', '#2a7ab8'],
 };
 
 function SkeletonBox({ w, h, radius = 8, style }) {
@@ -466,9 +465,9 @@ function MissionHistory({ s, hist, C, weekGroups, weekLabels }) {
   const items = weekGroups[weekIdx] ?? [];
 
   const catColor = (cat) => {
-    if (cat === 'Energy')    return C.green;
+    if (cat === 'Energy')    return C.blue;
     if (cat === 'Intellect') return C.purple;
-    return C.blue;
+    return C.green;
   };
 
   return (
@@ -533,10 +532,10 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   useEffect(() => {
     Promise.all([
-      api.get('/api/badges/me'),
-      api.get('/api/users/me'),
-      api.get('/api/missions/history'),
-      api.get('/api/users/me/stats'),
+      api.get('/api/v1/badges/me'),
+      api.get('/api/v1/users/me'),
+      api.get('/api/v1/missions/history'),
+      api.get('/api/v1/users/me/stats'),
     ]).then(([b, u, hist, stats]) => {
       setBadges(b);
       setUserProfile(u);
@@ -548,14 +547,14 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   const handleSaveProfile = (updated) => {
     onSaveProfile?.(updated);
-    api.put('/api/users/me', { name: updated.name, avatar: updated.avatar })
+    api.put('/api/v1/users/me', { name: updated.name, avatar: updated.avatar })
       .catch(e => console.warn('프로필 저장 실패:', e));
   };
 
   const STATS = userStats ? [
-    { label: 'Energy',    color: C.green,  fill: userStats.energyFill,   level: userStats.energyLevel },
+    { label: 'Vitality',  color: C.green,  fill: userStats.vitalityFill,  level: userStats.vitalityLevel },
     { label: 'Intellect', color: C.purple, fill: userStats.intellectFill, level: userStats.intellectLevel },
-    { label: 'Vitality',  color: C.blue,   fill: userStats.vitalityFill,  level: userStats.vitalityLevel },
+    { label: 'Energy',    color: C.blue,   fill: userStats.energyFill,    level: userStats.energyLevel },
   ] : [];
   const totalMissions = userStats?.totalMissions ?? 0;
   const verifiedCount = userStats?.totalVerified ?? 0;

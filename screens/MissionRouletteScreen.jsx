@@ -17,9 +17,9 @@ const REPEATS = 6;
 const SLOT_H  = ITEM_H * VISIBLE;
 
 function getCategoryColor(cat, C) {
-  if (cat === 'Energy')    return C.green;
+  if (cat === 'Energy')    return C.blue;
   if (cat === 'Intellect') return C.purple;
-  return C.blue;
+  return C.green;
 }
 
 function SlotMachine({ onDone, autoSpin = true, missions }) {
@@ -55,8 +55,9 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
     translateY.setValue(0);
     Animated.timing(translateY, {
       toValue: targetY, duration: 3200,
-      easing: Easing.out(Easing.exp), useNativeDriver: true,
+      easing: Easing.out(Easing.cubic), useNativeDriver: true,
     }).start(() => {
+      translateY.setValue(targetY);
       setSpinning(false);
       setLanded(true);
       setFinalIdx(targetMissionIdx);
@@ -107,10 +108,10 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
 function makeSlotStyles(C) {
   return StyleSheet.create({
     root: {
-      height: SLOT_H, position: 'relative', overflow: 'hidden',
+      height: SLOT_H, overflow: 'hidden',
       borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
     },
-    window:    { height: SLOT_H, overflow: 'hidden' },
+    window:    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
     highlight: {
       position: 'absolute', top: ITEM_H, left: 0, right: 0, height: ITEM_H,
       borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
@@ -141,11 +142,11 @@ export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true
       toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true,
     }).start();
 
-    api.get('/api/missions/weighted-pool')
+    api.get('/api/v1/missions/weighted-pool')
       .then(data => { setMissions(data); setLoadingMissions(false); })
       .catch(() => {
         // weighted-pool 실패 시 기본 pool 폴백 (weight 없이 균등 확률)
-        api.get('/api/missions/pool')
+        api.get('/api/v1/missions/pool')
           .then(data => { setMissions(data); setLoadingMissions(false); })
           .catch(e => { console.warn('미션 풀 로딩 실패:', e); setLoadingMissions(false); });
       });

@@ -8,7 +8,7 @@ import T from '../components/ThemedText';
 
 const F = 'Kkukkukk';
 
-export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading }) {
+export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error }) {
   const C = useColors();
   const s = useMemo(() => makeStyles(C), [C]);
 
@@ -42,7 +42,7 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading }) {
           disabled={loading}
         >
           <Text style={s.kakaoIcon}>💬</Text>
-          <Text style={s.kakaoText}>카카오로 시작하기</Text>
+          <Text style={s.kakaoText}>{loading ? '로그인 중...' : '카카오로 시작하기'}</Text>
           <View style={{ width: 24 }} />
         </TouchableOpacity>
 
@@ -56,11 +56,13 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading }) {
           >
             <Text style={[s.appleIcon, { color: C.isDark ? '#000' : '#fff' }]}></Text>
             <Text style={[s.appleText, { color: C.isDark ? '#000' : '#fff' }]}>
-              Apple로 시작하기
+              {loading ? '로그인 중...' : 'Apple로 시작하기'}
             </Text>
             <View style={{ width: 24 }} />
           </TouchableOpacity>
         )}
+
+        {!!error && <T v="caption" style={s.error}>{error}</T>}
 
       </View>
 
@@ -116,6 +118,7 @@ function makeStyles(C) {
     appleIcon: { fontSize: 18, fontFamily: F },
     appleText: { fontFamily: F, fontSize: 16, flex: 1, textAlign: 'center' },
 
+    error: { textAlign: 'center', color: C.danger, lineHeight: 18 },
     terms: { textAlign: 'center', lineHeight: 18, opacity: 0.4 },
   });
 }

@@ -5,6 +5,8 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  flyway:
+    baseline-on-migrate: true
 
 server:
   port: ${PORT:8080}   # Railway는 PORT 환경변수를 자동 주입
@@ -15,10 +17,13 @@ jwt:
 
 kakao:
   user-info-url: https://kapi.kakao.com/v2/user/me
+  request-timeout-seconds: 5
 
 apple:
   bundle-id: com.minnnj.offmode
   keys-url: https://appleid.apple.com/auth/keys
+  issuer: https://appleid.apple.com
+  request-timeout-seconds: 5
 
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}

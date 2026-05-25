@@ -155,7 +155,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
           formData.append('photo', { uri: photoUri, type: 'image/jpeg', name: 'photo.jpg' });
         }
         if (caption) formData.append('caption', caption);
-        await api.upload('/api/feed/verify', formData);
+        await api.upload('/api/v1/feed/verify', formData);
       } catch (e) {
         console.warn('인증 업로드 실패:', e);
       }
@@ -195,7 +195,8 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
 
             {!photoUri ? (
               <View style={styles.cameraWrap}>
-                <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+                <CameraView ref={cameraRef} style={styles.camera} facing={facing} />
+                <View style={styles.cameraOverlay} pointerEvents="box-none">
                   <View style={[styles.corner, { top: 12, left: 12, borderRightWidth: 0, borderBottomWidth: 0 }]} />
                   <View style={[styles.corner, { top: 12, right: 12, borderLeftWidth: 0, borderBottomWidth: 0 }]} />
                   <View style={[styles.corner, { bottom: 72, left: 12, borderRightWidth: 0, borderTopWidth: 0 }]} />
@@ -207,7 +208,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
                       </TouchableOpacity>
                     </Animated.View>
                   </View>
-                </CameraView>
+                </View>
               </View>
             ) : (
               <View style={styles.takenPhotoWrap}>
@@ -275,8 +276,9 @@ function makeStyles(C) {
     content:     { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
     missionInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.greenBorder, paddingHorizontal: 14, paddingVertical: 12 },
     missionInfoIcon:  { fontSize: 28 },
-    cameraWrap:  { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: C.border, height: 320 },
+    cameraWrap:  { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: C.border, height: 320, position: 'relative' },
     camera:      { flex: 1 },
+    cameraOverlay: { ...StyleSheet.absoluteFillObject },
     corner:      { position: 'absolute', width: 22, height: 22, borderColor: C.green, borderWidth: 2.5 },
     shutterRow:  { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingVertical: 14, alignItems: 'center' },
     shutter:     { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },

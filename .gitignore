@@ -133,9 +133,19 @@ vite.config.ts.timestamp-*
 # Gradle
 .gradle/
 build/
+/gradle/
+
+# Local database files
+offmode-db*.db
+backend/offmode-db*
 
 # Mac
 .DS_Store
 
 # Ignore Kotlin plugin data
 .kotlin
+/.expo/
+/uploads/*
+
+# Claude Code local cache
+.claude/

@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Dimensions, ActivityIndicator, Image,
   Modal, TextInput, KeyboardAvoidingView, Platform, Animated,
+  Alert, AppState, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -60,17 +61,32 @@ const GRAD_PALETTE = [
   ['#ffd180','#e65100'], ['#90caf9','#1a3a6a'], ['#a5d6a7','#1b5e20'],
 ];
 
+const pad = n => String(n).padStart(2, '0');
+
+function normalizeEmojiKey(emoji) {
+  return String(emoji ?? '').trim().normalize('NFC');
+}
+
+function normalizeReactions(sourceReactions) {
+  // 고정 3개는 항상 표시, 커스텀 이모지는 그 뒤에 추가
+  const safeReactions = Array.isArray(sourceReactions) ? sourceReactions : [];
+  const reactionMap = new Map();
+  safeReactions.forEach(r => {
+    const emoji = normalizeEmojiKey(r.emoji);
+    if (emoji) reactionMap.set(emoji, { ...r, emoji });
+  });
+  return [
+    ...FIXED_EMOJIS.map(e => reactionMap.get(e) ?? { emoji: e, count: 0, myReact: false }),
+    ...Array.from(reactionMap.values()).filter(r => !FIXED_EMOJIS.includes(r.emoji)),
+  ];
+}
+
+function applyServerReactions(item, reactions) {
+  return { ...item, reactions: normalizeReactions(reactions) };
+}
+
 function apiItemToCard(item, idx) {
   const d = new Date(item.createdAt);
-  const pad = n => String(n).padStart(2, '0');
-  // 고정 3개는 항상 표시, 커스텀 이모지는 그 뒤에 추가
-  const backendReactions = item.reactions ?? [];
-  const reactionMap = {};
-  backendReactions.forEach(r => { reactionMap[r.emoji] = r; });
-  const reactions = [
-    ...FIXED_EMOJIS.map(e => reactionMap[e] ?? { emoji: e, count: 0, myReact: false }),
-    ...backendReactions.filter(r => !FIXED_EMOJIS.includes(r.emoji)),
-  ];
   return {
     id:           item.id,
     user:         item.userName    ?? '오프모더',
@@ -84,7 +100,7 @@ function apiItemToCard(item, idx) {
     label:        '미션 완료',
     status:       (item.verifyCount ?? 0) > 0 ? 'done' : 'pending',
     grad:         GRAD_PALETTE[idx % GRAD_PALETTE.length],
-    reactions,
+    reactions:     normalizeReactions(item.reactions),
     caption:      item.caption  ?? null,
     photoUrl:     item.photoUrl ? `${BASE_URL}${item.photoUrl}` : null,
     missionIcon:  item.missionIcon,
@@ -328,20 +344,52 @@ export default function FeedScreen() {
   const [items,        setItems]        = useState([]);
   const [filter,       setFilter]       = useState('전체');
   const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
   const [todayMission, setTodayMission] = useState(null);
 
-  useEffect(() => {
-    api.get('/api/missions/today')
-      .then(setTodayMission)
-      .catch(() => {});
-
-    api.get('/api/feed')
-      .then(data => setItems(data.map(apiItemToCard)))
-      .catch(e => console.warn('피드 로딩 실패:', e))
-      .finally(() => setLoading(false));
+  const loadFeed = useCallback(async ({ showLoading = false, showError = false } = {}) => {
+    if (showLoading) setLoading(true);
+    try {
+      const [mission, feed] = await Promise.all([
+        api.get('/api/v1/missions/today').catch(() => null),
+        api.get('/api/v1/feed'),
+      ]);
+      setTodayMission(mission);
+      setItems(feed.map(apiItemToCard));
+    } catch (e) {
+      console.warn('피드 로딩 실패:', e);
+      if (showError) Alert.alert('피드를 새로고침하지 못했어요', e?.message || '잠시 후 다시 시도해주세요.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
   }, []);
 
-  const handleReact = (id, emoji) => {
+  useEffect(() => {
+    loadFeed({ showLoading: true, showError: true });
+
+    const intervalId = setInterval(() => {
+      loadFeed();
+    }, 15000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadFeed();
+    });
+
+    return () => {
+      clearInterval(intervalId);
+      subscription.remove();
+    };
+  }, [loadFeed]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadFeed({ showError: true });
+    setRefreshing(false);
+  }, [loadFeed]);
+
+  const handleReact = async (id, emoji) => {
+    const emojiKey = normalizeEmojiKey(emoji);
+    if (!emojiKey) return;
+
     const toggle = (reactions, emoji, direction) => {
       const existing = reactions.find(r => r.emoji === emoji);
       if (existing) {
@@ -356,22 +404,31 @@ export default function FeedScreen() {
       return direction > 0 ? [...reactions, { emoji, count: 1, myReact: true }] : reactions;
     };
 
+    const previousReactions = items.find(item => item.id === id)?.reactions ?? null;
     // 낙관적 업데이트
     setItems(prev => prev.map(item => {
       if (item.id !== id) return item;
-      const already = item.reactions.find(r => r.emoji === emoji)?.myReact ?? false;
-      return { ...item, reactions: toggle(item.reactions, emoji, already ? -1 : 1) };
+      const already = item.reactions.find(r => r.emoji === emojiKey)?.myReact ?? false;
+      return { ...item, reactions: toggle(item.reactions, emojiKey, already ? -1 : 1) };
     }));
 
-    api.post(`/api/feed/${id}/react`, { emoji }).catch(e => {
+    try {
+      const serverReactions = await api.post(`/api/v1/feed/${id}/react`, { emoji: emojiKey });
+      if (Array.isArray(serverReactions)) {
+        setItems(prev => prev.map(item => (
+          item.id === id ? applyServerReactions(item, serverReactions) : item
+        )));
+      } else {
+        loadFeed();
+      }
+    } catch (e) {
       console.warn('리액션 실패:', e);
-      // 롤백
+      Alert.alert('리액션을 반영하지 못했어요', e?.message || '잠시 후 다시 시도해주세요.');
       setItems(prev => prev.map(item => {
         if (item.id !== id) return item;
-        const wasActive = item.reactions.find(r => r.emoji === emoji)?.myReact ?? false;
-        return { ...item, reactions: toggle(item.reactions, emoji, wasActive ? -1 : 1) };
+        return previousReactions ? { ...item, reactions: previousReactions } : item;
       }));
-    });
+    }
   };
 
   const handleVerify = async (id) => {
@@ -382,7 +439,7 @@ export default function FeedScreen() {
       return { ...item, myVerify: true, verifyCount: newCount, verified: newCount >= VERIFY_THRESHOLD };
     }));
     try {
-      await api.post(`/api/feed/${id}/confirm`);
+      await api.post(`/api/v1/feed/${id}/confirm`);
     } catch (e) {
       console.warn('인증 실패:', e);
       // 롤백
@@ -412,7 +469,12 @@ export default function FeedScreen() {
         </View>
       </View>
       {loading ? <FeedSkeleton /> : (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} />
+          }
+        >
           <View style={s.missionBar}>
             <View style={s.missionNameRow}>
               <Text style={s.missionIcon}>{todayMission?.missionIcon ?? featured?.missionIcon ?? '📋'}</Text>

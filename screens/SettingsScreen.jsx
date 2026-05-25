@@ -1,12 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch, Alert,
+  TouchableOpacity, Switch, Alert, Linking,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { useColors } from '../utils/useColors';
 import { useTheme } from '../utils/ThemeContext';
 import T from '../components/ThemedText';
 import * as H from '../utils/haptics';
+import {
+  requestNotificationPermission,
+  scheduleMissionNotification, cancelMissionNotification,
+  scheduleReminderNotification, cancelReminderNotification,
+} from '../utils/notifications';
+
+const openLink = (url) =>
+  Linking.openURL(url).catch(() =>
+    Alert.alert('오류', '페이지를 열 수 없어요. 잠시 후 다시 시도해주세요.')
+  );
 
 /* ── 토글 스위치 ─────────────────────────────────────── */
 function OffSwitch({ value, onValueChange }) {
@@ -112,13 +123,71 @@ export default function SettingsScreen({
     ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}`
     : '08:00';
 
-  const [haptic, setHaptic] = useState(H.isEnabled());
-  const [sound,  setSound]  = useState(false);
+  // TODO: 햅틱/효과음 정식 도입 시 설정 상태와 화면 노출을 복구한다.
+  // const [haptic,    setHaptic]    = useState(H.isEnabled());
+  // const [sound,     setSound]     = useState(false);
+  const [pushNotif, setPushNotif] = useState(false);
+  const [reminder,  setReminder]  = useState(false);
 
-  const handleHapticToggle = (v) => {
-    H.setEnabled(v);
-    setHaptic(v);
-    if (v) H.tap();
+  useEffect(() => {
+    (async () => {
+      const pn = await SecureStore.getItemAsync('notif_push');
+      const rm = await SecureStore.getItemAsync('notif_reminder');
+      if (pn !== null) setPushNotif(pn === 'true');
+      if (rm !== null) setReminder(rm === 'true');
+    })();
+  }, []);
+
+  // TODO: 햅틱 정식 도입 시 복구한다.
+  // const handleHapticToggle = (v) => {
+  //   H.setEnabled(v);
+  //   setHaptic(v);
+  //   if (v) H.tap();
+  // };
+
+  const handlePushNotif = async (v) => {
+    if (v) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          '알림 권한 필요',
+          '설정 > offmode > 알림에서 권한을 허용해주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+      const time = missionTime ?? { hour: 8, minute: 0 };
+      await scheduleMissionNotification(time.hour, time.minute);
+    } else {
+      await cancelMissionNotification();
+    }
+    setPushNotif(v);
+    await SecureStore.setItemAsync('notif_push', String(v));
+  };
+
+  const handleReminder = async (v) => {
+    if (v) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          '알림 권한 필요',
+          '설정 > offmode > 알림에서 권한을 허용해주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+      await scheduleReminderNotification();
+    } else {
+      await cancelReminderNotification();
+    }
+    setReminder(v);
+    await SecureStore.setItemAsync('notif_reminder', String(v));
   };
 
   return (
@@ -166,24 +235,22 @@ export default function SettingsScreen({
           />
         </Section>
 
-        {/* 알림 — 푸시 알림은 미구현으로 주석 처리 */}
-        {/*
+        {/* 알림 */}
         <Section title="알림">
           <SettingRow
             icon="🔔"
             label="푸시 알림"
             sub="미션 도착 알림 받기"
-            right={<OffSwitch value={pushNotif} onValueChange={setPushNotif} />}
+            right={<OffSwitch value={pushNotif} onValueChange={handlePushNotif} />}
           />
           <SettingRow
             icon="⏰"
             label="일일 리마인더"
-            sub="미완료 미션 저녁 알림"
-            right={<OffSwitch value={reminder} onValueChange={setReminder} />}
+            sub="미완료 미션 저녁 알림 (21:00)"
+            right={<OffSwitch value={reminder} onValueChange={handleReminder} />}
             last
           />
         </Section>
-        */}
 
         {/* 앱 */}
         <Section title="앱">
@@ -196,7 +263,10 @@ export default function SettingsScreen({
                 onValueChange={(v) => setScheme(v ? 'dark' : 'light')}
               />
             }
+            last
           />
+          {/* TODO: 햅틱/효과음 정식 도입 시 설정 항목을 복구한다. */}
+          {/*
           <SettingRow
             icon="📳"
             label="햅틱 피드백"
@@ -208,6 +278,7 @@ export default function SettingsScreen({
             right={<OffSwitch value={sound} onValueChange={setSound} />}
             last
           />
+          */}
         </Section>
 
         {/* 정보 */}
@@ -216,13 +287,19 @@ export default function SettingsScreen({
             icon="🛡️"
             label="개인정보 처리방침"
             right={<T v="sub">›</T>}
-            onPress={() => {}}
+            onPress={() => openLink('https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431')}
+          />
+          <SettingRow
+            icon="📄"
+            label="서비스 이용약관"
+            right={<T v="sub">›</T>}
+            onPress={() => openLink('https://fuchsia-belief-040.notion.site/35f09a0b0e3e80ffa48fde51b2de125b')}
           />
           <SettingRow
             icon="💬"
             label="문의하기"
             right={<T v="sub">›</T>}
-            onPress={() => {}}
+            onPress={() => openLink('https://fuchsia-belief-040.notion.site/Off-Mode-35f09a0b0e3e80af81a8ce27d686fd7d')}
           />
           <SettingRow
             icon="⭐"

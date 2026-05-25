@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { View, TouchableOpacity, StyleSheet, Animated, LogBox, Platform } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import T from './components/ThemedText';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,9 +16,41 @@ import SettingsScreen from './screens/SettingsScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
+
+// [WORKAROUND] RN 0.83 iOS Release 빌드에서 RCTFatal abort로 escalate되는
+// 알려진 native bridge 노이즈 에러들을 silent suppress.
+// - RCTEventEmitter 조기 emit: React renderer 등록 이전의 cosmetic view event
+// - Promise 이중 처리: 카카오/Apple SDK의 known race condition (try/catch로 첫 reject는 처리됨)
+// dev/Android에서는 진짜 에러도 가려지지 않도록 iOS Release에만 적용.
+if (!__DEV__ && Platform.OS === 'ios') {
+  LogBox.ignoreLogs([
+    /Module has not been registered as callable/,
+    /RCTEventEmitter\.receiveEvent/,
+    /Tried to reject a promise after it'?s already been resolved/,
+    /Tried to resolve a promise after it'?s already been resolved/,
+  ]);
+  if (global.ErrorUtils) {
+    const originalHandler = global.ErrorUtils.getGlobalHandler();
+    global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+      const msg = String(error?.message || error || '');
+      const isNoiseError =
+        (msg.includes('RCTEventEmitter') && msg.includes('not been registered as callable')) ||
+        msg.includes('Tried to reject a promise after') ||
+        msg.includes('Tried to resolve a promise after') ||
+        msg.includes('already been resolved');
+      if (isNoiseError) {
+        console.warn('[RN0.83 workaround] suppressed bridge noise:', msg.slice(0, 200));
+        return;
+      }
+      originalHandler?.(error, isFatal);
+    });
+  }
+}
 import { signInWithApple, signInWithKakao } from './utils/auth';
 import { api, loadToken, clearToken } from './utils/api';
 import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const TABS = [
   { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
@@ -31,12 +65,14 @@ function AppInner() {
   // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
   const [authStatus, setAuthStatus] = useState('loading');
   const [authUser,   setAuthUser]   = useState(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
     loadToken().then(async (token) => {
       if (token) {
         try {
-          const user = await api.get('/api/users/me');
+          const user = await api.get('/api/v1/users/me');
           setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
           const hour   = user.missionHour   ?? 8;
           const minute = user.missionMinute ?? 0;
@@ -52,6 +88,9 @@ function AppInner() {
       } else {
         setAuthStatus('unauthenticated');
       }
+    }).catch((e) => {
+      console.warn('자동 로그인 토큰 로드 실패:', e);
+      setAuthStatus('unauthenticated');
     });
   }, []);
 
@@ -68,7 +107,7 @@ function AppInner() {
 
   const loadTodayMission = async () => {
     try {
-      const mission = await api.get('/api/missions/today');
+      const mission = await api.get('/api/v1/missions/today');
       if (mission) {
         setCurrentMission({ icon: mission.missionIcon, text: mission.missionText, category: mission.missionCategory, status: mission.status, photoUrl: mission.photoUrl, caption: mission.caption });
         setCurrentMissionId(mission.id);
@@ -80,6 +119,8 @@ function AppInner() {
   };
 
   const handleKakaoLogin = async () => {
+    setLoginLoading(true);
+    setLoginError('');
     try {
       const { user, isNew } = await signInWithKakao();
       setAuthUser(user);
@@ -95,10 +136,15 @@ function AppInner() {
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
       console.warn(e);
+      setLoginError(e?.message || '카카오 로그인에 실패했습니다.');
+    } finally {
+      setLoginLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError('');
     try {
       const { user, isNew } = await signInWithApple();
       setAuthUser(user);
@@ -113,7 +159,12 @@ function AppInner() {
       }
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
-      if (e?.code !== 'ERR_CANCELED') console.warn(e);
+      if (e?.code !== 'ERR_CANCELED') {
+        console.warn(e);
+        setLoginError(e?.message || 'Apple 로그인에 실패했습니다.');
+      }
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -131,7 +182,7 @@ function AppInner() {
 
   const handleDeleteAccount = async () => {
     try {
-      await api.delete('/api/users/me');
+      await api.delete('/api/v1/users/me');
     } catch (e) {
       console.warn('회원탈퇴 실패:', e);
     }
@@ -141,7 +192,7 @@ function AppInner() {
   const handleSignupComplete = async (profileData) => {
     const { name, avatar, missionTime: mt } = profileData;
     try {
-      await api.put('/api/users/me', {
+      await api.put('/api/v1/users/me', {
         name,
         avatar,
         missionHour:   mt.hour,
@@ -160,6 +211,16 @@ function AppInner() {
   const [fontsLoaded] = useFonts({
     Kkukkukk: require('./fonts/kkukkukk/MemomentKkukkukk.otf'),
   });
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (fontsLoaded && authStatus !== 'loading') {
+      SplashScreen.hideAsync().finally(() => {
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
+    }
+  }, [fontsLoaded, authStatus, fadeAnim]);
 
   /* ── 설정 시간 감지 → 룰렛 표시 ──
      정책: 오늘 미션이 이미 있으면 시간을 바꿔도 룰렛을 다시 띄우지 않음 */
@@ -187,52 +248,7 @@ function AppInner() {
   const navShadow    = C.isDark ? '#22c97a' : 'transparent';
   const navIconColor = C.isDark ? '#aaa' : '#888';
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.green} />
-      </View>
-    );
-  }
-
-  // ── 토큰 복원 중 ──
-  if (authStatus === 'loading') {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.green} />
-      </View>
-    );
-  }
-
-  // ── 로그인 화면 ──
-  if (authStatus === 'unauthenticated') {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <LoginScreen
-            onKakaoLogin={handleKakaoLogin}
-            onAppleLogin={handleAppleLogin}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
-
-  // ── 회원가입 화면 ──
-  if (authStatus === 'signingUp') {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <SignupScreen
-            defaultName={authUser?.name ?? ''}
-            onComplete={handleSignupComplete}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
+  if (!fontsLoaded || authStatus === 'loading') return null;
 
   const push = (screen) => setStack(s => [...s, screen]);
   const pop  = ()       => setStack(s => s.slice(0, -1));
@@ -244,7 +260,7 @@ function AppInner() {
     setHasMission(true);
     setShowRoulette(false);
     try {
-      const saved = await api.post('/api/missions/today', {
+      const saved = await api.post('/api/v1/missions/today', {
         icon: mission.icon, text: mission.text, category: mission.category,
       });
       setCurrentMissionId(saved.id);
@@ -253,26 +269,41 @@ function AppInner() {
     }
   };
 
-  /* 룰렛 화면 (최상위 오버레이) */
-  if (showRoulette) {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style={statusStyle} backgroundColor={C.bg} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-          <MissionRouletteScreen
-            onStart={handleRouletteStart}
-            onSkip={() => setShowRoulette(false)}
-            autoSpin={autoRoulette}
-          />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
-
   return (
-    <SafeAreaProvider>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <StatusBar style={statusStyle} backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+
+      {/* ── 로그인 화면 ── */}
+      {authStatus === 'unauthenticated' && (
+        <LoginScreen
+          onKakaoLogin={handleKakaoLogin}
+          onAppleLogin={handleAppleLogin}
+          loading={loginLoading}
+          error={loginError}
+        />
+      )}
+
+      {/* ── 회원가입 화면 ── */}
+      {authStatus === 'signingUp' && (
+        <SignupScreen
+          defaultName={authUser?.name ?? ''}
+          onComplete={handleSignupComplete}
+        />
+      )}
+
+      {/* ── 룰렛 화면 ── */}
+      {authStatus === 'authenticated' && showRoulette && (
+        <MissionRouletteScreen
+          onStart={handleRouletteStart}
+          onSkip={() => setShowRoulette(false)}
+          autoSpin={autoRoulette}
+        />
+      )}
+
+      {/* ── 메인 탭 UI ── */}
+      {authStatus === 'authenticated' && !showRoulette && (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
 
           {/* ── 스택 화면 (오버레이) ── */}
@@ -282,7 +313,7 @@ function AppInner() {
                 onBack={pop}
                 onSave={(t) => {
                   setMissionTime(t);
-                  api.put('/api/users/me', { missionHour: t.hour, missionMinute: t.minute }).catch(e => console.warn('시간 저장 실패:', e));
+                  api.put('/api/v1/users/me', { missionHour: t.hour, missionMinute: t.minute }).catch(e => console.warn('시간 저장 실패:', e));
                   scheduleMissionNotification(t.hour, t.minute);
                   pop();
                 }}
@@ -337,7 +368,7 @@ function AppInner() {
                 autoRoulette={autoRoulette}
                 onSetAutoRoulette={(val) => {
                   setAutoRoulette(val);
-                  api.put('/api/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
+                  api.put('/api/v1/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
                 }}
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
@@ -362,18 +393,21 @@ function AppInner() {
                   <Ionicons
                     name={t.ionicon}
                     size={22}
-                    color={tab === t.key ? '#22c97a' : navIconColor}
+                    color={tab === t.key ? C.green : navIconColor}
                   />
-                  <Text style={[styles.navLabel, { color: navIconColor }, tab === t.key && styles.navLabelActive]}>
+                  <T v="label" size={9} color={tab === t.key ? C.green : navIconColor} style={{ opacity: tab === t.key ? 1 : 0.7, letterSpacing: 0.2 }}>
                     {t.label}
-                  </Text>
+                  </T>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
+      )}
+
       </SafeAreaView>
     </SafeAreaProvider>
+    </Animated.View>
   );
 }
 
@@ -411,6 +445,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  navLabel:       { fontFamily: 'Kkukkukk', fontSize: 9, opacity: 0.7, letterSpacing: 0.2 },
-  navLabelActive: { color: '#22c97a', opacity: 1 },
 });

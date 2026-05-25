@@ -2,17 +2,19 @@
   "expo": {
     "name": "offmode",
     "slug": "offmode",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "splash": {
-      "backgroundColor": "#0d0d14"
+      "backgroundColor": "#0d0d14",
+      "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.minnnj.offmode",
-      "appleTeamId": "F93MCV6G64",
+      "appleTeamId": "SX5KZM28U5",
       "usesAppleSignIn": true,
       "privacyPolicyUrl": "https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431"
     },
@@ -49,13 +51,15 @@
           "kakaoAppKey": "62ae912ced27c2b48181b0a6d1c84353"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
         "projectId": "55f790bd-66d2-44f7-bacc-2d422434926b"
       }
     },
-    "owner": "minnnj"
+    "owner": "offmodelog"
   }
 }
