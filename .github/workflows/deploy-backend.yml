@@ -90,18 +90,41 @@ jobs:
           next_image="$IMAGE_NAME:$IMAGE_TAG"
           healthcheck_url="http://localhost:${HOST_PORT}/api/v1/health"
 
+          rollback_to_previous_image() {
+            if [ -z "$previous_image" ]; then
+              echo "No previous image found. Rollback skipped."
+              return
+            fi
+
+            echo "Rolling back to previous image: $previous_image"
+            docker stop "$CONTAINER_NAME" 2>/dev/null || true
+            docker rm "$CONTAINER_NAME" 2>/dev/null || true
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --env-file "$BACKEND_ENV_FILE" \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              -p "${HOST_PORT}:8080" \
+              --restart unless-stopped \
+              "$previous_image" || echo "Rollback container start failed."
+          }
+
           docker build -t "$next_image" -t "$IMAGE_NAME:latest" .
 
           docker stop "$CONTAINER_NAME" 2>/dev/null || true
           docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
-          docker run -d \
+          if ! docker run -d \
             --name "$CONTAINER_NAME" \
             --env-file "$BACKEND_ENV_FILE" \
             -e SPRING_PROFILES_ACTIVE=prod \
             -p "${HOST_PORT}:8080" \
             --restart unless-stopped \
-            "$next_image"
+            "$next_image"; then
+            echo "Backend container start failed."
+            docker ps -a --filter "name=$CONTAINER_NAME"
+            rollback_to_previous_image
+            exit 1
+          fi
 
           for attempt in $(seq 1 30); do
             if curl -fsS "$healthcheck_url"; then
@@ -116,18 +139,7 @@ jobs:
           echo "Backend healthcheck failed. Recent container logs:"
           docker logs --tail=200 "$CONTAINER_NAME" || true
 
-          if [ -n "$previous_image" ]; then
-            echo "Rolling back to previous image: $previous_image"
-            docker stop "$CONTAINER_NAME" 2>/dev/null || true
-            docker rm "$CONTAINER_NAME" 2>/dev/null || true
-            docker run -d \
-              --name "$CONTAINER_NAME" \
-              --env-file "$BACKEND_ENV_FILE" \
-              -e SPRING_PROFILES_ACTIVE=prod \
-              -p "${HOST_PORT}:8080" \
-              --restart unless-stopped \
-              "$previous_image"
-          fi
+          rollback_to_previous_image
 
           exit 1
           REMOTE_SCRIPT
