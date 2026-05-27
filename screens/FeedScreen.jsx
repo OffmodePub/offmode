@@ -9,6 +9,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
 import { api, BASE_URL } from '../utils/api';
 import T from '../components/ThemedText';
+import ReportReasonModal from '../components/ReportReasonModal';
+import { openReportMail } from '../utils/reportMail';
+import * as H from '../utils/haptics';
 
 const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
@@ -175,7 +178,7 @@ function PhotoPlaceholder({ grad, avatar, photoUrl }) {
   );
 }
 
-function FeaturedCard({ item, onReact, onVerify }) {
+function FeaturedCard({ item, onReact, onVerify, onReport }) {
   const C = useColors();
   const feat = useMemo(() => makeFeatStyles(C), [C]);
   const [showPicker, setShowPicker] = useState(false);
@@ -194,6 +197,17 @@ function FeaturedCard({ item, onReact, onVerify }) {
             ? <View style={feat.statusBadgeGreen}><T v="sub" size={11} color="#000">✓ 인증완료</T></View>
             : <View style={feat.statusBadgePending}><T v="sub" size={11} color="rgba(255,255,255,0.8)">인증 대기</T></View>
           }
+          {!item.isOwn && (
+            <TouchableOpacity
+              style={feat.reportBtn}
+              onPress={() => { H.tap(); onReport(item); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="이 인증 신고하기"
+              activeOpacity={0.7}
+            >
+              <Text style={feat.reportIcon}>⋯</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {item.caption && <View style={feat.captionWrap}><T v="sub" color="#fff">{item.caption}</T></View>}
       </View>
@@ -255,10 +269,12 @@ function makeFeatStyles(C) {
     statusBadgeGreen: { backgroundColor: 'rgba(34,201,122,0.85)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4 },
     statusBadgePending: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
     addBtn:           { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: C.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface },
+    reportBtn:        { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
+    reportIcon:       { color: 'rgba(255,255,255,0.85)', fontSize: 18, lineHeight: 18, marginTop: -4 },
   });
 }
 
-function GridCard({ item, onReact, onVerify }) {
+function GridCard({ item, onReact, onVerify, onReport }) {
   const C = useColors();
   const grid = useMemo(() => makeGridStyles(C), [C]);
   const [showPicker, setShowPicker] = useState(false);
@@ -270,6 +286,17 @@ function GridCard({ item, onReact, onVerify }) {
           <Text style={grid.avatar}>{item.avatar}</Text>
           <T v="caption" color="#fff" style={{ flex: 1 }} numberOfLines={1}>{item.user}</T>
           {item.hip && <View style={grid.hipBadge}><T v="caption" size={9} color="#000">HIP</T></View>}
+          {!item.isOwn && (
+            <TouchableOpacity
+              style={grid.reportBtn}
+              onPress={() => { H.tap(); onReport(item); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="이 인증 신고하기"
+              activeOpacity={0.7}
+            >
+              <Text style={grid.reportIcon}>⋯</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={grid.tsWrap}>
           <T v="caption" color={C.green}>{item.time}</T>
@@ -335,6 +362,8 @@ function makeGridStyles(C) {
     verifyBtn:     { marginHorizontal: 8, marginBottom: 8, paddingVertical: 7, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface2 },
     verifyBtnDone: { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
     addBtn:        { width: 26, height: 26, borderRadius: 13, borderWidth: 1, borderColor: C.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+    reportBtn:     { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+    reportIcon:    { color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 14, marginTop: -3 },
   });
 }
 
@@ -346,6 +375,22 @@ export default function FeedScreen() {
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
   const [todayMission, setTodayMission] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
+
+  const handleReport = useCallback((item) => {
+    setReportTarget(item);
+  }, []);
+
+  const handleReportSubmit = useCallback(async ({ reasonKey, detail }) => {
+    if (!reportTarget) return;
+    await openReportMail({
+      verificationId: reportTarget.id,
+      targetUser:     reportTarget.user,
+      reasonKey,
+      detail,
+    });
+    setReportTarget(null);
+  }, [reportTarget]);
 
   const loadFeed = useCallback(async ({ showLoading = false, showError = false } = {}) => {
     if (showLoading) setLoading(true);
@@ -501,14 +546,14 @@ export default function FeedScreen() {
           {featured && (
             <>
               <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15, fontSize: 15 }}>✦  가장 많은 리액션</T>
-              <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} />
+              <FeaturedCard item={featured} onReact={handleReact} onVerify={handleVerify} onReport={handleReport} />
             </>
           )}
           {rest.length > 0 && (
             <>
               <T v="sub" style={{ paddingHorizontal: 16, marginBottom: 15, fontSize: 15 }}>모든 인증</T>
               <View style={s.gridWrap}>
-                {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} />)}
+                {rest.map(item => <GridCard key={item.id} item={item} onReact={handleReact} onVerify={handleVerify} onReport={handleReport} />)}
               </View>
             </>
           )}
@@ -520,6 +565,12 @@ export default function FeedScreen() {
           )}
         </ScrollView>
       )}
+      <ReportReasonModal
+        visible={!!reportTarget}
+        targetUser={reportTarget?.user}
+        onClose={() => setReportTarget(null)}
+        onSubmit={handleReportSubmit}
+      />
     </View>
   );
 }
