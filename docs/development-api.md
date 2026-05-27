@@ -7,7 +7,7 @@
 
 - iOS 시뮬레이터: `http://localhost:8080`
 - Android 에뮬레이터: `http://10.0.2.2:8080`
-- 운영 빌드: `https://offmode-production.up.railway.app`
+- 운영 빌드: `https://api.offmodechallenge.com` (AWS EC2 + Nginx + Let's Encrypt HTTPS)
 
 ## 실기기 테스트
 

@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const DEFAULT_DEV_PORT = '8080';
-const DEFAULT_PROD_BASE_URL = 'https://offmode-production.up.railway.app';
+const DEFAULT_PROD_BASE_URL = 'https://api.offmodechallenge.com';
 const REQUEST_TIMEOUT_MS = 15000;
 
 const trimTrailingSlash = (url) => url.replace(/\/+$/, '');
