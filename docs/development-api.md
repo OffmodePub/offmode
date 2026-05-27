@@ -7,7 +7,7 @@
 
 - iOS 시뮬레이터: `http://localhost:8080`
 - Android 에뮬레이터: `http://10.0.2.2:8080`
-- 운영 빌드: `https://offmode-production.up.railway.app`
+- 운영 빌드: 기본값 없음 — `EXPO_PUBLIC_PROD_API_BASE_URL` 환경변수로 지정 (HTTPS 도메인 구성 후 `utils/api.js`에 기본값 채워 넣을 예정)
 
 ## 실기기 테스트
 
