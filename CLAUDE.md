@@ -252,7 +252,7 @@ H.success()  // 완료 액션 (저장, 인증 등)
 ```
 
 ### 푸시 알림
-`utils/notifications.js`로 매일 반복되는 로컬 알림을 등록한다. 두 종류뿐이고 각각 identifier가 고정되어 있어 다시 등록하면 기존 알림이 자동 교체된다.
+`utils/notifications.js`로 매일 반복되는 로컬 알림을 등록한다. 두 종류뿐이며, 각 `schedule*Notification()`은 내부에서 동일 identifier의 기존 예약을 `cancel*Notification()`으로 먼저 취소한 뒤 재등록한다. 그래서 같은 함수를 다시 호출해도 중복 없이 새 값으로 갱신된다.
 
 ```js
 import {
@@ -264,14 +264,16 @@ import {
 // 미션 알림 — 사용자가 설정한 시간에 매일 발송
 await scheduleMissionNotification(hour, minute);
 
-// 리마인더 알림 — 21:00 고정, 미션 미완료자 대상
+// 리마인더 알림 — 매일 21:00 고정 반복 (미션 완료 여부와 무관하게 발송)
 await scheduleReminderNotification();
 
 // 로그아웃 시 미션 알림 취소
 await cancelMissionNotification();
 ```
 
-- 권한은 `requestNotificationPermission()`이 자동 요청. 거부 시 silent return하므로 호출부에서 분기 불필요.
+- `scheduleReminderNotification()`은 매일 21:00에 무조건 발송한다. "미션 미완료자만 보기" 같은 조건 분기는 호출부에서 알림 등록 자체를 막거나 별도 취소 호출로 제어한다 (코드 안에 조건 로직 없음).
+- 권한은 `requestNotificationPermission()`이 내부에서 자동 요청한다. 거부되면 `schedule*Notification()`은 silent return해서 알림이 등록되지 않는다.
+- 권한 거부 시 사용자에게 알림 권한이 필요하다는 UX(Alert, 설정 이동 등)를 보여줘야 하면 호출부에서 미리 `requestNotificationPermission()`을 호출해 결과로 분기한다 (예: `SettingsScreen`의 푸시/리마인더 토글).
 - Android는 `offmode-silent-notifications` 채널을 자동 생성. **새 알림 추가 시 채널을 따로 만들면 사운드 정책이 달라지므로 같은 채널을 재사용한다.**
 - 현재 모든 알림은 `shouldPlaySound: false`. 효과음 정식 도입 시 `notifications.js`의 TODO 두 곳을 동시에 `true`로 바꾼다.
 
