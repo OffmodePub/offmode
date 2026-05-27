@@ -2,9 +2,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const DEFAULT_DEV_PORT = '8080';
-// 운영 빌드는 반드시 EXPO_PUBLIC_PROD_API_BASE_URL 환경변수로 지정한다.
-// HTTPS 도메인 구성 완료 후 기본값을 채울 예정.
-const DEFAULT_PROD_BASE_URL = '';
+const DEFAULT_PROD_BASE_URL = 'https://api.offmodechallenge.com';
 const REQUEST_TIMEOUT_MS = 15000;
 
 const trimTrailingSlash = (url) => url.replace(/\/+$/, '');
@@ -23,13 +21,9 @@ const buildDevBaseUrl = () => {
   return `http://${host}:${port}`;
 };
 
-const buildProdBaseUrl = () => {
-  const url = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || DEFAULT_PROD_BASE_URL;
-  if (!url) {
-    console.warn('[API] 운영 빌드에 EXPO_PUBLIC_PROD_API_BASE_URL이 설정되지 않았습니다. 모든 API 호출이 실패합니다.');
-  }
-  return url;
-};
+const buildProdBaseUrl = () => (
+  process.env.EXPO_PUBLIC_PROD_API_BASE_URL || DEFAULT_PROD_BASE_URL
+);
 
 export const BASE_URL = trimTrailingSlash(__DEV__ ? buildDevBaseUrl() : buildProdBaseUrl());
 
