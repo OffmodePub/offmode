@@ -383,13 +383,14 @@ export default function FeedScreen() {
 
   const handleReportSubmit = useCallback(async ({ reasonKey, detail }) => {
     if (!reportTarget) return;
+    const target = reportTarget;
+    setReportTarget(null);
     await openReportMail({
-      verificationId: reportTarget.id,
-      targetUser:     reportTarget.user,
+      verificationId: target.id,
+      targetUser:     target.user,
       reasonKey,
       detail,
     });
-    setReportTarget(null);
   }, [reportTarget]);
 
   const loadFeed = useCallback(async ({ showLoading = false, showError = false } = {}) => {

@@ -1,6 +1,7 @@
 import { Alert, Linking } from 'react-native';
 
-export const REPORT_EMAIL = 'calla20032@naver.com';
+const DEFAULT_REPORT_EMAIL = 'calla20032@naver.com';
+export const REPORT_EMAIL = process.env.EXPO_PUBLIC_REPORT_EMAIL || DEFAULT_REPORT_EMAIL;
 
 export const REPORT_REASONS = [
   { key: 'SPAM',      label: '스팸 / 광고',           },
