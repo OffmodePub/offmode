@@ -69,8 +69,8 @@ function WheelPicker({ items, selectedIndex, onChange }) {
   return (
     <View style={wheel.wrap}>
       <View style={wheel.highlight} pointerEvents="none" />
-      <LinearGradient colors={[C.surface, 'transparent']} style={[wheel.fade, { top: 0 }]}    pointerEvents="none" />
-      <LinearGradient colors={['transparent', C.surface]} style={[wheel.fade, { bottom: 0 }]} pointerEvents="none" />
+      <LinearGradient colors={[C.surface, C.surface + '00']} style={[wheel.fade, { top: 0 }]}    pointerEvents="none" />
+      <LinearGradient colors={[C.surface + '00', C.surface]} style={[wheel.fade, { bottom: 0 }]} pointerEvents="none" />
       <ScrollView
         ref={scrollRef}
         style={{ height: PICKER_H, width: '100%' }}
@@ -92,7 +92,7 @@ function WheelPicker({ items, selectedIndex, onChange }) {
             <T
               v="sub"
               size={i === selectedIndex ? 34 : 28}
-              color={i === selectedIndex ? C.text : C.textSub}
+              color={i === selectedIndex ? C.text : (C.isDark ? C.textSub : C.green)}
               style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
             >
               {pad(val)}

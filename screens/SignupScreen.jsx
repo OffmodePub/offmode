@@ -76,8 +76,8 @@ function WheelPicker({ items, selectedIndex, onChange }) {
         borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
         backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
       }} pointerEvents="none" />
-      <LinearGradient colors={[C.surface, 'transparent']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
-      <LinearGradient colors={['transparent', C.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={[C.surface, C.surface + '00']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={[C.surface + '00', C.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
       <ScrollView
         ref={scrollRef}
         style={{ height: PICKER_H }}
@@ -99,7 +99,7 @@ function WheelPicker({ items, selectedIndex, onChange }) {
             <T
               v="sub"
               size={i === selectedIndex ? 30 : 24}
-              color={i === selectedIndex ? C.text : C.textSub}
+              color={i === selectedIndex ? C.text : (C.isDark ? C.textSub : C.green)}
               style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
             >
               {pad(val)}
