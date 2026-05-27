@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, Dimensions, Image, Modal, TextInput, Keyboard, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -529,21 +529,34 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   const [userStats, setUserStats] = useState(null);
   const [editVisible, setEditVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/api/v1/badges/me'),
-      api.get('/api/v1/users/me'),
-      api.get('/api/v1/missions/history'),
-      api.get('/api/v1/users/me/stats'),
-    ]).then(([b, u, hist, stats]) => {
+  const loadData = useCallback(async () => {
+    try {
+      const [b, u, hist, stats] = await Promise.all([
+        api.get('/api/v1/badges/me'),
+        api.get('/api/v1/users/me'),
+        api.get('/api/v1/missions/history'),
+        api.get('/api/v1/users/me/stats'),
+      ]);
       setBadges(b);
       setUserProfile(u);
       setHistoryItems(hist.map(toHistoryItem).filter(Boolean));
       setUserStats(stats);
-    }).catch(e => console.warn('데이터 로딩 실패:', e))
-      .finally(() => setLoading(false));
+    } catch (e) {
+      console.warn('데이터 로딩 실패:', e);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData().finally(() => setLoading(false));
+  }, [loadData]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const handleSaveProfile = (updated) => {
     onSaveProfile?.(updated);
@@ -571,7 +584,11 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
   return (
     <View style={s.screen}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} />}
+    >
       <LinearGradient colors={headerGrad} style={s.profileHeader}>
         <View style={s.avatarSection}>
           <View style={s.avatarWrap}>
