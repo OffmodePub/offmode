@@ -472,7 +472,7 @@ export default function FeedScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} colors={[C.green]} />
           }
         >
           <View style={s.missionBar}>

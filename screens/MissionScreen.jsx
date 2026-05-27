@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, Animated, Easing, Image,
 } from 'react-native';
 import { BASE_URL } from '../utils/api';
@@ -254,14 +254,19 @@ function MissionIcon({ icon, styles, C }) {
   );
 }
 
-function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displayedText, onOpenVerify, styles, C }) {
+function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displayedText, onOpenVerify, styles, C, refreshing, onRefresh }) {
   const cat       = currentMission?.category;
   const catColor  = cat === 'Intellect' ? C.purple  : cat === 'Energy' ? C.blue   : C.green;
   const catFaint  = cat === 'Intellect' ? C.purpleFaint  : cat === 'Energy' ? C.blueFaint  : C.greenFaint;
   const catBorder = cat === 'Intellect' ? C.purpleBorder : cat === 'Energy' ? C.blueBorder : C.greenBorder;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} /> : undefined}
+    >
       <View style={styles.cardWrapper}>
         <View style={[styles.card, { borderColor: catBorder }]}>
           <LinearGradient
@@ -404,7 +409,7 @@ function useCountdown(missionTime) {
   return time;
 }
 
-function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, communityStats, userStats, missionPool }) {
+function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, communityStats, userStats, missionPool, refreshing, onRefresh }) {
   const C = useColors();
   const { styles, empty } = useMemo(() => makeAllStyles(C), [C]);
   const pad = (n) => String(n).padStart(2, '0');
@@ -412,7 +417,12 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
   const timeLabel = missionTime ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}` : '08:00';
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} /> : undefined}
+    >
       <View style={empty.waitCard}>
         <HourglassAnimation size={88} />
         <WaitingTitle />
@@ -487,7 +497,7 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
   );
 }
 
-export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenRoulette, onOpenVerify, hasMission = false, currentMission }) {
+export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenRoulette, onOpenVerify, hasMission = false, currentMission, onRefresh }) {
   const C = useColors();
   const { styles } = useMemo(() => makeAllStyles(C), [C]);
   const pad = (n) => String(n).padStart(2, '0');
@@ -498,14 +508,27 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
   const [userStats,      setUserStats]      = useState(null);
   const [badges,         setBadges]         = useState([]);
   const [missionPool,    setMissionPool]    = useState([]);
+  const [refreshing,     setRefreshing]     = useState(false);
   const fullText = "미션 수행 중...";
 
-  useEffect(() => {
-    api.get('/api/v1/feed/stats').then(setCommunityStats).catch(e => console.warn('커뮤니티 통계 로딩 실패:', e));
-    api.get('/api/v1/users/me/stats').then(setUserStats).catch(e => console.warn('유저 통계 로딩 실패:', e));
-    api.get('/api/v1/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e));
-    api.get('/api/v1/missions/pool').then(setMissionPool).catch(e => console.warn('미션 풀 로딩 실패:', e));
+  const loadData = useCallback(async () => {
+    await Promise.all([
+      api.get('/api/v1/feed/stats').then(setCommunityStats).catch(e => console.warn('커뮤니티 통계 로딩 실패:', e)),
+      api.get('/api/v1/users/me/stats').then(setUserStats).catch(e => console.warn('유저 통계 로딩 실패:', e)),
+      api.get('/api/v1/badges/me').then(setBadges).catch(e => console.warn('배지 로딩 실패:', e)),
+      api.get('/api/v1/missions/pool').then(setMissionPool).catch(e => console.warn('미션 풀 로딩 실패:', e)),
+    ]);
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadData(), onRefresh?.()]);
+    setRefreshing(false);
+  }, [loadData, onRefresh]);
 
   const mainBadge    = badges.find(b => b.earned) ?? null;
   const earnedBadges = badges.filter(b => b.earned).slice(0, 3);
@@ -560,6 +583,8 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
           onOpenVerify={onOpenVerify}
           styles={styles}
           C={C}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       ) : (
         <EmptyMissionState
@@ -569,6 +594,8 @@ export default function MissionScreen({ missionTime, onOpenTimeSettings, onOpenR
           communityStats={communityStats}
           userStats={userStats}
           missionPool={missionPool}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       )}
     </View>

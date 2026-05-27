@@ -135,6 +135,28 @@ push('myScreen')   // → currentStack === 'myScreen'
 
 스택 화면이 열려 있는 동안 탭바는 자동으로 숨겨진다.
 
+### 인증 상태머신 (App.jsx)
+`AppInner`의 `authStatus`로 최상위 화면을 분기한다. 네 가지 상태만 존재한다.
+
+| authStatus | 표시 화면 | 진입 조건 |
+|---|---|---|
+| `loading` | (스플래시) | 앱 시작 직후, 토큰 복원 중 |
+| `unauthenticated` | `LoginScreen` | 토큰 없음 / 자동 로그인 실패 |
+| `signingUp` | `SignupScreen` | 로그인 응답의 `isNew === true` |
+| `authenticated` | 메인 탭 UI | 로그인 성공 + 프로필 로드 완료 |
+
+- 카카오·Apple 로그인 응답은 `{ token, user, isNew }` 형태. `isNew`로 신규/기존 분기.
+- 로그아웃 시 `cancelMissionNotification()` → `clearToken()` → 상태 초기화 → `setAuthStatus('unauthenticated')` 순서를 지킨다.
+- 자동 로그인 흐름은 `useEffect`에서 `loadToken()` → `/api/v1/users/me` → `loadTodayMission()` → `scheduleMissionNotification()`로 이어진다. 새 사용자 설정 필드가 생기면 이 자동 로그인 분기와 카카오/Apple 로그인 분기 두 군데를 동시에 손봐야 한다.
+
+### 미션 룰렛 자동 트리거 정책
+`App.jsx`의 1초 간격 인터벌이 `missionTime` 도달을 감지해서 룰렛을 띄운다. 룰렛이 **다시 트리거되지 않는** 조건:
+
+- 같은 분(`HH:MM`) 안에 이미 한 번 트리거됨 (`lastTriggeredRef`)
+- 오늘 미션이 이미 있음 (`hasMission === true`) — **시간을 변경해도 재트리거하지 않는다**
+
+따라서 "미션 시간 바꾸면 즉시 룰렛" 같은 UX는 명시적으로 `setShowRoulette(true)`를 호출해야 한다. `MissionScreen`의 `onOpenRoulette` prop이 그 경로.
+
 ### API 호출
 ```js
 import { api } from '../utils/api';
@@ -146,11 +168,19 @@ api.delete('/api/v1/...')
 api.upload('/api/v1/...', formData)
 ```
 
-로컬 개발 API 주소는 `utils/api.js`를 직접 수정하지 않고 Expo 공개 환경 변수로 설정한다.
+API 주소는 `utils/api.js`를 직접 수정하지 않고 Expo 공개 환경 변수로 설정한다. `BASE_URL`은 `__DEV__` 여부로 dev/prod 분기된다 (`utils/api.js`).
 
+**개발 환경 (`__DEV__ === true`)**
 - 기본값: iOS 시뮬레이터 `http://localhost:8080`, Android 에뮬레이터 `http://10.0.2.2:8080`
 - 실기기 테스트: `.env`에 `EXPO_PUBLIC_DEV_API_HOST=<백엔드 PC LAN IP>` 또는 `EXPO_PUBLIC_API_BASE_URL=http://<백엔드 PC LAN IP>:8080` 설정
+- 포트만 바꾸려면 `EXPO_PUBLIC_DEV_API_PORT`
 - 자세한 설정 방법은 `docs/development-api.md` 참고
+
+**운영 환경 (`__DEV__ === false`)**
+- 기본값: `https://offmode-production.up.railway.app`
+- 다른 운영 백엔드를 가리키려면 `EXPO_PUBLIC_PROD_API_BASE_URL` 오버라이드
+
+요청 타임아웃은 15초 (`REQUEST_TIMEOUT_MS`).
 
 ### 이미지 URL 조합
 백엔드에서 받은 `photoUrl`은 상대경로(`/uploads/...`)다. 항상 `BASE_URL`과 조합해서 사용한다.
@@ -221,6 +251,32 @@ H.tap()      // 일반 버튼
 H.success()  // 완료 액션 (저장, 인증 등)
 ```
 
+### 푸시 알림
+`utils/notifications.js`로 매일 반복되는 로컬 알림을 등록한다. 두 종류뿐이며, 각 `schedule*Notification()`은 내부에서 동일 identifier의 기존 예약을 `cancel*Notification()`으로 먼저 취소한 뒤 재등록한다. 그래서 같은 함수를 다시 호출해도 중복 없이 새 값으로 갱신된다.
+
+```js
+import {
+  scheduleMissionNotification,
+  cancelMissionNotification,
+  scheduleReminderNotification,
+} from '../utils/notifications';
+
+// 미션 알림 — 사용자가 설정한 시간에 매일 발송
+await scheduleMissionNotification(hour, minute);
+
+// 리마인더 알림 — 매일 21:00 고정 반복 (미션 완료 여부와 무관하게 발송)
+await scheduleReminderNotification();
+
+// 로그아웃 시 미션 알림 취소
+await cancelMissionNotification();
+```
+
+- `scheduleReminderNotification()`은 매일 21:00에 무조건 발송한다. "미션 미완료자만 보기" 같은 조건 분기는 호출부에서 알림 등록 자체를 막거나 별도 취소 호출로 제어한다 (코드 안에 조건 로직 없음).
+- 권한은 `requestNotificationPermission()`이 내부에서 자동 요청한다. 거부되면 `schedule*Notification()`은 silent return해서 알림이 등록되지 않는다.
+- 권한 거부 시 사용자에게 알림 권한이 필요하다는 UX(Alert, 설정 이동 등)를 보여줘야 하면 호출부에서 미리 `requestNotificationPermission()`을 호출해 결과로 분기한다 (예: `SettingsScreen`의 푸시/리마인더 토글).
+- Android는 `offmode-silent-notifications` 채널을 자동 생성. **새 알림 추가 시 채널을 따로 만들면 사운드 정책이 달라지므로 같은 채널을 재사용한다.**
+- 현재 모든 알림은 `shouldPlaySound: false`. 효과음 정식 도입 시 `notifications.js`의 TODO 두 곳을 동시에 `true`로 바꾼다.
+
 ### 폰트
 전용 폰트 `Kkukkukk` 하나만 사용. `T` 컴포넌트가 자동 적용하므로 직접 지정 불필요.
 
@@ -229,16 +285,25 @@ H.success()  // 완료 액션 (저장, 인증 등)
 ## 백엔드 규칙
 
 ### 패키지 구조
+DDD 풍으로 `global/`(공통 인프라)과 `boundedcontext/`(도메인) 두 갈래로 나뉜다.
 ```
 com.offmode/
-  auth/       # 카카오·애플 로그인, JWT 발급
-  user/       # 유저 프로필, 통계
-  mission/    # 미션 풀, 오늘의 미션, UserMission
-  feed/       # 인증(Verification), 피어확인(Confirm), 리액션, 피드
-  badge/      # 뱃지 정의(enum), 유저 뱃지
-  config/     # S3Config, SecurityConfig, FileConfig
-  jwt/        # JwtProvider, JwtAuthFilter
+  global/
+    config/     # SecurityConfig, FileConfig, S3Config
+    dto/        # ApiResponse 등 공통 응답 래퍼
+    exception/  # BusinessException, GlobalExceptionHandler
+    file/       # ImageUploadService (R2 / 로컬 fallback)
+    health/     # HealthController
+    jwt/        # JwtProvider, JwtAuthFilter
+    status/     # ErrorStatus enum
+  boundedcontext/
+    auth/       # 카카오·애플 로그인, JWT 발급
+    user/       # 유저 프로필, 통계
+    mission/    # 미션 풀, 오늘의 미션, UserMission
+    feed/       # 인증(Verification), 피어확인(Confirm), 리액션, 피드
+    badge/      # 뱃지 정의(enum), 유저 뱃지
 ```
+각 boundedcontext 모듈 안은 보통 `api/v1/`(컨트롤러), `service/`, `entity/`, `repository/`, `dto/` 하위 구조를 따른다.
 
 ### 환경 분리
 - `dev` 프로파일: H2 파일 DB (`offmode-db.mv.db`), R2 없이 로컬 파일 저장
@@ -254,9 +319,33 @@ com.offmode/
 `@Getter`, `@Builder`, `@Slf4j` 활용.
 
 ### 응답 규칙
-- 성공 204: body 없이 반환
-- 오류: `message` 필드 포함한 JSON으로 반환
-- 목록이 없을 때: 빈 배열 반환 (null 금지)
+성공 응답과 에러 응답이 포맷이 다르다.
+
+**성공**: 컨트롤러는 `ResponseEntity<DTO>`로 DTO를 그대로 반환한다.
+- 일반 케이스 → `ResponseEntity.ok(dto)` (200, DTO 본문)
+- 데이터 없음 → `ResponseEntity.noContent().build()` (204, 본문 없음 — 예: 오늘 미션이 아직 없을 때)
+- 목록이 비어 있을 때는 204가 아니라 빈 배열 `[]`을 담은 200을 반환한다.
+
+**에러**: `GlobalExceptionHandler`가 던져진 예외를 잡아 `ApiResponse<?>` 포맷으로 변환한다.
+```json
+{ "isSuccess": false, "code": "MISSION_404_001", "message": "해당 미션을 찾을 수 없습니다." }
+```
+- 필드 순서는 `isSuccess → code → message → result` (`@JsonPropertyOrder` 적용)
+- `result`는 `null`이면 직렬화 생략 (`@JsonInclude(NON_NULL)`)
+- 프론트 `utils/api.js`는 비 2xx 응답에서 `data?.message`를 읽어 `Error.message`로 던진다 — 그래서 사용자에게 보일 메시지는 반드시 한국어로 작성한다.
+
+### 에러 처리 패턴
+도메인 에러는 `ErrorStatus` enum에 등록한 뒤 `BusinessException`으로 던진다. `GlobalExceptionHandler`가 자동으로 `ApiResponse`로 변환한다.
+
+```java
+// 1) ErrorStatus enum에 케이스 추가 (global/status/ErrorStatus.java)
+MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "MISSION_404_001", "해당 미션을 찾을 수 없습니다."),
+
+// 2) 서비스에서 throw
+throw new BusinessException(ErrorStatus.MISSION_NOT_FOUND);
+```
+
+`ResponseStatusException`이나 임의 4xx를 직접 만들지 않는다. 새 에러 케이스는 반드시 `ErrorStatus`에 먼저 등록한다.
 
 ---
 
@@ -282,7 +371,7 @@ com.offmode/
 - 텍스트 추가 시 `<T>` 컴포넌트 사용, `<Text>` 직접 사용 금지
 - 색상 추가 시 `constants/colors.js`의 dark/light 양쪽에 모두 추가
 - 새 API 엔드포인트 추가 시 `SecurityConfig`의 permitAll/authenticated 목록 확인
-- 백엔드 엔티티 변경 시 dev는 `ddl-auto: update`로 자동 반영, prod는 별도 마이그레이션 필요
+- 백엔드 엔티티 변경 시 dev/prod 모두 `ddl-auto: validate`이므로 자동 반영되지 않는다. `backend/src/main/resources/db/migration/{h2,mysql}/V*__*.sql`에 Flyway 마이그레이션을 동시에 추가한다 (H2/MySQL 양쪽 모두)
 - 개발 API 주소는 `.env`의 `EXPO_PUBLIC_*` 변수로 설정하고 `utils/api.js`에 로컬 IP를 하드코딩하지 않음
 - `AvatarSvg` 컴포넌트가 `ProfileScreen`·`SignupScreen`에 중복 정의됨 → `components/AvatarSvg.jsx`로 분리 예정
 - `BADGE_IMAGE_MAP`이 `MissionScreen`·`ProfileScreen`에 중복 정의됨 → `constants/badges.js`로 분리 예정
