@@ -265,7 +265,7 @@ function MissionCard({ currentMission, userStats, mainBadge, earnedBadges, displ
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} /> : undefined}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} /> : undefined}
     >
       <View style={styles.cardWrapper}>
         <View style={[styles.card, { borderColor: catBorder }]}>
@@ -421,7 +421,7 @@ function EmptyMissionState({ missionTime, onOpenTimeSettings, onOpenRoulette, co
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} /> : undefined}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} /> : undefined}
     >
       <View style={empty.waitCard}>
         <HourglassAnimation size={88} />

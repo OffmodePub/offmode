@@ -587,7 +587,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 100 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} colors={[C.green]} />}
     >
       <LinearGradient colors={headerGrad} style={s.profileHeader}>
         <View style={s.avatarSection}>
