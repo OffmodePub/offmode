@@ -350,6 +350,7 @@ function AppInner() {
                 onOpenVerify={() => push('verify')}
                 hasMission={hasMission}
                 currentMission={currentMission}
+                onRefresh={loadTodayMission}
               />
             )}
             {tab === 'feed'     && <FeedScreen />}
