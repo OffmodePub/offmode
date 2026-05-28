@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.minnnj.offmode",
+      "buildNumber": "2",
       "appleTeamId": "SX5KZM28U5",
       "usesAppleSignIn": true,
       "privacyPolicyUrl": "https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431"

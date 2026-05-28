@@ -82,9 +82,10 @@ The login screen shows two options:
   the Mission tab.
 
 [Backend]
-The backend is deployed on Railway and configured for production. No
-additional server setup is required from the reviewer. All API endpoints
-the app calls are publicly reachable from the device on first launch.
+The backend runs on AWS (EC2 in ap-northeast-2 with Nginx + Let's Encrypt
+HTTPS) at https://api.offmodechallenge.com. It is publicly reachable and
+ready for production. No additional server setup or VPN is required from
+the reviewer.
 
 [Contact]
 If anything blocks the review, please reach out to the contact email
@@ -111,7 +112,7 @@ listed in App Review Information. We will respond same-day.
 - 권한 사유
   - 카메라: 미션 인증용 사진 촬영 전용. 비디오/마이크/백그라운드 캡처 없음. iOS 시스템 다이얼로그 사유는 한국어로 로컬라이즈됨
   - 알림: 사용자 설정 미션 시간에 미션 알림 (`daily-mission`) + 당일 미완료 시 21시 고정 리마인더 (`daily-reminder`). 거부해도 모든 기능 정상 동작
-- 백엔드: Railway 프로덕션 배포, 리뷰어 별도 설정 불필요
+- 백엔드: AWS EC2 + Nginx + Let's Encrypt HTTPS (`https://api.offmodechallenge.com`). 리뷰어 별도 설정 불필요
 - 연락처: ASC Contact 이메일로 답변 (당일 회신)
 
 ---
