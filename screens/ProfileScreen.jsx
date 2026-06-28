@@ -223,7 +223,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
   const avatarId = profile?.avatar ?? userProfile?.avatar ?? '01';
   const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
 
-  // 좌우 스와이프로 탭 전환 (왼쪽→mission, 오른쪽→설정). 세로 스크롤과 충돌 안 나게 수평 우세 제스처만 캡처
+  // 좌우 스와이프로 탭 전환 (왼쪽→설정, 오른쪽→mission). 세로 스크롤과 충돌 안 나게 수평 우세 제스처만 캡처
   const SWIPE = 60;
   const panResponder = useMemo(
     () =>
@@ -231,8 +231,8 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
         onMoveShouldSetPanResponder: (_, g) =>
           Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
         onPanResponderRelease: (_, g) => {
-          if (g.dx <= -SWIPE) { H.tap(); onSwipeToMission?.(); }
-          else if (g.dx >= SWIPE) { H.tap(); onSwipeToSettings?.(); }
+          if (g.dx <= -SWIPE) { H.tap(); onSwipeToSettings?.(); }
+          else if (g.dx >= SWIPE) { H.tap(); onSwipeToMission?.(); }
         },
       }),
     [onSwipeToMission, onSwipeToSettings]
