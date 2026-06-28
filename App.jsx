@@ -362,6 +362,8 @@ function AppInner() {
                 profile={profile}
                 onSaveProfile={setProfile}
                 currentMission={currentMission}
+                onSwipeToMission={() => setTab('mission')}
+                onSwipeToSettings={() => setTab('settings')}
               />
             )}
             {tab === 'settings' && (
