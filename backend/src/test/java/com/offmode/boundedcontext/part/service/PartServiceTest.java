@@ -3,6 +3,8 @@ package com.offmode.boundedcontext.part.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
@@ -56,17 +58,39 @@ class PartServiceTest {
   void equipUnlockedPartSavesAndReturnsUpdatedState() {
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
-    when(userPartRepository.findByUserId(1L))
-        .thenReturn(
-            Optional.empty(),
-            Optional.of(UserPart.builder().user(user).equippedKey("twinkle").build()));
-    when(userRepository.getReferenceById(1L)).thenReturn(user);
+    when(userPartRepository.findByUserId(1L)).thenReturn(Optional.empty());
+    when(userRepository.findById(1L)).thenReturn(Optional.of(user));
     when(userPartRepository.save(any(UserPart.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     List<PartResponse> parts = service().equip(1L, "twinkle");
 
     assertThat(find(parts, "twinkle").isEquipped()).isTrue(); // threshold 5, unlocked
+  }
+
+  @Test
+  void equipBlankKeyUnequipsInsteadOfRejecting() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
+    when(userPartRepository.findByUserId(1L))
+        .thenReturn(Optional.of(UserPart.builder().equippedKey("twinkle").build()));
+    when(userPartRepository.save(any(UserPart.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    List<PartResponse> parts = service().equip(1L, ""); // 빈 문자열 = 해제
+
+    assertThat(find(parts, "twinkle").isEquipped()).isFalse();
+  }
+
+  @Test
+  void unequipWithNoExistingRowDoesNotCreateRow() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
+    when(userPartRepository.findByUserId(1L)).thenReturn(Optional.empty());
+
+    List<PartResponse> parts = service().equip(1L, null);
+
+    assertThat(parts).hasSize(16);
+    assertThat(parts).noneMatch(PartResponse::isEquipped);
+    verify(userPartRepository, never()).save(any(UserPart.class));
   }
 
   @Test
