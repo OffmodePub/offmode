@@ -235,7 +235,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
     <View style={s.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 48 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={W.green} colors={[W.green]} />}
       >
         {/* 헤더 */}
@@ -282,14 +282,14 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
 
         {/* 캐릭터 꾸미기 */}
         <CharacterDecor parts={decorParts} />
-
-        {/* 페이지 인디케이터 */}
-        <View style={s.dots}>
-          <View style={[s.dot, s.dotActive]} />
-          <View style={s.dot} />
-          <View style={s.dot} />
-        </View>
       </ScrollView>
+
+      {/* 하단 바 (고정) — 시안 364:244 */}
+      <View style={s.bottomBar}>
+        <View style={[s.dot, s.dotActive]} />
+        <View style={s.dot} />
+        <View style={s.dot} />
+      </View>
 
       {profile && (
         <ProfileEditModal
@@ -350,8 +350,12 @@ const s = StyleSheet.create({
   dayBox_missed: { backgroundColor: W.coralFaint, borderColor: W.coralBorder },
   dayBox_future: { backgroundColor: 'transparent', borderColor: W.borderStrong, borderStyle: 'dashed' },
 
-  /* 페이지 인디케이터 */
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 4 },
+  /* 하단 바 (고정) */
+  bottomBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 33,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    backgroundColor: W.bg,
+  },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: W.border },
   dotActive: { width: 20, backgroundColor: W.green },
 });
