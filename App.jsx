@@ -210,6 +210,9 @@ function AppInner() {
 
   const [fontsLoaded] = useFonts({
     Kkukkukk: require('./fonts/kkukkukk/MemomentKkukkukk.otf'),
+    GmarketSansLight:  require('./fonts/gmarket/GmarketSansLight.ttf'),
+    GmarketSansMedium: require('./fonts/gmarket/GmarketSansMedium.ttf'),
+    GmarketSansBold:   require('./fonts/gmarket/GmarketSansBold.ttf'),
   });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -359,6 +362,8 @@ function AppInner() {
                 profile={profile}
                 onSaveProfile={setProfile}
                 currentMission={currentMission}
+                onSwipeToMission={() => setTab('mission')}
+                onSwipeToSettings={() => setTab('settings')}
               />
             )}
             {tab === 'settings' && (
@@ -377,8 +382,8 @@ function AppInner() {
             )}
           </View>
 
-          {/* ── 탭 바 ── */}
-          {!currentStack && (
+          {/* ── 탭 바 (profile 탭에서는 숨김 — 웜 리디자인 시안 일치) ── */}
+          {!currentStack && tab !== 'profile' && (
             <View style={[styles.navBar, {
               backgroundColor: navBg,
               borderColor: navBorder,
