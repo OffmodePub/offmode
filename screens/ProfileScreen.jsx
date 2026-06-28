@@ -48,21 +48,29 @@ function toWeekItem(m) {
   return { dt, verified: m.status === 'verified' };
 }
 
-/** 이번 주 7일의 상태: done(완료) / missed(놓침) / future(예정) */
-function computeWeekData(history) {
+/**
+ * 이번 주 7일의 상태: done(완료) / missed(놓침) / future(예정·진행중·가입 전).
+ * 가입 전 날짜와 인증 대기(pending) 날짜는 '놓침'으로 보지 않는다 — 실제로 놓친 과거 날만 X 표시.
+ */
+function computeWeekData(history, joinDate) {
   const monday = getMondayOfWeek(new Date());
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const join = parseLocalDT(joinDate);
+  if (join) join.setHours(0, 0, 0, 0);
   const DAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
   return DAY_NAMES.map((day, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     d.setHours(0, 0, 0, 0);
     const key = ymd(d);
-    const done = history.some(h => h?.dt && ymd(h.dt) === key && h.verified);
+    const dayItems = history.filter(h => h?.dt && ymd(h.dt) === key);
     let status = 'future';
-    if (done) status = 'done';
-    else if (d < today) status = 'missed';
+    if (dayItems.some(h => h.verified)) status = 'done';     // 인증 완료
+    else if (d >= today) status = 'future';                  // 오늘/미래
+    else if (join && d < join) status = 'future';            // 가입 전 → 중립
+    else if (dayItems.length > 0) status = 'future';         // 미션은 있으나 인증 대기 → 중립(미실패)
+    else status = 'missed';                                  // 과거 + 가입 후 + 기록 없음 → 놓침
     return { day, status };
   });
 }
@@ -217,7 +225,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
   const streakDays = userStats?.streak ?? 0;
   const completionRate = totalMissions > 0 ? Math.round((verifiedCount / totalMissions) * 100) : 0;
 
-  const weekData = useMemo(() => computeWeekData(weekItems), [weekItems]);
+  const weekData = useMemo(() => computeWeekData(weekItems, userProfile?.createdAt), [weekItems, userProfile]);
   const decorParts = useMemo(() => buildPartsState(verifiedCount, null), [verifiedCount]);
 
   const avatarId = profile?.avatar ?? userProfile?.avatar ?? '01';
@@ -239,8 +247,9 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
   );
 
   if (loading) {
+    // 로딩 중에도 스와이프로 다른 탭으로 빠져나갈 수 있어야 함 (프로필 탭바 숨김 상태)
     return (
-      <View style={[s.screen, s.center]}>
+      <View style={[s.screen, s.center]} {...panResponder.panHandlers}>
         <ActivityIndicator color={W.green} />
       </View>
     );
@@ -342,17 +351,17 @@ const s = StyleSheet.create({
     borderRadius: 14, paddingVertical: 14,
   },
   summaryItem: { flex: 1, alignItems: 'center', gap: 3 },
-  summaryDivider: { width: 1, height: 36, backgroundColor: '#ede8ff' },
+  summaryDivider: { width: 1, height: 36, backgroundColor: W.border },
 
   /* 이번 주 활동 */
   weekWrap: { paddingHorizontal: 16, paddingBottom: 24 },
   weekCard: {
-    backgroundColor: 'rgba(168,149,138,0.2)', borderWidth: 1, borderColor: W.borderStrong,
+    backgroundColor: W.neutralFaint, borderWidth: 1, borderColor: W.borderStrong,
     borderRadius: 16, padding: 16, gap: 14,
   },
   weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   streakBadge: {
-    backgroundColor: 'rgba(232,81,58,0.15)', borderWidth: 1, borderColor: 'rgba(232,81,58,0.3)',
+    backgroundColor: W.coralFaint, borderWidth: 1, borderColor: W.coralBorder,
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
   },
   weekRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
