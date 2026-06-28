@@ -7,6 +7,7 @@ import com.offmode.boundedcontext.feed.repository.VerificationRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.part.repository.UserPartRepository;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
@@ -31,6 +32,7 @@ public class UserService {
   private final ReactionRepository reactionRepository;
   private final VerificationRepository verificationRepository;
   private final UserBadgeRepository userBadgeRepository;
+  private final UserPartRepository userPartRepository;
 
   public User getById(Long id) {
     return userRepository
@@ -120,6 +122,7 @@ public class UserService {
     reactionRepository.deleteByVerificationOwnerUserId(userId); // 내 인증에 달린 reaction
     verificationRepository.deleteByUserId(userId); // 내 인증
     userBadgeRepository.deleteByUserId(userId); // 내 배지
+    userPartRepository.deleteByUserId(userId); // 내 파츠
     userMissionRepository.deleteByUserId(userId); // 내 미션
     userRepository.deleteById(userId);
   }
