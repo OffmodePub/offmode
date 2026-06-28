@@ -380,8 +380,8 @@ function AppInner() {
             )}
           </View>
 
-          {/* ── 탭 바 ── */}
-          {!currentStack && (
+          {/* ── 탭 바 (profile 탭에서는 숨김 — 웜 리디자인 시안 일치) ── */}
+          {!currentStack && tab !== 'profile' && (
             <View style={[styles.navBar, {
               backgroundColor: navBg,
               borderColor: navBorder,
