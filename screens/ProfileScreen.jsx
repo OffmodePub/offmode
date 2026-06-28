@@ -10,6 +10,8 @@ import T from '../components/ThemedText';
 import Svg, { Path, G, Defs, ClipPath, Rect } from 'react-native-svg';
 import { AVATAR_IDS, getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
 import * as H from '../utils/haptics';
+import CharacterDecor from '../components/CharacterDecor';
+import { buildPartsState } from '../constants/parts';
 
 // imageFile (백엔드) → local require 매핑
 const BADGE_IMAGE_MAP = {
@@ -576,6 +578,8 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   const { weekGroups, weekLabels } = useMemo(() => computeWeekGroups(historyItems), [historyItems]);
   const mainBadge  = useMemo(() => badges.find(b => b.earned) ?? null, [badges]);
   const headerGrad = C.isDark ? ['#111128', '#0d0d14'] : ['#f0f0fa', '#f3f3f8'];
+  // #106 정적 mock: 4파츠 해금 + twinkle 장착 (Figma 시안 상태). #107에서 GET /parts/me 로 교체
+  const decorPartsMock = useMemo(() => buildPartsState(5, 'twinkle'), []);
 
   const avatarId     = profile?.avatar ?? '01';
   const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
@@ -634,6 +638,9 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
           </View>
         </View>
       </LinearGradient>
+
+      {/* 캐릭터 꾸미기 (웜 리디자인) — #106 정적 mock. #107에서 API 연동, #108에서 페이저로 재배치 */}
+      <CharacterDecor parts={decorPartsMock} />
 
       <View style={s.section}>
         <View style={s.sectionHeader}>

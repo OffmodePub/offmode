@@ -210,6 +210,9 @@ function AppInner() {
 
   const [fontsLoaded] = useFonts({
     Kkukkukk: require('./fonts/kkukkukk/MemomentKkukkukk.otf'),
+    GmarketSansLight:  require('./fonts/gmarket/GmarketSansLight.ttf'),
+    GmarketSansMedium: require('./fonts/gmarket/GmarketSansMedium.ttf'),
+    GmarketSansBold:   require('./fonts/gmarket/GmarketSansBold.ttf'),
   });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
