@@ -147,5 +147,11 @@ backend/offmode-db*
 /.expo/
 /uploads/*
 
-# Claude Code local cache
-.claude/
+# Claude Code — 공유 하네스(skills/agents/hooks/settings.json)는 커밋, 로컬 전용은 ignore
+.claude/*
+!.claude/skills/
+!.claude/agents/
+!.claude/hooks/
+!.claude/settings.json
+.claude/settings.local.json
+.claude/worktrees/
