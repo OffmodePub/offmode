@@ -41,7 +41,12 @@ public class SecurityConfig {
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(getPublicEndpoints()).permitAll().anyRequest().authenticated())
+                auth.requestMatchers(getPublicEndpoints())
+                    .permitAll()
+                    .requestMatchers("/api/v1/rooms/**")
+                    .authenticated()
+                    .anyRequest()
+                    .authenticated())
         .exceptionHandling(
             exception ->
                 exception
