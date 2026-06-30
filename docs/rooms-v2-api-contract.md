@@ -66,6 +66,7 @@
 | `PATCH` | `/api/v1/rooms/{roomId}` | 방 이름 변경 | RoomSettings |
 | `DELETE` | `/api/v1/rooms/{roomId}/members/me` | 방 나가기 | RoomSettings |
 | `DELETE` | `/api/v1/rooms/{roomId}/members/{memberId}` | 멤버 내보내기(방장) | RoomSettings |
+| `POST` | `/api/v1/rooms/{roomId}/members/{memberId}/nudge` | 콕 찌르기(재촉) | RoomDetail |
 
 ### 미션
 | 메서드 | 경로 | 설명 | 화면 |
@@ -198,6 +199,15 @@ caption: <string> (선택, 최대 80자)
 // 본인 인증은 confirm 불가 (ROOM_400_xxx)
 ```
 
+### POST /api/v1/rooms/{roomId}/members/{memberId}/nudge — 콕 찌르기(재촉)
+```json
+// 본문 없음. 오늘 미션을 아직 인증하지 않은 멤버를 재촉한다.
+// res 200 → { "memberId": 11, "nudged": true }
+// 오늘 미션 기준 멱등 — 이미 찔렀으면 저장 없이 nudged:true 반환
+// 에러: 본인 찌르기 ROOM_400_002 / 이미 인증 완료한 멤버 ROOM_400_003 / 오늘 미션 없음 ROOM_404_004
+```
+> RoomDetailResponse 의 `members[]` 각 항목에 `isMe`(본인 여부)·`nudgedByMe`(내가 오늘 찔렀는지) 필드가 추가됨 → Sent 상태 복원·본인 식별용.
+
 ### GET /api/v1/rooms/{roomId}/history?month=2026-06 — 지난 기록
 ```json
 // res 200 → 날짜별 그룹
@@ -225,10 +235,12 @@ caption: <string> (선택, 최대 80자)
 | `ROOM_409_002` | 오늘 미션 이미 정해짐 |
 | `ROOM_409_003` | 오늘 이미 인증함 |
 | `ROOM_400_001` | 본인 인증은 확인 불가 |
+| `ROOM_400_002` | 본인은 콕 찌를 수 없음 |
+| `ROOM_400_003` | 이미 인증 완료한 멤버는 찌를 수 없음 |
 
 ## 5. 마이그레이션
 `db/migration/h2/V*__create_rooms.sql` + `db/migration/mysql/V*__create_rooms.sql` 동시.
-테이블: `rooms`, `room_members`, `room_missions`, `room_proofs`, `room_proof_confirms`, `room_reactions`.
+테이블: `rooms`, `room_members`, `room_missions`, `room_proofs`, `room_proof_confirms`, `room_reactions`, `room_nudges`(V7).
 `ddl-auto: validate`이므로 엔티티-스키마 일치 필수.
 
 ---
@@ -236,4 +248,5 @@ caption: <string> (선택, 최대 80자)
 ## 6. 범위 (1차)
 **포함**: RoomList / RoomDetail / CreateRoom / JoinRoom / MissionPicker / RoomSettings /
 Verify(Room) / ProofDetail / RoomDetail(Solo) / RoomList·RoomDetail Empty / RoomComplete / RoomHistory
-**제외(후순위)**: 신고, Mission Profile, 알림/리더보드, JoinRoom 에러 상세, 콕 찌르기(nudge)
+**제외(후순위)**: 신고, Mission Profile, 알림/리더보드, JoinRoom 에러 상세
+**추가 구현됨(2차)**: 콕 찌르기(nudge) — 위 엔드포인트/에러코드/`room_nudges` 테이블 참고

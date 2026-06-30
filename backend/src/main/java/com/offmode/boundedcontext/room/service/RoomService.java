@@ -4,6 +4,7 @@ import com.offmode.boundedcontext.room.dto.request.CreateRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.response.GroupRoomSummaryResponse;
 import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
+import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
 import com.offmode.boundedcontext.room.dto.response.ProgressResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
@@ -14,9 +15,11 @@ import com.offmode.boundedcontext.room.dto.response.SoloRoomSummaryResponse;
 import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMember;
 import com.offmode.boundedcontext.room.entity.RoomMission;
+import com.offmode.boundedcontext.room.entity.RoomNudge;
 import com.offmode.boundedcontext.room.entity.RoomProof;
 import com.offmode.boundedcontext.room.repository.RoomMemberRepository;
 import com.offmode.boundedcontext.room.repository.RoomMissionRepository;
+import com.offmode.boundedcontext.room.repository.RoomNudgeRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.repository.RoomRepository;
 import com.offmode.boundedcontext.room.types.MemberTodayStatus;
@@ -51,6 +54,7 @@ public class RoomService {
   private final RoomMemberRepository memberRepository;
   private final RoomMissionRepository missionRepository;
   private final RoomProofRepository proofRepository;
+  private final RoomNudgeRepository nudgeRepository;
   private final UserService userService;
   private final RoomProofAssembler proofAssembler;
 
@@ -163,19 +167,29 @@ public class RoomService {
     RoomMissionResponse missionResponse =
         todayMission == null ? null : RoomMissionResponse.from(todayMission);
 
+    Long missionId = todayMission == null ? null : todayMission.getId();
+    Set<Long> nudgedTargetIds =
+        missionId == null
+            ? Set.of()
+            : new HashSet<>(nudgeRepository.findToUserIdsByMissionAndFromUser(missionId, userId));
+
     List<RoomMemberResponse> members =
         memberRepository.findByRoomIdOrderByJoinedAtAsc(roomId).stream()
             .map(
-                member ->
-                    new RoomMemberResponse(
-                        member.getId(),
-                        member.getUser().getId(),
-                        member.getUser().getName(),
-                        member.getUser().getAvatar(),
-                        member.getRole(),
-                        todayMission == null
-                            ? MemberTodayStatus.NONE
-                            : computeTodayStatus(todayMission.getId(), member.getUser().getId())))
+                member -> {
+                  Long memberUserId = member.getUser().getId();
+                  return new RoomMemberResponse(
+                      member.getId(),
+                      memberUserId,
+                      member.getUser().getName(),
+                      member.getUser().getAvatar(),
+                      member.getRole(),
+                      missionId == null
+                          ? MemberTodayStatus.NONE
+                          : computeTodayStatus(missionId, memberUserId),
+                      memberUserId.equals(userId),
+                      nudgedTargetIds.contains(memberUserId));
+                })
             .toList();
 
     int verifiedCount =
@@ -258,6 +272,48 @@ public class RoomService {
       throw new BusinessException(ErrorStatus.ROOM_FORBIDDEN);
     }
     memberRepository.delete(target);
+  }
+
+  // ===== 콕 찌르기 =====
+
+  // 오늘 미션을 아직 인증하지 않은 멤버를 콕 찔러 재촉한다 (오늘 미션 기준 멱등)
+  @Transactional
+  public NudgeResponse nudge(Long userId, Long roomId, Long memberId) {
+    getRoomOrThrow(roomId);
+    RoomMember myMembership = getMembershipOrThrow(roomId, userId);
+
+    RoomMember target =
+        memberRepository
+            .findByIdAndRoomId(memberId, roomId)
+            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_FORBIDDEN));
+
+    Long targetUserId = target.getUser().getId();
+    if (targetUserId.equals(userId)) {
+      throw new BusinessException(ErrorStatus.ROOM_SELF_NUDGE_NOT_ALLOWED);
+    }
+
+    RoomMission todayMission =
+        missionRepository
+            .findByRoomIdAndDate(roomId, LocalDate.now())
+            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_MISSION_NOT_SET));
+
+    if (computeTodayStatus(todayMission.getId(), targetUserId) == MemberTodayStatus.DONE) {
+      throw new BusinessException(ErrorStatus.ROOM_NUDGE_TARGET_DONE);
+    }
+
+    boolean already =
+        nudgeRepository.existsByRoomMissionIdAndFromUserIdAndToUserId(
+            todayMission.getId(), userId, targetUserId);
+    if (!already) {
+      nudgeRepository.save(
+          RoomNudge.builder()
+              .roomMission(todayMission)
+              .fromUser(myMembership.getUser())
+              .toUser(target.getUser())
+              .build());
+    }
+
+    return new NudgeResponse(memberId, true);
   }
 
   // ===== 공용 헬퍼 (다른 서비스에서도 사용) =====

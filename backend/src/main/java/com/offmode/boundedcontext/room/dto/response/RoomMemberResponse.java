@@ -9,4 +9,6 @@ public record RoomMemberResponse(
     String nickname,
     String avatarId,
     RoomRole role,
-    MemberTodayStatus todayStatus) {}
+    MemberTodayStatus todayStatus,
+    boolean isMe,
+    boolean nudgedByMe) {}
