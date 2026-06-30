@@ -1,4 +1,5 @@
 module.exports = {
+  root: true,
   extends: ['expo'],
   env: {
     browser: true, // setTimeout, setInterval, requestAnimationFrame 등 전역 허용

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
-  Modal, TextInput, Keyboard, ActivityIndicator, PanResponder,
+  Modal, TextInput, Keyboard, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -181,7 +181,7 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
   );
 }
 
-export default function ProfileScreen({ profile, onSaveProfile, currentMission, onSwipeToMission, onSwipeToSettings }) {
+export default function ProfileScreen({ profile, onSaveProfile, currentMission }) {
   const [userProfile, setUserProfile] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [weekItems, setWeekItems] = useState([]);
@@ -231,32 +231,18 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
   const avatarId = profile?.avatar ?? userProfile?.avatar ?? '01';
   const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
 
-  // 좌우 스와이프로 탭 전환 (왼쪽→설정, 오른쪽→mission). 세로 스크롤과 충돌 안 나게 수평 우세 제스처만 캡처
-  const SWIPE = 60;
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, g) =>
-          Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-        onPanResponderRelease: (_, g) => {
-          if (g.dx <= -SWIPE) { H.tap(); onSwipeToSettings?.(); }
-          else if (g.dx >= SWIPE) { H.tap(); onSwipeToMission?.(); }
-        },
-      }),
-    [onSwipeToMission, onSwipeToSettings]
-  );
+  // 좌우 스와이프 전환은 상위(App)의 페이지 페이저가 담당한다.
 
   if (loading) {
-    // 로딩 중에도 스와이프로 다른 탭으로 빠져나갈 수 있어야 함 (프로필 탭바 숨김 상태)
     return (
-      <View style={[s.screen, s.center]} {...panResponder.panHandlers}>
+      <View style={[s.screen, s.center]}>
         <ActivityIndicator color={W.green} />
       </View>
     );
   }
 
   return (
-    <View style={s.screen} {...panResponder.panHandlers}>
+    <View style={s.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
@@ -307,13 +293,6 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission, 
         {/* 캐릭터 꾸미기 */}
         <CharacterDecor parts={decorParts} />
       </ScrollView>
-
-      {/* 하단 바 (고정) — 시안 364:244 */}
-      <View style={s.bottomBar}>
-        <View style={[s.dot, s.dotActive]} />
-        <View style={s.dot} />
-        <View style={s.dot} />
-      </View>
 
       {profile && (
         <ProfileEditModal
@@ -373,15 +352,6 @@ const s = StyleSheet.create({
   dayBox_done: { backgroundColor: W.greenFaint, borderColor: W.greenBorder },
   dayBox_missed: { backgroundColor: W.coralFaint, borderColor: W.coralBorder },
   dayBox_future: { backgroundColor: 'transparent', borderColor: W.borderStrong, borderStyle: 'dashed' },
-
-  /* 하단 바 (고정) */
-  bottomBar: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, height: 33,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
-    backgroundColor: W.bg,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: W.border },
-  dotActive: { width: 20, backgroundColor: W.green },
 });
 
 function makeEditModalStyles(C) {

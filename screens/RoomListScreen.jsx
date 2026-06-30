@@ -1,0 +1,190 @@
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import {
+  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { W } from '../constants/warm';
+import { api } from '../utils/api';
+import WarmText from '../components/WarmText';
+import * as H from '../utils/haptics';
+import { RoomIcon, AvatarStack, ProgressBar, GreenButton, OutlineButton } from '../components/RoomBits';
+
+/* ── 방 카드 ───────────────────────────────────────────── */
+function RoomCard({ room, solo, onPress }) {
+  const C = W;
+  const s = useMemo(() => makeStyles(C), [C]);
+  const mission = room.todayMission;
+
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[s.card, solo && { borderColor: C.greenBorder }]}>
+      <View style={s.cardTop}>
+        <RoomIcon iconKey={room.iconKey} size={44} accent={solo} />
+        <View style={{ flex: 1, gap: 3 }}>
+          <WarmText v="section" size={16} numberOfLines={1}>{room.name}</WarmText>
+          <WarmText v="caption">{solo ? '혼자 수행하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
+        </View>
+        {!solo && room.members ? <AvatarStack members={room.members} /> : null}
+      </View>
+
+      <View style={s.divider} />
+
+      {mission ? (
+        <View style={s.missionRow}>
+          <WarmText size={18}>{mission.icon}</WarmText>
+          <WarmText v="body" size={14} numberOfLines={1} style={{ flex: 1 }}>{mission.title}</WarmText>
+        </View>
+      ) : (
+        <View style={s.missionRow}>
+          <WarmText size={18}>💤</WarmText>
+          <WarmText v="sub" size={14} style={{ flex: 1 }}>아직 오늘 미션이 없어요</WarmText>
+        </View>
+      )}
+
+      {solo && mission ? (
+        <View style={{ marginTop: 10 }}>
+          <WarmText v="caption" size={11} color={room.todayDone ? C.green : C.textSub}>
+            {room.todayDone ? '✓ 오늘 미션 인증 완료' : '아직 인증 전이에요'}
+          </WarmText>
+        </View>
+      ) : null}
+
+      {!solo && mission ? (
+        <View style={{ marginTop: 12 }}>
+          <ProgressBar value={room.verifiedCount ?? 0} total={room.requiredCount ?? room.memberCount ?? 0} />
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
+
+/* ── 빈 상태 ───────────────────────────────────────────── */
+function EmptyState() {
+  const C = W;
+  const s = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={s.empty}>
+      <View style={s.emptyIcon}>
+        <Ionicons name="home-outline" size={34} color={C.textSub} />
+      </View>
+      <WarmText v="title" size={18} style={{ marginTop: 16 }}>아직 참여한 방이 없어요</WarmText>
+      <WarmText v="sub" style={{ textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+        첫 방을 만들거나 초대코드로 참여해{'\n'}오늘의 미션을 시작해보세요
+      </WarmText>
+    </View>
+  );
+}
+
+export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, version }) {
+  const C = W;
+  const s = useMemo(() => makeStyles(C), [C]);
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    setError('');
+    try {
+      const res = await api.get('/api/v1/rooms');
+      setData(res ?? { soloRoom: null, groupRooms: [] });
+    } catch (e) {
+      console.warn('방 목록 로딩 실패:', e);
+      setError(e?.message || '방 목록을 불러오지 못했어요.');
+    }
+  }, []);
+
+  useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, [load, version]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  const solo = data?.soloRoom ?? null;
+  const groups = data?.groupRooms ?? [];
+  const isEmpty = !solo && groups.length === 0;
+
+  return (
+    <View style={s.screen}>
+      <ScrollView
+        style={s.screen}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} colors={[C.green]} />}
+      >
+        <View style={s.header}>
+          <WarmText v="logo">OFFMODE</WarmText>
+          <WarmText v="section" size={17} color={C.green} style={{ marginTop: 8 }}>스크린 OFF. 일상 ON.</WarmText>
+        </View>
+
+        <View style={s.banner}>
+          <WarmText v="body" size={14} color={C.textSub}>📸  혼자 또는 친구와 미션을 인증해요</WarmText>
+        </View>
+
+        {loading ? (
+          <View style={s.center}><ActivityIndicator color={C.green} /></View>
+        ) : error ? (
+          <View style={s.center}>
+            <WarmText v="sub" style={{ textAlign: 'center', marginBottom: 12 }}>{error}</WarmText>
+            <OutlineButton label="다시 시도" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
+          </View>
+        ) : isEmpty ? (
+          <EmptyState />
+        ) : (
+          <>
+            {solo ? (
+              <>
+                <WarmText v="label" style={s.sectionLabel}>나의 방</WarmText>
+                <RoomCard room={solo} solo onPress={() => { H.tap(); onOpenRoom?.(solo.id); }} />
+              </>
+            ) : null}
+
+            <View style={s.sectionLabelRow}>
+              <WarmText v="label">함께하는 방</WarmText>
+              <WarmText v="caption" size={11}>{groups.length}개</WarmText>
+            </View>
+            {groups.length === 0 ? (
+              <View style={s.emptyGroups}>
+                <WarmText size={28} style={{ marginBottom: 6 }}>👥</WarmText>
+                <WarmText v="sub" style={{ textAlign: 'center' }}>함께하는 방이 아직 없어요{'\n'}새 방을 만들어 친구를 초대해보세요</WarmText>
+              </View>
+            ) : (
+              groups.map(r => <RoomCard key={r.id} room={r} onPress={() => { H.tap(); onOpenRoom?.(r.id); }} />)
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      <View style={s.bottomBar}>
+        <GreenButton label="새 방 만들기" ionicon="add" onPress={() => { H.tap(); onCreate?.(); }} style={{ flex: 1 }} />
+        <OutlineButton label="초대코드로 참여" ionicon="link-outline" onPress={() => { H.tap(); onJoin?.(); }} style={{ flex: 1 }} />
+      </View>
+    </View>
+  );
+}
+
+function makeStyles(C) {
+  return StyleSheet.create({
+    screen:  { flex: 1, backgroundColor: C.bg },
+    content: { paddingBottom: 110 },
+    center:  { paddingVertical: 60, alignItems: 'center', justifyContent: 'center' },
+
+    header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 12 },
+    banner: { marginTop: 4, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: C.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
+    sectionLabel: { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 },
+    sectionLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 24, marginBottom: 10 },
+
+    card:    { marginHorizontal: 20, marginBottom: 12, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 16 },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    divider: { height: 1, backgroundColor: C.border, marginVertical: 12 },
+    missionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+    empty:     { alignItems: 'center', paddingVertical: 70, paddingHorizontal: 40 },
+    emptyIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center' },
+    emptyGroups: { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.border, paddingVertical: 28, alignItems: 'center' },
+
+    bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
+  });
+}
