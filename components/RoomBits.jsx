@@ -240,6 +240,28 @@ function makePickerStyles(C) {
   });
 }
 
+/* ── 콕 찌르기 칩 (Default → Sent 토글) ─────────────────── */
+export function NudgeChip({ nudged, onPress }) {
+  const C = W;
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      disabled={nudged}
+      onPress={() => { H.tap(); onPress?.(); }}
+      style={[nudgeStyles.chip, { borderColor: C.border, backgroundColor: C.surface },
+        nudged && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
+    >
+      <WarmText v="caption" size={12} color={nudged ? C.green : C.textSub}>
+        {nudged ? '✓ 콕 찔렀어요' : '👉 콕 찌르기'}
+      </WarmText>
+    </TouchableOpacity>
+  );
+}
+
+const nudgeStyles = StyleSheet.create({
+  chip: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+});
+
 /* ── 인증 상태 배지 (VERIFIED / PENDING) ──────────────── */
 export function ProofStatusBadge({ status }) {
   const C = W;

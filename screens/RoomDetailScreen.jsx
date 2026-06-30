@@ -8,7 +8,7 @@ import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import {
   RoomTopBar, MemberAvatar, SourceBadge, ProgressBar, GreenButton, OutlineButton,
-  ReactionBar, ProofStatusBadge,
+  ReactionBar, ProofStatusBadge, NudgeChip,
 } from '../components/RoomBits';
 import { roomIconEmoji } from '../constants/rooms';
 
@@ -92,6 +92,7 @@ export default function RoomDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [nudgedIds, setNudgedIds] = useState(() => new Set());
 
   const load = useCallback(async () => {
     setError('');
@@ -110,7 +111,11 @@ export default function RoomDetailScreen({
     }
   }, [roomId, onComplete]);
 
-  useEffect(() => { setLoading(true); load().finally(() => setLoading(false)); }, [load, version]);
+  useEffect(() => {
+    setNudgedIds(new Set());
+    setLoading(true);
+    load().finally(() => setLoading(false));
+  }, [load, version]);
 
   const handleRandom = useCallback(async () => {
     H.tap();
@@ -145,6 +150,17 @@ export default function RoomDetailScreen({
       console.warn('피어 인증 실패:', e);
     }
   }, [roomId, load, onChanged]);
+
+  const handleNudge = useCallback(async (memberId) => {
+    H.success();
+    setNudgedIds(prev => new Set(prev).add(memberId)); // 낙관적 표시
+    try {
+      await api.post(`/api/v1/rooms/${roomId}/members/${memberId}/nudge`);
+    } catch (e) {
+      console.warn('콕 찌르기 실패:', e);
+      setNudgedIds(prev => { const next = new Set(prev); next.delete(memberId); return next; });
+    }
+  }, [roomId]);
 
   if (loading) {
     return (
@@ -248,15 +264,24 @@ export default function RoomDetailScreen({
               <WarmText v="caption">{pendingMembers.length}명 미인증</WarmText>
             </View>
             <View style={{ gap: 8 }}>
-              {pendingMembers.map(m => (
-                <View key={m.memberId} style={s.pendingRow}>
-                  <MemberAvatar avatarId={m.avatarId} size={30} />
-                  <WarmText v="body" size={14} style={{ flex: 1 }}>{m.nickname}</WarmText>
-                  <WarmText v="caption" size={11} color={m.todayStatus === 'PENDING' ? C.green : C.textSub}>
-                    {m.todayStatus === 'PENDING' ? '인증 대기' : '미인증'}
-                  </WarmText>
-                </View>
-              ))}
+              {pendingMembers.map(m => {
+                // 아직 미션을 시작하지 않은(NONE) 다른 멤버만 콕 찌를 수 있다
+                const canNudge = !m.isMe && m.todayStatus !== 'PENDING';
+                const nudged = m.nudgedByMe || nudgedIds.has(m.memberId);
+                return (
+                  <View key={m.memberId} style={s.pendingRow}>
+                    <MemberAvatar avatarId={m.avatarId} size={30} />
+                    <WarmText v="body" size={14} style={{ flex: 1 }}>{m.nickname}</WarmText>
+                    {canNudge ? (
+                      <NudgeChip nudged={nudged} onPress={() => handleNudge(m.memberId)} />
+                    ) : (
+                      <WarmText v="caption" size={11} color={m.todayStatus === 'PENDING' ? C.green : C.textSub}>
+                        {m.todayStatus === 'PENDING' ? '인증 대기' : '미인증'}
+                      </WarmText>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
         ) : null}

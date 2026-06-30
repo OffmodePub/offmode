@@ -7,6 +7,7 @@ import com.offmode.boundedcontext.room.dto.request.RoomReactRequest;
 import com.offmode.boundedcontext.room.dto.request.SetRoomMissionRequest;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.MissionCandidateResponse;
+import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
@@ -87,6 +88,15 @@ public class RoomController {
       @PathVariable Long memberId) {
     roomService.kickMember(userId, roomId, memberId);
     return ResponseEntity.noContent().build();
+  }
+
+  // POST /api/v1/rooms/{roomId}/members/{memberId}/nudge - 콕 찌르기(재촉)
+  @PostMapping("/{roomId}/members/{memberId}/nudge")
+  public ResponseEntity<NudgeResponse> nudge(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable Long roomId,
+      @PathVariable Long memberId) {
+    return ResponseEntity.ok(roomService.nudge(userId, roomId, memberId));
   }
 
   // ===== 미션 =====
