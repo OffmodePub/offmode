@@ -48,6 +48,7 @@
 | `status` | enum | `VERIFIED`(인증완료) / `PENDING`(대기중) |
 | `confirmCount` / `requiredConfirm` | int | 피어 인증 진행 (예: 2/4) |
 | `myConfirmed` | boolean | 내가 인증해줬는지 |
+| `mine` | boolean | 이 인증의 작성자가 나인지 — 본인 콘텐츠 신고 버튼 미노출용 |
 | `reactions` | ReactionSummary[] | `{ emoji, count, mine }` — emoji 자유 문자열(기존 Reaction 엔티티 방식). UI 기본 🔥👍❤️ 노출 + `+`로 이모지 피커 |
 
 ---
@@ -81,6 +82,7 @@
 | `GET` | `/api/v1/rooms/{roomId}/proofs/{proofId}` | 인증 상세 | ProofDetail |
 | `POST` | `/api/v1/rooms/{roomId}/proofs/{proofId}/reactions` | 리액션 토글 | RoomDetail/ProofDetail |
 | `POST` | `/api/v1/rooms/{roomId}/proofs/{proofId}/confirm` | 피어 인증해주기 | ProofDetail |
+| `POST` | `/api/v1/rooms/{roomId}/proofs/{proofId}/report` | 콘텐츠 신고 (UGC) | ProofDetail/RoomDetail |
 
 ### 기록
 | 메서드 | 경로 | 설명 | 화면 |
@@ -199,6 +201,15 @@ caption: <string> (선택, 최대 80자)
 // 본인 인증은 confirm 불가 (ROOM_400_xxx)
 ```
 
+### POST …/proofs/{proofId}/report — 콘텐츠 신고 (UGC)
+```jsonc
+// req
+{ "reason": "SEXUAL", "detail": "부적절한 사진" }  // reason: SPAM|OFFENSIVE|SEXUAL|VIOLENCE|OTHER (@NotNull), detail: 자유입력(nullable, ≤500)
+// res 200 → { "reportId": 555 }
+// 본인 인증 신고 불가 (ROOM_400_004), 동일 인증 중복 신고 불가 (ROOM_409_004)
+// 프론트: mine=true 인 인증에는 신고 버튼 미노출 (이슈 #71)
+```
+
 ### POST /api/v1/rooms/{roomId}/members/{memberId}/nudge — 콕 찌르기(재촉)
 ```json
 // 본문 없음. 오늘 미션을 아직 인증하지 않은 멤버를 재촉한다.
@@ -237,10 +248,12 @@ caption: <string> (선택, 최대 80자)
 | `ROOM_400_001` | 본인 인증은 확인 불가 |
 | `ROOM_400_002` | 본인은 콕 찌를 수 없음 |
 | `ROOM_400_003` | 이미 인증 완료한 멤버는 찌를 수 없음 |
+| `ROOM_400_004` | 본인 인증은 신고 불가 |
+| `ROOM_409_004` | 이미 신고한 콘텐츠 |
 
 ## 5. 마이그레이션
 `db/migration/h2/V*__create_rooms.sql` + `db/migration/mysql/V*__create_rooms.sql` 동시.
-테이블: `rooms`, `room_members`, `room_missions`, `room_proofs`, `room_proof_confirms`, `room_reactions`, `room_nudges`(V7).
+테이블: `rooms`, `room_members`, `room_missions`, `room_proofs`, `room_proof_confirms`, `room_reactions`, `room_nudges`(V7), `room_proof_reports`(V9).
 `ddl-auto: validate`이므로 엔티티-스키마 일치 필수.
 
 ---
@@ -248,5 +261,6 @@ caption: <string> (선택, 최대 80자)
 ## 6. 범위 (1차)
 **포함**: RoomList / RoomDetail / CreateRoom / JoinRoom / MissionPicker / RoomSettings /
 Verify(Room) / ProofDetail / RoomDetail(Solo) / RoomList·RoomDetail Empty / RoomComplete / RoomHistory
-**제외(후순위)**: 신고, Mission Profile, 알림/리더보드, JoinRoom 에러 상세
+**제외(후순위)**: Mission Profile, 알림/리더보드, JoinRoom 에러 상세
 **추가 구현됨(2차)**: 콕 찌르기(nudge) — 위 엔드포인트/에러코드/`room_nudges` 테이블 참고
+**추가 구현됨(3차)**: 콘텐츠 신고(report, UGC) — App Store 12+ 심사(이슈 #71). 위 엔드포인트/에러코드/`room_proof_reports` 테이블 + `RoomProofResponse.mine` 참고

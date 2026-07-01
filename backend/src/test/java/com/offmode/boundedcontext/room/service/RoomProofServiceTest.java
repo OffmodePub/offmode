@@ -9,14 +9,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
+import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMember;
 import com.offmode.boundedcontext.room.entity.RoomMission;
 import com.offmode.boundedcontext.room.entity.RoomProof;
+import com.offmode.boundedcontext.room.entity.RoomProofReport;
 import com.offmode.boundedcontext.room.repository.RoomMissionRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofConfirmRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofReportRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
+import com.offmode.boundedcontext.room.types.ProofReportReason;
 import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.room.types.RoomType;
 import com.offmode.boundedcontext.user.entity.User;
@@ -34,6 +38,7 @@ class RoomProofServiceTest {
 
   @Mock private RoomProofRepository proofRepository;
   @Mock private RoomProofConfirmRepository confirmRepository;
+  @Mock private RoomProofReportRepository reportRepository;
   @Mock private RoomReactionRepository reactionRepository;
   @Mock private RoomMissionRepository missionRepository;
   @Mock private RoomService roomService;
@@ -45,6 +50,7 @@ class RoomProofServiceTest {
     return new RoomProofService(
         proofRepository,
         confirmRepository,
+        reportRepository,
         reactionRepository,
         missionRepository,
         roomService,
@@ -138,5 +144,52 @@ class RoomProofServiceTest {
     assertThatThrownBy(() -> service().createProof(1L, 2L, null, null))
         .isInstanceOf(BusinessException.class)
         .hasMessage("오늘 이미 인증했습니다.");
+  }
+
+  @Test
+  void reportRejectsSelfReport() {
+    Room room = Room.builder().id(2L).type(RoomType.GROUP).build();
+    RoomProof proof = proofOf(100L, 2L, 1L, ProofStatus.PENDING);
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+
+    assertThatThrownBy(() -> service().report(1L, 2L, 100L, ProofReportReason.SPAM, null))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage("본인 인증은 신고할 수 없습니다.");
+    verify(reportRepository, never()).save(any());
+  }
+
+  @Test
+  void reportRejectsDuplicateReport() {
+    Room room = Room.builder().id(2L).type(RoomType.GROUP).build();
+    RoomProof proof = proofOf(100L, 2L, 9L, ProofStatus.PENDING);
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+    when(reportRepository.existsByRoomProofIdAndReporterId(100L, 1L)).thenReturn(true);
+
+    assertThatThrownBy(() -> service().report(1L, 2L, 100L, ProofReportReason.OFFENSIVE, "욕설"))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage("이미 신고한 콘텐츠입니다.");
+    verify(reportRepository, never()).save(any());
+  }
+
+  @Test
+  void reportSavesAndReturnsReportId() {
+    Room room = Room.builder().id(2L).type(RoomType.GROUP).build();
+    RoomProof proof = proofOf(100L, 2L, 9L, ProofStatus.PENDING);
+    User reporter = User.builder().id(1L).provider("kakao").providerId("r").build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+    when(reportRepository.existsByRoomProofIdAndReporterId(100L, 1L)).thenReturn(false);
+    when(userService.getById(1L)).thenReturn(reporter);
+    when(reportRepository.save(any())).thenReturn(RoomProofReport.builder().id(555L).build());
+
+    ProofReportResponse response = service().report(1L, 2L, 100L, ProofReportReason.OTHER, "기타 사유");
+
+    assertThat(response.reportId()).isEqualTo(555L);
+    verify(reportRepository).save(any(RoomProofReport.class));
   }
 }

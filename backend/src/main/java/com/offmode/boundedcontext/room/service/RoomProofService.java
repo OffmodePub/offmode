@@ -3,6 +3,7 @@ package com.offmode.boundedcontext.room.service;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.HistoryProofResponse;
 import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
+import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomProofResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomReactionSummaryResponse;
@@ -10,11 +11,14 @@ import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMission;
 import com.offmode.boundedcontext.room.entity.RoomProof;
 import com.offmode.boundedcontext.room.entity.RoomProofConfirm;
+import com.offmode.boundedcontext.room.entity.RoomProofReport;
 import com.offmode.boundedcontext.room.entity.RoomReaction;
 import com.offmode.boundedcontext.room.repository.RoomMissionRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofConfirmRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofReportRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
+import com.offmode.boundedcontext.room.types.ProofReportReason;
 import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
@@ -43,6 +47,7 @@ public class RoomProofService {
 
   private final RoomProofRepository proofRepository;
   private final RoomProofConfirmRepository confirmRepository;
+  private final RoomProofReportRepository reportRepository;
   private final RoomReactionRepository reactionRepository;
   private final RoomMissionRepository missionRepository;
   private final RoomService roomService;
@@ -206,6 +211,36 @@ public class RoomProofService {
               proofResponses));
     }
     return result;
+  }
+
+  // ===== 콘텐츠 신고 =====
+
+  @Transactional
+  public ProofReportResponse report(
+      Long userId, Long roomId, Long proofId, ProofReportReason reason, String detail) {
+    roomService.getRoomOrThrow(roomId);
+    roomService.getMembershipOrThrow(roomId, userId);
+    RoomProof proof = getProofInRoomOrThrow(proofId, roomId);
+
+    if (proof.getUser().getId().equals(userId)) {
+      throw new BusinessException(ErrorStatus.ROOM_SELF_REPORT_NOT_ALLOWED);
+    }
+
+    if (reportRepository.existsByRoomProofIdAndReporterId(proofId, userId)) {
+      throw new BusinessException(ErrorStatus.ROOM_ALREADY_REPORTED);
+    }
+
+    User reporter = userService.getById(userId);
+    RoomProofReport saved =
+        reportRepository.save(
+            RoomProofReport.builder()
+                .roomProof(proof)
+                .reporter(reporter)
+                .reason(reason)
+                .detail(detail)
+                .build());
+
+    return new ProofReportResponse(saved.getId());
   }
 
   private RoomProof getProofInRoomOrThrow(Long proofId, Long roomId) {

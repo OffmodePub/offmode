@@ -3,13 +3,19 @@ import {
   Modal, View, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useColors } from '../utils/useColors';
-import T from '../components/ThemedText';
+import { W } from '../constants/warm';
+import WarmText from './WarmText';
 import * as H from '../utils/haptics';
+import { GreenButton } from './RoomBits';
 import { REPORT_REASONS } from '../utils/reportMail';
 
-export default function ReportReasonModal({ visible, targetUser, onClose, onSubmit }) {
-  const C = useColors();
+/**
+ * 콘텐츠 신고 바텀시트 (Figma: Mission · Report 345:240).
+ * 방 인증(RoomProof) 신고용 — 사유 5종 선택 + 기타 자유입력.
+ * 제출은 부모가 백엔드 API로 처리(onSubmit). 웜 크림 톤.
+ */
+export default function ReportReasonModal({ visible, targetUser, submitting = false, onClose, onSubmit }) {
+  const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState('');
@@ -17,15 +23,13 @@ export default function ReportReasonModal({ visible, targetUser, onClose, onSubm
   const handleClose = () => {
     setSelected(null);
     setDetail('');
-    onClose();
+    onClose?.();
   };
 
   const handleSubmit = () => {
-    if (!selected) return;
+    if (!selected || submitting) return;
     H.success();
-    onSubmit({ reasonKey: selected, detail });
-    setSelected(null);
-    setDetail('');
+    onSubmit?.({ reasonKey: selected, detail });
   };
 
   const isOther = selected === 'OTHER';
@@ -39,34 +43,38 @@ export default function ReportReasonModal({ visible, targetUser, onClose, onSubm
         pointerEvents="box-none"
       >
         <View style={s.sheet}>
+          <View style={s.handle} />
           <View style={s.header}>
-            <T v="section" size={19}>콘텐츠 신고</T>
+            <WarmText v="section" size={18}>콘텐츠 신고</WarmText>
             <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <T v="sub" size={15} style={{ opacity: 0.6 }}>닫기</T>
+              <WarmText v="sub" size={14} color={C.textSub}>닫기</WarmText>
             </TouchableOpacity>
           </View>
+
           {targetUser ? (
-            <T v="sub" size={15} style={{ marginBottom: 14 }}>
-              <T v="sub" size={15} color={C.text}>{targetUser}</T>님의 인증을 신고합니다.
-            </T>
+            <WarmText v="sub" size={14} color={C.textSub} style={{ marginBottom: 14 }}>
+              <WarmText v="sub" size={14} color={C.text}>{targetUser}</WarmText>님의 인증을 신고합니다.
+            </WarmText>
           ) : null}
-          <T v="label" size={14} style={{ marginBottom: 10 }}>신고 사유를 선택해 주세요</T>
+
+          <WarmText v="label" size={12} color={C.textSub} style={{ marginBottom: 10 }}>신고 사유를 선택해주세요</WarmText>
           <View style={s.reasonList}>
             {REPORT_REASONS.map(r => {
               const active = selected === r.key;
               return (
                 <TouchableOpacity
                   key={r.key}
-                  style={[s.reasonRow, active && s.reasonRowActive]}
+                  style={[s.reasonRow, active && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
                   onPress={() => { H.tap(); setSelected(r.key); }}
                   activeOpacity={0.7}
                 >
-                  <T v="body" size={16} style={active ? { color: C.green } : undefined}>{r.label}</T>
-                  {active ? <T v="body" size={16} color={C.green}>✓</T> : null}
+                  <WarmText v="body" size={15} color={active ? C.green : C.text}>{r.label}</WarmText>
+                  {active ? <WarmText v="body" size={15} color={C.green}>✓</WarmText> : null}
                 </TouchableOpacity>
               );
             })}
           </View>
+
           {isOther ? (
             <TextInput
               style={s.detailInput}
@@ -78,17 +86,16 @@ export default function ReportReasonModal({ visible, targetUser, onClose, onSubm
               maxLength={500}
             />
           ) : null}
-          <TouchableOpacity
-            style={[s.submitBtn, !selected && s.submitBtnDisabled]}
+
+          <GreenButton
+            label={submitting ? '접수 중…' : '신고하기'}
+            disabled={!selected || submitting}
             onPress={handleSubmit}
-            disabled={!selected}
-            activeOpacity={0.8}
-          >
-            <T v="btn" size={17} style={{ color: selected ? '#000' : C.textSub }}>메일 앱으로 신고하기</T>
-          </TouchableOpacity>
-          <T v="caption" size={13} style={{ textAlign: 'center', marginTop: 10 }}>
-            신고 내용이 메일 앱에 자동으로 작성됩니다.
-          </T>
+            style={{ marginTop: 6 }}
+          />
+          <WarmText v="caption" size={12} color={C.textSub} style={{ textAlign: 'center', marginTop: 10 }}>
+            신고가 접수되면 운영자가 확인해요.
+          </WarmText>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -99,30 +106,24 @@ function makeStyles(C) {
   return StyleSheet.create({
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
     kvWrap:   { flex: 1, justifyContent: 'flex-end' },
-    sheet:    {
-      backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-      borderTopWidth: 1, borderTopColor: C.border,
-      paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28,
+    sheet: {
+      backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      borderTopWidth: 1, borderColor: C.greenBorder,
+      paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32,
     },
-    header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 14 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
     reasonList: { gap: 8, marginBottom: 12 },
-    reasonRow:  {
+    reasonRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       paddingHorizontal: 14, paddingVertical: 14,
       borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface2,
     },
-    reasonRowActive: { borderColor: C.greenBorder, backgroundColor: C.greenFaint },
     detailInput: {
-      marginTop: 4, marginBottom: 12,
-      minHeight: 90, padding: 12,
+      marginTop: 4, marginBottom: 12, minHeight: 90, padding: 12,
       borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface2,
-      color: C.text, fontFamily: 'Kkukkukk', fontSize: 16,
+      color: C.text, fontFamily: 'GmarketSansLight', fontSize: 15,
       textAlignVertical: 'top',
     },
-    submitBtn: {
-      marginTop: 6, paddingVertical: 14, borderRadius: 12, alignItems: 'center',
-      backgroundColor: '#22c97a',
-    },
-    submitBtnDisabled: { backgroundColor: C.surface2 },
   });
 }
