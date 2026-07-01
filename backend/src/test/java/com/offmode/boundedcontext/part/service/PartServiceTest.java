@@ -134,6 +134,22 @@ class PartServiceTest {
   }
 
   @Test
+  void saveLayoutRejectsDuplicateKey() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
+
+    List<PlacementRequest> placements =
+        List.of(placement("leaf", 0.1, 0.2, 1.0, 0), placement("leaf", 0.5, 0.5, 1.0, 1));
+
+    assertThatThrownBy(() -> service().saveLayout(1L, placements))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            e -> assertThat(e.getErrorStatus()).isEqualTo(ErrorStatus.PART_DUPLICATE));
+
+    verify(userPartRepository, never()).deleteByUserId(any());
+    verify(userPartRepository, never()).saveAll(anyList());
+  }
+
+  @Test
   void saveLayoutWithEmptyClearsWithoutTouchingUser() {
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
 

@@ -43,6 +43,12 @@ public class PartService {
   public List<PartResponse> saveLayout(Long userId, List<PlacementRequest> placements) {
     long verified = countVerified(userId);
 
+    // 같은 파츠 중복 배치 방어 — unique(user_id, part_key) 위반 500 대신 명시적 400
+    long distinctKeys = placements.stream().map(PlacementRequest::getKey).distinct().count();
+    if (distinctKeys != placements.size()) {
+      throw new BusinessException(ErrorStatus.PART_DUPLICATE);
+    }
+
     for (PlacementRequest p : placements) {
       PartDefinition def =
           PartDefinition.fromKey(p.getKey())

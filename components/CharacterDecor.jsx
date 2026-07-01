@@ -15,6 +15,11 @@ const PART_SIZE = 72;   // 배치 파츠 기본 렌더 크기(px, scale=1 기준
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 3;
 
+/** 값을 [min, max] 범위로 제한 */
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
 /** 서버 placement → 편집 상태(누락 필드 기본값 보정) */
 function normPlacement(pl) {
   return {
@@ -47,9 +52,10 @@ function PlacedPart({ item, cardW, cardH, image, selected, onSelect, onChange })
   }, [cardW, cardH, item.x, item.y, item.scale, item.rotation, posX, posY, scale, rot]);
 
   const commit = useCallback(() => {
+    // 카드 밖으로 드래그해도 서버 검증(0~1)과 어긋나지 않도록 clamp 후 저장
     onChange({
-      x: cardW ? posX.value / cardW : item.x,
-      y: cardH ? posY.value / cardH : item.y,
+      x: clamp(cardW ? posX.value / cardW : item.x, 0, 1),
+      y: clamp(cardH ? posY.value / cardH : item.y, 0, 1),
       scale: scale.value,
       rotation: rot.value,
     });
@@ -72,6 +78,7 @@ function PlacedPart({ item, cardW, cardH, image, selected, onSelect, onChange })
   const pinch = Gesture.Pinch()
     .onStart(() => {
       startScale.value = scale.value;
+      runOnJS(onSelect)();
     })
     .onUpdate((e) => {
       const next = startScale.value * e.scale;
@@ -84,6 +91,7 @@ function PlacedPart({ item, cardW, cardH, image, selected, onSelect, onChange })
   const rotation = Gesture.Rotation()
     .onStart(() => {
       startRot.value = rot.value;
+      runOnJS(onSelect)();
     })
     .onUpdate((e) => {
       rot.value = startRot.value + (e.rotation * 180) / Math.PI;
