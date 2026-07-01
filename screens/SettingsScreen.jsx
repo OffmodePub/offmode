@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch, Alert, Linking,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useColors } from '../utils/useColors';
-import { useTheme } from '../utils/ThemeContext';
-import T from '../components/ThemedText';
+import { Ionicons } from '@expo/vector-icons';
+import { W } from '../constants/warm';
+import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import {
   requestNotificationPermission,
@@ -19,32 +18,45 @@ const openLink = (url) =>
     Alert.alert('오류', '페이지를 열 수 없어요. 잠시 후 다시 시도해주세요.')
   );
 
-/* ── 토글 스위치 ─────────────────────────────────────── */
-function OffSwitch({ value, onValueChange }) {
+/* ── 웜 토글 (Figma 46×26 pill) ──────────────────────── */
+function WarmToggle({ value, onValueChange }) {
+  const C = W;
   return (
-    <Switch
-      value={value}
-      onValueChange={(v) => { H.tap(); onValueChange(v); }}
-      trackColor={{ false: '#3a3a4a', true: '#22c97a' }}
-    />
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => { H.tap(); onValueChange(!value); }}
+      style={[
+        toggleStyles.track,
+        value
+          ? { backgroundColor: C.green, alignItems: 'flex-end' }
+          : { backgroundColor: C.surface2, borderWidth: 1, borderColor: C.border, alignItems: 'flex-start' },
+      ]}
+    >
+      <View style={toggleStyles.knob} />
+    </TouchableOpacity>
   );
 }
 
+const toggleStyles = StyleSheet.create({
+  track: { width: 46, height: 26, borderRadius: 13, padding: 2, justifyContent: 'center' },
+  knob:  { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+});
+
 /* ── 설정 행 ─────────────────────────────────────────── */
-function SettingRow({ icon, label, sub, right, onPress, last = false }) {
-  const C = useColors();
+function SettingRow({ icon, label, sub, right, onPress, danger = false, last = false }) {
+  const C = W;
   const row = useMemo(() => makeRowStyles(C), [C]);
   return (
     <TouchableOpacity
-      style={[row.wrap, last && row.last]}
+      style={[row.wrap, !last && row.divider]}
       onPress={onPress ? () => { H.tap(); onPress(); } : undefined}
       activeOpacity={onPress ? 0.6 : 1}
     >
       <View style={row.left}>
-        <Text style={row.icon}>{icon}</Text>
-        <View style={{ gap: 6 }}>
-          <T v="section" style={{ fontSize: 16 }}>{label}</T>
-          {sub ? <T v="label" style={{ fontSize: 14}}>{sub}</T> : null}
+        <WarmText size={18}>{icon}</WarmText>
+        <View style={{ gap: 2 }}>
+          <WarmText v="body" size={15} color={danger ? C.coral : C.text}>{label}</WarmText>
+          {sub ? <WarmText v="caption" size={12} color={C.textSub}>{sub}</WarmText> : null}
         </View>
       </View>
       <View style={row.right}>{right}</View>
@@ -54,29 +66,20 @@ function SettingRow({ icon, label, sub, right, onPress, last = false }) {
 
 function makeRowStyles(C) {
   return StyleSheet.create({
-    wrap: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingVertical: 16,
-      borderBottomWidth: 1, borderBottomColor: C.border,
-    },
-    last:  { borderBottomWidth: 0 },
-    left:  { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    right: { alignItems: 'flex-end' },
-    icon:  { fontSize: 22, width: 28, textAlign: 'center' },
+    wrap:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+    divider: { borderBottomWidth: 1, borderBottomColor: C.border },
+    left:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    right:   { alignItems: 'flex-end' },
   });
 }
 
 /* ── 섹션 카드 ───────────────────────────────────────── */
 function Section({ title, children }) {
-  const C = useColors();
+  const C = W;
   const sec = useMemo(() => makeSecStyles(C), [C]);
   return (
     <View style={sec.wrap}>
-      {title ? (
-        <T v="section" style={[sec.title, { fontSize: 16 }]}>
-          {title}
-        </T>
-      ) : null}
+      {title ? <WarmText v="label" size={12} color={C.textSub}>{title}</WarmText> : null}
       <View style={sec.card}>{children}</View>
     </View>
   );
@@ -84,25 +87,12 @@ function Section({ title, children }) {
 
 function makeSecStyles(C) {
   return StyleSheet.create({
-    wrap:  { marginHorizontal: 20, marginBottom: 20 },
-    title: { marginBottom: 15, marginLeft: 4, opacity: 0.6, letterSpacing: 1 },
-    card:  { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+    wrap: { gap: 8 },
+    card: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   });
 }
 
-/* ── 버전 푸터 ───────────────────────────────────────── */
-function VersionFooter() {
-  return (
-    <View style={ver.wrap}>
-      <T v="logo" size={20}>OFFMODE</T>
-      <T v="caption" style={{ marginTop: 4, opacity: 0.4 }}>v1.0.0  •  Made with 🌙</T>
-    </View>
-  );
-}
-
-const ver = StyleSheet.create({
-  wrap: { alignItems: 'center', paddingVertical: 32, opacity: 0.6, },
-});
+const Chevron = () => <WarmText size={16} color={W.textSub}>›</WarmText>;
 
 /* ── 메인 설정 화면 ──────────────────────────────────── */
 export default function SettingsScreen({
@@ -114,36 +104,30 @@ export default function SettingsScreen({
   onLogout,
   onDeleteAccount,
 }) {
-  const C = useColors();
-  const { scheme, setScheme } = useTheme();
+  const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
 
   const pad = (n) => String(n).padStart(2, '0');
-  const timeLabel = missionTime
-    ? `${pad(missionTime.hour)}:${pad(missionTime.minute)}`
-    : '08:00';
+  const { hour = 8, minute = 0 } = missionTime ?? {};
+  const timeLabel = `${hour < 12 ? '오전' : '오후'} ${hour % 12 === 0 ? 12 : hour % 12}:${pad(minute)}`;
 
-  // TODO: 햅틱/효과음 정식 도입 시 설정 상태와 화면 노출을 복구한다.
-  // const [haptic,    setHaptic]    = useState(H.isEnabled());
-  // const [sound,     setSound]     = useState(false);
   const [pushNotif, setPushNotif] = useState(false);
   const [reminder,  setReminder]  = useState(false);
+  const [haptic,    setHaptic]    = useState(H.isEnabled());
+  const [sound,     setSound]     = useState(false);
 
   useEffect(() => {
     (async () => {
       const pn = await SecureStore.getItemAsync('notif_push');
       const rm = await SecureStore.getItemAsync('notif_reminder');
+      const hp = await SecureStore.getItemAsync('haptic');
+      const sd = await SecureStore.getItemAsync('sound');
       if (pn !== null) setPushNotif(pn === 'true');
       if (rm !== null) setReminder(rm === 'true');
+      if (hp !== null) { const on = hp === 'true'; setHaptic(on); H.setEnabled(on); }
+      if (sd !== null) setSound(sd === 'true');
     })();
   }, []);
-
-  // TODO: 햅틱 정식 도입 시 복구한다.
-  // const handleHapticToggle = (v) => {
-  //   H.setEnabled(v);
-  //   setHaptic(v);
-  //   if (v) H.tap();
-  // };
 
   const handlePushNotif = async (v) => {
     if (v) {
@@ -190,47 +174,52 @@ export default function SettingsScreen({
     await SecureStore.setItemAsync('notif_reminder', String(v));
   };
 
+  const handleHaptic = (v) => {
+    H.setEnabled(v);
+    setHaptic(v);
+    if (v) H.tap();
+    SecureStore.setItemAsync('haptic', String(v));
+  };
+
+  const handleSound = (v) => {
+    setSound(v);
+    SecureStore.setItemAsync('sound', String(v));
+  };
+
   return (
     <View style={s.screen}>
       {/* 헤더 */}
       <View style={s.header}>
         {onBack ? (
-          <TouchableOpacity style={s.backBtn} onPress={() => { H.tap(); onBack(); }} activeOpacity={0.7}>
-            <Text style={s.backIcon}>←</Text>
+          <TouchableOpacity style={s.side} onPress={() => { H.tap(); onBack(); }} hitSlop={12} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={24} color={C.text} />
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 40 }} />
+          <View style={s.side} />
         )}
-        <T v="title">설정</T>
-        <View style={{ width: 40 }} />
+        <WarmText v="body" size={18}>설정</WarmText>
+        <View style={s.side} />
       </View>
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-
         {/* 미션 */}
         <Section title="미션">
           <SettingRow
-            icon="🕐"
+            icon="⏰"
             label="알림 시간"
-            sub="이 시간에 미션이 도착해요"
             right={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <T v="green" size={15}>{timeLabel}</T>
-                <T v="sub">›</T>
+                <WarmText size={14} color={C.green}>{timeLabel}</WarmText>
+                <Chevron />
               </View>
             }
             onPress={onOpenTimeSettings}
           />
           <SettingRow
-            icon="🎰"
+            icon="🎲"
             label="시간되면 자동으로 돌리기"
             sub="설정 시간에 룰렛 자동 시작"
-            right={
-              <OffSwitch
-                value={autoRoulette}
-                onValueChange={onSetAutoRoulette}
-              />
-            }
+            right={<WarmToggle value={autoRoulette} onValueChange={onSetAutoRoulette} />}
             last
           />
         </Section>
@@ -241,13 +230,13 @@ export default function SettingsScreen({
             icon="🔔"
             label="푸시 알림"
             sub="미션 도착 알림 받기"
-            right={<OffSwitch value={pushNotif} onValueChange={handlePushNotif} />}
+            right={<WarmToggle value={pushNotif} onValueChange={handlePushNotif} />}
           />
           <SettingRow
-            icon="⏰"
+            icon="🌙"
             label="일일 리마인더"
             sub="미완료 미션 저녁 알림 (21:00)"
-            right={<OffSwitch value={reminder} onValueChange={handleReminder} />}
+            right={<WarmToggle value={reminder} onValueChange={handleReminder} />}
             last
           />
         </Section>
@@ -255,73 +244,60 @@ export default function SettingsScreen({
         {/* 앱 */}
         <Section title="앱">
           <SettingRow
-            icon="🌙"
-            label="다크 모드"
-            right={
-              <OffSwitch
-                value={scheme === 'dark'}
-                onValueChange={(v) => setScheme(v ? 'dark' : 'light')}
-              />
-            }
-            last
-          />
-          {/* TODO: 햅틱/효과음 정식 도입 시 설정 항목을 복구한다. */}
-          {/*
-          <SettingRow
             icon="📳"
             label="햅틱 피드백"
-            right={<OffSwitch value={haptic} onValueChange={handleHapticToggle} />}
+            right={<WarmToggle value={haptic} onValueChange={handleHaptic} />}
           />
           <SettingRow
-            icon="🔊"
+            icon="🔈"
             label="효과음"
-            right={<OffSwitch value={sound} onValueChange={setSound} />}
+            right={<WarmToggle value={sound} onValueChange={handleSound} />}
             last
           />
-          */}
         </Section>
 
         {/* 정보 */}
         <Section title="정보">
           <SettingRow
-            icon="🛡️"
+            icon="🔒"
             label="개인정보 처리방침"
-            right={<T v="sub">›</T>}
+            right={<Chevron />}
             onPress={() => openLink('https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431')}
           />
           <SettingRow
             icon="📄"
             label="서비스 이용약관"
-            right={<T v="sub">›</T>}
+            right={<Chevron />}
             onPress={() => openLink('https://fuchsia-belief-040.notion.site/35f09a0b0e3e80ffa48fde51b2de125b')}
           />
           <SettingRow
-            icon="💬"
+            icon="✉️"
             label="문의하기"
-            right={<T v="sub">›</T>}
+            right={<Chevron />}
             onPress={() => openLink('https://fuchsia-belief-040.notion.site/Off-Mode-35f09a0b0e3e80af81a8ce27d686fd7d')}
           />
           <SettingRow
             icon="⭐"
             label="앱 평가하기"
-            right={<T v="sub">›</T>}
+            right={<Chevron />}
             onPress={() => {}}
             last
           />
         </Section>
 
         {/* 계정 */}
-        <Section title="">
+        <Section title="계정">
           <SettingRow
             icon="🚪"
             label="로그아웃"
-            right={null}
+            right={<Chevron />}
             onPress={onLogout}
           />
           <SettingRow
             icon="⚠️"
             label="회원 탈퇴"
-            right={null}
+            danger
+            right={<Chevron />}
             onPress={() => {
               Alert.alert(
                 '회원 탈퇴',
@@ -336,7 +312,11 @@ export default function SettingsScreen({
           />
         </Section>
 
-        <VersionFooter />
+        {/* 버전 푸터 */}
+        <View style={s.footer}>
+          <WarmText size={20} color={C.green}>OFFMODE</WarmText>
+          <WarmText v="caption" size={11} color={C.textSub} style={{ marginTop: 4, opacity: 0.6 }}>v1.0.0  •  Made with 🌙</WarmText>
+        </View>
       </ScrollView>
     </View>
   );
@@ -344,18 +324,10 @@ export default function SettingsScreen({
 
 function makeStyles(C) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.bg, paddingBottom: 40 },
-    header: {
-      flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12,
-    },
-    backBtn: {
-      width: 40, height: 40, borderRadius: 12,
-      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    backIcon: { fontSize: 20, color: C.text },
-    content:  { paddingBottom: 40 },
+    screen:  { flex: 1, backgroundColor: C.bg },
+    header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 16, paddingBottom: 12 },
+    side:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 40, gap: 22 },
+    footer:  { alignItems: 'center', paddingTop: 16 },
   });
 }

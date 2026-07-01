@@ -74,7 +74,7 @@ function EmptyState() {
   );
 }
 
-export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, version }) {
+export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNotifications, version }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
 
@@ -117,6 +117,14 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, version }
         <View style={s.header}>
           <WarmText v="logo">OFFMODE</WarmText>
           <WarmText v="section" size={17} color={C.green} style={{ marginTop: 8 }}>스크린 OFF. 일상 ON.</WarmText>
+          <TouchableOpacity
+            style={s.bell}
+            hitSlop={12}
+            activeOpacity={0.7}
+            onPress={() => { H.tap(); onOpenNotifications?.(); }}
+          >
+            <Ionicons name="notifications-outline" size={24} color={C.text} />
+          </TouchableOpacity>
         </View>
 
         <View style={s.banner}>
@@ -172,6 +180,7 @@ function makeStyles(C) {
     center:  { paddingVertical: 60, alignItems: 'center', justifyContent: 'center' },
 
     header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 12 },
+    bell:   { position: 'absolute', right: 20, top: 24, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     banner: { marginTop: 4, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: C.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
     sectionLabel: { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 },
     sectionLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 24, marginBottom: 10 },

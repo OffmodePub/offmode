@@ -26,6 +26,9 @@ import VerifyScreen from './screens/VerifyScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 
 // [WORKAROUND] RN 0.83 iOS Release 빌드에서 RCTFatal abort로 escalate되는
@@ -108,6 +111,7 @@ function AppInner() {
   const [currentMission, setCurrentMission]     = useState(null);
   const [currentMissionId, setCurrentMissionId] = useState(null);
   const [showRoulette, setShowRoulette]         = useState(false);
+  const [showOnboarding, setShowOnboarding]     = useState(false);
   const [autoRoulette, setAutoRoulette]         = useState(true);
   const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '01' });
   const [roomVersion, setRoomVersion]           = useState(0);
@@ -224,6 +228,7 @@ function AppInner() {
     setMissionTime(mt);
     await loadTodayMission();
     scheduleMissionNotification(mt.hour, mt.minute);
+    setShowOnboarding(true);   // 신규 유저: 인증 완료 후 온보딩 캐러셀 1회 노출
     setAuthStatus('authenticated');
   };
 
@@ -385,6 +390,7 @@ function AppInner() {
                 onOpenVerify={(room) => push('roomVerify', { room })}
                 onOpenProof={(info) => push('proofDetail', { roomId: sp?.roomId, ...info })}
                 onOpenHistory={() => push('historyRoom', { roomId: sp?.roomId })}
+                onOpenLeaderboard={(info) => push('leaderboard', info)}
                 onComplete={handleRoomComplete}
               />
             </View>
@@ -456,6 +462,18 @@ function AppInner() {
             </View>
           )}
 
+          {currentStack === 'notifications' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <NotificationsScreen onBack={pop} />
+            </View>
+          )}
+
+          {currentStack === 'leaderboard' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <LeaderboardScreen roomName={sp?.roomName} roomIcon={sp?.roomIcon} onBack={pop} />
+            </View>
+          )}
+
           {/* ── 최상위 3페이지 (좌우 스와이프: Mission | Profile | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
@@ -469,6 +487,7 @@ function AppInner() {
                   onOpenRoom={(roomId) => push('roomDetail', { roomId })}
                   onCreate={() => push('createRoom')}
                   onJoin={() => push('joinRoom')}
+                  onOpenNotifications={() => push('notifications')}
                 />
               )}
               {tab === 'profile' && (
@@ -494,9 +513,16 @@ function AppInner() {
               )}
             </View>
 
-            {/* 페이지 인디케이터 (3페이지 공통) — 웜 페이지는 크림, 설정은 테마 배경 */}
-            <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg={tab === 'settings' ? C.bg : W.bg} />
+            {/* 페이지 인디케이터 (3페이지 공통) — 3페이지 모두 웜 크림 */}
+            <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg={W.bg} />
           </View>
+        </View>
+      )}
+
+      {/* ── 온보딩 캐러셀 (신규 유저, 최상위 오버레이) ── */}
+      {authStatus === 'authenticated' && showOnboarding && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <OnboardingScreen onDone={() => setShowOnboarding(false)} />
         </View>
       )}
 
