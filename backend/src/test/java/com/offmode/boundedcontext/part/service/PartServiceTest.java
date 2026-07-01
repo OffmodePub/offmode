@@ -3,12 +3,14 @@ package com.offmode.boundedcontext.part.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.part.dto.request.PlacementRequest;
 import com.offmode.boundedcontext.part.dto.response.PartResponse;
 import com.offmode.boundedcontext.part.entity.UserPart;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
@@ -17,11 +19,11 @@ import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class PartServiceTest {
@@ -38,11 +40,31 @@ class PartServiceTest {
     return parts.stream().filter(p -> p.getKey().equals(key)).findFirst().orElseThrow();
   }
 
+  private PlacementRequest placement(String key, double x, double y, double scale, int z) {
+    PlacementRequest req = new PlacementRequest();
+    ReflectionTestUtils.setField(req, "key", key);
+    ReflectionTestUtils.setField(req, "x", x);
+    ReflectionTestUtils.setField(req, "y", y);
+    ReflectionTestUtils.setField(req, "scale", scale);
+    ReflectionTestUtils.setField(req, "rotation", 0.0);
+    ReflectionTestUtils.setField(req, "z", z);
+    return req;
+  }
+
   @Test
-  void getUserPartsReflectsUnlockThresholdsAndEquippedKey() {
+  void getUserPartsReflectsUnlockThresholdsAndPlacements() {
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(7L);
     when(userPartRepository.findByUserId(1L))
-        .thenReturn(Optional.of(UserPart.builder().equippedKey("crown").build()));
+        .thenReturn(
+            List.of(
+                UserPart.builder()
+                    .partKey("crown")
+                    .posX(0.2)
+                    .posY(0.8)
+                    .scale(1.5)
+                    .rotation(30.0)
+                    .zIndex(2)
+                    .build()));
 
     List<PartResponse> parts = service().getUserParts(1L);
 
@@ -50,64 +72,92 @@ class PartServiceTest {
     assertThat(find(parts, "heart").isUnlocked()).isTrue(); // threshold 7
     assertThat(find(parts, "ribbon").isUnlocked()).isFalse(); // threshold 10
     assertThat(find(parts, "comingSoon14").isUnlocked()).isFalse(); // 항상 잠김
-    assertThat(find(parts, "crown").isEquipped()).isTrue();
-    assertThat(find(parts, "heart").isEquipped()).isFalse();
+
+    PartResponse crown = find(parts, "crown");
+    assertThat(crown.getPlacement()).isNotNull();
+    assertThat(crown.getPlacement().x()).isEqualTo(0.2);
+    assertThat(crown.getPlacement().y()).isEqualTo(0.8);
+    assertThat(crown.getPlacement().scale()).isEqualTo(1.5);
+    assertThat(crown.getPlacement().rotation()).isEqualTo(30.0);
+    assertThat(crown.getPlacement().z()).isEqualTo(2);
+    assertThat(find(parts, "heart").getPlacement()).isNull();
   }
 
   @Test
-  void equipUnlockedPartSavesAndReturnsUpdatedState() {
+  void saveLayoutReplacesAllPlacements() {
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
-    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
-    when(userPartRepository.findByUserId(1L)).thenReturn(Optional.empty());
-    when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-    when(userPartRepository.save(any(UserPart.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(7L);
+    when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
+    when(userPartRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
-    List<PartResponse> parts = service().equip(1L, "twinkle");
+    List<PlacementRequest> placements =
+        List.of(placement("leaf", 0.1, 0.2, 1.0, 0), placement("crown", 0.5, 0.5, 1.2, 1));
 
-    assertThat(find(parts, "twinkle").isEquipped()).isTrue(); // threshold 5, unlocked
+    List<PartResponse> parts = service().saveLayout(1L, placements);
+
+    verify(userPartRepository).deleteByUserId(1L);
+    verify(userPartRepository).saveAll(anyList());
+    assertThat(find(parts, "leaf").getPlacement()).isNotNull();
+    assertThat(find(parts, "leaf").getPlacement().x()).isEqualTo(0.1);
+    assertThat(find(parts, "crown").getPlacement()).isNotNull();
+    assertThat(find(parts, "star").getPlacement()).isNull(); // 배치 안 함
   }
 
   @Test
-  void equipBlankKeyUnequipsInsteadOfRejecting() {
-    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
-    when(userPartRepository.findByUserId(1L))
-        .thenReturn(Optional.of(UserPart.builder().equippedKey("twinkle").build()));
-    when(userPartRepository.save(any(UserPart.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
-
-    List<PartResponse> parts = service().equip(1L, ""); // 빈 문자열 = 해제
-
-    assertThat(find(parts, "twinkle").isEquipped()).isFalse();
-  }
-
-  @Test
-  void unequipWithNoExistingRowDoesNotCreateRow() {
-    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
-    when(userPartRepository.findByUserId(1L)).thenReturn(Optional.empty());
-
-    List<PartResponse> parts = service().equip(1L, null);
-
-    assertThat(parts).hasSize(16);
-    assertThat(parts).noneMatch(PartResponse::isEquipped);
-    verify(userPartRepository, never()).save(any(UserPart.class));
-  }
-
-  @Test
-  void equipLockedPartThrows() {
+  void saveLayoutRejectsLockedPart() {
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
 
-    assertThatThrownBy(() -> service().equip(1L, "star")) // threshold 13
+    List<PlacementRequest> placements =
+        List.of(placement("star", 0.5, 0.5, 1.0, 0)); // threshold 13
+
+    assertThatThrownBy(() -> service().saveLayout(1L, placements))
         .isInstanceOfSatisfying(
             BusinessException.class,
             e -> assertThat(e.getErrorStatus()).isEqualTo(ErrorStatus.PART_NOT_UNLOCKED));
+
+    verify(userPartRepository, never()).deleteByUserId(any());
+    verify(userPartRepository, never()).saveAll(anyList());
   }
 
   @Test
-  void equipUnknownKeyThrows() {
-    assertThatThrownBy(() -> service().equip(1L, "nope"))
+  void saveLayoutRejectsUnknownKey() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(50L);
+
+    List<PlacementRequest> placements = List.of(placement("nope", 0.5, 0.5, 1.0, 0));
+
+    assertThatThrownBy(() -> service().saveLayout(1L, placements))
         .isInstanceOfSatisfying(
             BusinessException.class,
             e -> assertThat(e.getErrorStatus()).isEqualTo(ErrorStatus.PART_NOT_FOUND));
+
+    verify(userPartRepository, never()).deleteByUserId(any());
+  }
+
+  @Test
+  void saveLayoutRejectsDuplicateKey() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
+
+    List<PlacementRequest> placements =
+        List.of(placement("leaf", 0.1, 0.2, 1.0, 0), placement("leaf", 0.5, 0.5, 1.0, 1));
+
+    assertThatThrownBy(() -> service().saveLayout(1L, placements))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            e -> assertThat(e.getErrorStatus()).isEqualTo(ErrorStatus.PART_DUPLICATE));
+
+    verify(userPartRepository, never()).deleteByUserId(any());
+    verify(userPartRepository, never()).saveAll(anyList());
+  }
+
+  @Test
+  void saveLayoutWithEmptyClearsWithoutTouchingUser() {
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(5L);
+
+    List<PartResponse> parts = service().saveLayout(1L, List.of());
+
+    verify(userPartRepository).deleteByUserId(1L);
+    verify(userPartRepository, never()).saveAll(anyList());
+    assertThat(parts).hasSize(16);
+    assertThat(parts).allMatch(p -> p.getPlacement() == null);
   }
 }

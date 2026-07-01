@@ -38,6 +38,7 @@ public enum ErrorStatus {
   // Part
   PART_NOT_FOUND(HttpStatus.NOT_FOUND, "PART_404_001", "해당 파츠를 찾을 수 없습니다."),
   PART_NOT_UNLOCKED(HttpStatus.BAD_REQUEST, "PART_400_001", "아직 해금되지 않은 파츠입니다."),
+  PART_DUPLICATE(HttpStatus.BAD_REQUEST, "PART_400_002", "같은 파츠를 중복으로 배치할 수 없습니다."),
 
   // Room
   ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_404_001", "방을 찾을 수 없습니다."),

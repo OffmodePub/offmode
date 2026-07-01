@@ -19,9 +19,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/** 유저별 장착 중인 파츠. 동시 장착은 1개만 허용하므로 유저당 한 행만 존재한다. */
+/** 유저별로 캐릭터에 자유 배치된 파츠 1개. 유저당 파츠 종류별로 최대 한 행씩 존재한다. */
 @Entity
-@Table(name = "user_parts", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id"}))
+@Table(
+    name = "user_parts",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "part_key"}))
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,13 +39,23 @@ public class UserPart {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @Column(name = "equipped_key")
-  private String equippedKey; // null 이면 장착 해제 상태
+  @Column(name = "part_key", nullable = false)
+  private String partKey;
+
+  @Column(name = "pos_x", nullable = false)
+  private double posX; // 0~1 정규화 X 좌표
+
+  @Column(name = "pos_y", nullable = false)
+  private double posY; // 0~1 정규화 Y 좌표
+
+  @Column(name = "scale", nullable = false)
+  private double scale;
+
+  @Column(name = "rotation", nullable = false)
+  private double rotation; // 도(degree)
+
+  @Column(name = "z_index", nullable = false)
+  private int zIndex;
 
   @UpdateTimestamp private LocalDateTime updatedAt;
-
-  /** 장착 파츠 변경 (null 이면 해제). */
-  public void updateEquippedKey(String equippedKey) {
-    this.equippedKey = equippedKey;
-  }
 }

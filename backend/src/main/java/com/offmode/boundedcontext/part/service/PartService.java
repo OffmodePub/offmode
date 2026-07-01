@@ -2,7 +2,9 @@ package com.offmode.boundedcontext.part.service;
 
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.part.dto.request.PlacementRequest;
 import com.offmode.boundedcontext.part.dto.response.PartResponse;
+import com.offmode.boundedcontext.part.dto.response.PartResponse.PlacementResponse;
 import com.offmode.boundedcontext.part.entity.UserPart;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
 import com.offmode.boundedcontext.part.types.PartDefinition;
@@ -12,7 +14,9 @@ import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,49 +29,69 @@ public class PartService {
   private final UserMissionRepository userMissionRepository;
   private final UserRepository userRepository;
 
-  /** 모든 파츠 정의 + 유저별 해금/장착 상태. */
+  /** 모든 파츠 정의 + 유저별 해금 상태 + 배치 정보(미배치면 null). */
   public List<PartResponse> getUserParts(Long userId) {
     long verified = countVerified(userId);
-    String equippedKey =
-        userPartRepository.findByUserId(userId).map(UserPart::getEquippedKey).orElse(null);
-    return buildParts(verified, equippedKey);
+    Map<String, UserPart> placed =
+        userPartRepository.findByUserId(userId).stream()
+            .collect(Collectors.toMap(UserPart::getPartKey, Function.identity()));
+    return buildParts(verified, placed);
   }
 
-  /** 파츠 장착/해제 후 갱신된 전체 파츠 상태 반환. equippedKey 가 null 또는 빈 문자열이면 해제로 처리한다. */
+  /** 캐릭터 레이아웃 전체 교체 저장 후 갱신된 전체 파츠 상태 반환. 각 파츠는 존재하고 해금돼 있어야 한다. */
   @Transactional
-  public List<PartResponse> equip(Long userId, String equippedKey) {
+  public List<PartResponse> saveLayout(Long userId, List<PlacementRequest> placements) {
     long verified = countVerified(userId);
-    String targetKey = (equippedKey != null && !equippedKey.isBlank()) ? equippedKey : null;
 
-    if (targetKey != null) {
+    // 같은 파츠 중복 배치 방어 — unique(user_id, part_key) 위반 500 대신 명시적 400
+    long distinctKeys = placements.stream().map(PlacementRequest::getKey).distinct().count();
+    if (distinctKeys != placements.size()) {
+      throw new BusinessException(ErrorStatus.PART_DUPLICATE);
+    }
+
+    for (PlacementRequest p : placements) {
       PartDefinition def =
-          PartDefinition.fromKey(targetKey)
+          PartDefinition.fromKey(p.getKey())
               .orElseThrow(() -> new BusinessException(ErrorStatus.PART_NOT_FOUND));
       if (!def.isUnlockedBy(verified)) {
         throw new BusinessException(ErrorStatus.PART_NOT_UNLOCKED);
       }
     }
 
-    Optional<UserPart> existing = userPartRepository.findByUserId(userId);
+    userPartRepository.deleteByUserId(userId);
 
-    // 장착 이력이 없는데 해제 요청 → 불필요한 빈 행을 만들지 않고 현재 상태 그대로 반환
-    if (existing.isEmpty() && targetKey == null) {
-      return buildParts(verified, null);
+    User userRef = placements.isEmpty() ? null : getUserRef(userId);
+    List<UserPart> entities =
+        placements.stream()
+            .map(
+                p ->
+                    UserPart.builder()
+                        .user(userRef)
+                        .partKey(p.getKey())
+                        .posX(p.getX())
+                        .posY(p.getY())
+                        .scale(p.getScale())
+                        .rotation(p.getRotation())
+                        .zIndex(p.getZ())
+                        .build())
+            .toList();
+    if (!entities.isEmpty()) {
+      userPartRepository.saveAll(entities);
     }
 
-    UserPart userPart =
-        existing.orElseGet(() -> UserPart.builder().user(getUserRef(userId)).build());
-    userPart.updateEquippedKey(targetKey);
-    userPartRepository.save(userPart);
-
-    return buildParts(verified, targetKey);
+    Map<String, UserPart> placed =
+        entities.stream().collect(Collectors.toMap(UserPart::getPartKey, Function.identity()));
+    return buildParts(verified, placed);
   }
 
-  private List<PartResponse> buildParts(long verified, String equippedKey) {
+  private List<PartResponse> buildParts(long verified, Map<String, UserPart> placed) {
     return Arrays.stream(PartDefinition.values())
         .map(
-            def ->
-                new PartResponse(def, def.isUnlockedBy(verified), def.getKey().equals(equippedKey)))
+            def -> {
+              UserPart part = placed.get(def.getKey());
+              PlacementResponse placement = part == null ? null : PlacementResponse.from(part);
+              return new PartResponse(def, def.isUnlockedBy(verified), placement);
+            })
         .toList();
   }
 

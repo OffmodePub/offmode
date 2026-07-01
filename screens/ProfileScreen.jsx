@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
-  Modal, TextInput, Keyboard, ActivityIndicator,
+  Modal, TextInput, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
@@ -12,7 +12,27 @@ import { W } from '../constants/warm';
 import { AVATAR_IDS, getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
 import * as H from '../utils/haptics';
 import CharacterDecor from '../components/CharacterDecor';
-import { buildPartsState } from '../constants/parts';
+import { PARTS, isPartUnlocked } from '../constants/parts';
+
+/**
+ * GET /api/v1/parts/me 응답을 정적 카탈로그(PARTS)와 key로 병합.
+ * - image·이름·순서·임계값은 로컬 카탈로그에서, unlocked·placement 는 서버에서.
+ * - 서버 응답이 없으면(fallback) 누적 인증 수 기준으로 해금 여부만 계산.
+ */
+function mergePartsState(partsRes, verifiedCount) {
+  const byKey = {};
+  if (Array.isArray(partsRes)) {
+    for (const p of partsRes) if (p?.key) byKey[p.key] = p;
+  }
+  return PARTS.map((meta) => {
+    const remote = byKey[meta.key];
+    return {
+      ...meta,
+      unlocked: remote?.unlocked ?? isPartUnlocked(meta, verifiedCount),
+      placement: remote?.placement ?? null,
+    };
+  });
+}
 
 /* ── 날짜 유틸 ─────────────────────────────────────────── */
 function parseLocalDT(val) {
@@ -185,24 +205,37 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   const [userProfile, setUserProfile] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [weekItems, setWeekItems] = useState([]);
+  const [parts, setParts] = useState([]);
   const [editVisible, setEditVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [u, hist, stats] = await Promise.all([
+      const [u, hist, stats, partsRes] = await Promise.all([
         api.get('/api/v1/users/me'),
         api.get('/api/v1/missions/history'),
         api.get('/api/v1/users/me/stats'),
+        api.get('/api/v1/parts/me').catch(() => null),
       ]);
       setUserProfile(u);
       setWeekItems(hist.map(toWeekItem).filter(Boolean));
       setUserStats(stats);
+      setParts(mergePartsState(partsRes, stats?.totalVerified ?? 0));
     } catch (e) {
       console.warn('데이터 로딩 실패:', e);
     }
   }, []);
+
+  const handleSaveLayout = useCallback(async (placements) => {
+    try {
+      const updated = await api.put('/api/v1/parts/layout', { placements });
+      setParts(mergePartsState(updated, userStats?.totalVerified ?? 0));
+      H.success();
+    } catch (e) {
+      Alert.alert('저장 실패', e.message);
+    }
+  }, [userStats]);
 
   useEffect(() => {
     loadData().finally(() => setLoading(false));
@@ -226,7 +259,6 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
   const completionRate = totalMissions > 0 ? Math.round((verifiedCount / totalMissions) * 100) : 0;
 
   const weekData = useMemo(() => computeWeekData(weekItems, userProfile?.createdAt), [weekItems, userProfile]);
-  const decorParts = useMemo(() => buildPartsState(verifiedCount, null), [verifiedCount]);
 
   const avatarId = profile?.avatar ?? userProfile?.avatar ?? '01';
   const avatarSource = getAvatarSource(avatarId, currentMission?.status ?? null);
@@ -291,7 +323,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
         <WeeklyActivity weekData={weekData} />
 
         {/* 캐릭터 꾸미기 */}
-        <CharacterDecor parts={decorParts} />
+        <CharacterDecor parts={parts} onSaveLayout={handleSaveLayout} />
       </ScrollView>
 
       {profile && (

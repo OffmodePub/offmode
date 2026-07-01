@@ -1,5 +1,7 @@
+import 'react-native-gesture-handler';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated, LogBox, Platform, PanResponder } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -506,9 +508,11 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
