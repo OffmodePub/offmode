@@ -8,6 +8,8 @@ import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
@@ -15,7 +17,7 @@ import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class UserService {
   private final VerificationRepository verificationRepository;
   private final UserBadgeRepository userBadgeRepository;
   private final UserPartRepository userPartRepository;
+  private final RoomProofRepository roomProofRepository;
 
   public User getById(Long id) {
     return userRepository
@@ -68,9 +71,14 @@ public class UserService {
   }
 
   public UserStatsResponse getStats(Long userId) {
-    long totalMissions = userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size();
+    // 누적 통계는 레거시 개인 미션(UserMission)과 Rooms v2 방 인증(RoomProof)을 합산한다.
+    // (현재 실제 인증은 방 인증으로만 저장되므로 RoomProof 미합산 시 누적이 오르지 않음)
+    long totalMissions =
+        userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size()
+            + roomProofRepository.countByUserId(userId);
     long totalVerified =
-        userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED);
+        userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED)
+            + roomProofRepository.countByUserIdAndStatus(userId, ProofStatus.VERIFIED);
 
     long energy =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
@@ -82,9 +90,13 @@ public class UserService {
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
             userId, MissionStatus.VERIFIED, MissionCategory.VITALITY);
 
-    List<LocalDateTime> verifiedTimes =
-        userMissionRepository.findVerifiedDateTimes(userId, MissionStatus.VERIFIED);
-    int streak = calcStreak(verifiedTimes);
+    // 연속 달성 일수: 개인 미션 인증 날짜 + 방 인증 날짜를 합쳐서 계산
+    Set<LocalDate> verifiedDates =
+        userMissionRepository.findVerifiedDateTimes(userId, MissionStatus.VERIFIED).stream()
+            .map(LocalDateTime::toLocalDate)
+            .collect(Collectors.toCollection(HashSet::new));
+    verifiedDates.addAll(roomProofRepository.findVerifiedDatesByUser(userId, ProofStatus.VERIFIED));
+    int streak = calcStreak(verifiedDates);
 
     return new UserStatsResponse(
         totalMissions,
@@ -99,10 +111,8 @@ public class UserService {
   }
 
   // 연속 달성 일수 계산 (오늘부터 역순으로 확인)
-  private int calcStreak(List<LocalDateTime> times) {
-    if (times.isEmpty()) return 0;
-    Set<LocalDate> dates =
-        times.stream().map(LocalDateTime::toLocalDate).collect(Collectors.toSet());
+  private int calcStreak(Set<LocalDate> dates) {
+    if (dates.isEmpty()) return 0;
 
     LocalDate check = LocalDate.now();
     int streak = 0;
