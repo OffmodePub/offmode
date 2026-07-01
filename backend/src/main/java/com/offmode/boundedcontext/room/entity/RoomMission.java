@@ -1,5 +1,6 @@
 package com.offmode.boundedcontext.room.entity;
 
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.room.types.MissionSource;
 import jakarta.persistence.*;
 import java.time.LocalDate;
@@ -38,6 +39,11 @@ public class RoomMission {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private MissionSource source;
+
+  // 진급 시스템(레벨/배지/카테고리 통계) 반영용 카테고리. 자유입력(DIRECT) 미션은 미분류(null).
+  @Enumerated(EnumType.STRING)
+  @Column(length = 20)
+  private MissionCategory category;
 
   @CreationTimestamp private LocalDateTime createdAt;
 }

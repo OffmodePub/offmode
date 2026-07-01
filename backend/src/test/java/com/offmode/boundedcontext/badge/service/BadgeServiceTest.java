@@ -10,6 +10,8 @@ import com.offmode.boundedcontext.badge.types.BadgeDefinition;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -27,11 +29,13 @@ class BadgeServiceTest {
   @Mock private UserBadgeRepository userBadgeRepository;
   @Mock private UserMissionRepository userMissionRepository;
   @Mock private UserRepository userRepository;
+  @Mock private RoomProofRepository roomProofRepository;
 
   @Test
   void checkAndAwardAwardsFirstMissionAcceptedBadge() {
     BadgeService service =
-        new BadgeService(userBadgeRepository, userMissionRepository, userRepository);
+        new BadgeService(
+            userBadgeRepository, userMissionRepository, userRepository, roomProofRepository);
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
     when(userMissionRepository.existsByUserId(1L)).thenReturn(true);
@@ -49,7 +53,8 @@ class BadgeServiceTest {
   @Test
   void checkAndAwardAwardsVerifiedCountAndCategoryBadges() {
     BadgeService service =
-        new BadgeService(userBadgeRepository, userMissionRepository, userRepository);
+        new BadgeService(
+            userBadgeRepository, userMissionRepository, userRepository, roomProofRepository);
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(10L);
@@ -72,7 +77,8 @@ class BadgeServiceTest {
   @Test
   void checkAndAwardAwardsSevenDayStreakBadge() {
     BadgeService service =
-        new BadgeService(userBadgeRepository, userMissionRepository, userRepository);
+        new BadgeService(
+            userBadgeRepository, userMissionRepository, userRepository, roomProofRepository);
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     LocalDateTime start = LocalDateTime.now().minusDays(6);
     when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
@@ -85,5 +91,26 @@ class BadgeServiceTest {
     List<BadgeDefinition> awarded = service.checkAndAward(1L);
 
     assertThat(awarded).contains(BadgeDefinition.SPEEDRUNNER);
+  }
+
+  @Test
+  void checkAndAwardCountsRoomProofsForExplorerBadge() {
+    BadgeService service =
+        new BadgeService(
+            userBadgeRepository, userMissionRepository, userRepository, roomProofRepository);
+    User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
+    when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
+    // 개인 미션 인증 0, 방 인증 1 → verifiedCount 1 → EXPLORER 획득
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
+    when(roomProofRepository.countByUserIdAndStatus(1L, ProofStatus.VERIFIED)).thenReturn(1L);
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(Collections.emptyList());
+    when(userRepository.getReferenceById(1L)).thenReturn(user);
+    when(userBadgeRepository.save(any(UserBadge.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    List<BadgeDefinition> awarded = service.checkAndAward(1L);
+
+    assertThat(awarded).contains(BadgeDefinition.EXPLORER_LV01);
   }
 }

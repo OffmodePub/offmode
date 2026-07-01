@@ -3,11 +3,13 @@ package com.offmode.boundedcontext.room.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.offmode.boundedcontext.badge.service.BadgeService;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.entity.Room;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class RoomProofServiceTest {
@@ -44,6 +47,7 @@ class RoomProofServiceTest {
   @Mock private RoomService roomService;
   @Mock private RoomProofAssembler proofAssembler;
   @Mock private UserService userService;
+  @Mock private BadgeService badgeService;
   @Mock private ImageUploadService imageUploadService;
 
   private RoomProofService service() {
@@ -56,6 +60,7 @@ class RoomProofServiceTest {
         roomService,
         proofAssembler,
         userService,
+        badgeService,
         imageUploadService);
   }
 
@@ -100,6 +105,9 @@ class RoomProofServiceTest {
     assertThat(response.requiredConfirm()).isEqualTo(3);
     assertThat(proof.getStatus()).isEqualTo(ProofStatus.VERIFIED);
     verify(proofRepository).save(proof);
+    // VERIFIED 전환 시 인증 주인(9L)에게 진급 처리
+    verify(userService).applyVerifiedProgress(9L);
+    verify(badgeService).checkAndAward(9L);
   }
 
   @Test
@@ -118,6 +126,32 @@ class RoomProofServiceTest {
 
     assertThat(response.status()).isEqualTo(ProofStatus.PENDING);
     verify(confirmRepository, never()).save(any());
+    verify(userService, never()).applyVerifiedProgress(anyLong());
+    verify(badgeService, never()).checkAndAward(anyLong());
+  }
+
+  @Test
+  void createProofImmediatelyVerifiedTriggersProgressForUploader() {
+    Room room = Room.builder().id(2L).type(RoomType.SOLO).build();
+    RoomMission mission = RoomMission.builder().id(10L).room(room).build();
+    User uploader = User.builder().id(1L).provider("kakao").providerId("u").build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(missionRepository.findByRoomIdAndDate(eq(2L), any())).thenReturn(Optional.of(mission));
+    when(proofRepository.existsByRoomMissionIdAndUserId(10L, 1L)).thenReturn(false);
+    when(imageUploadService.uploadVerificationImage(any())).thenReturn("/uploads/a.jpg");
+    when(roomService.getMemberCount(2L)).thenReturn(1L);
+    when(roomService.requiredConfirm(RoomType.SOLO, 1)).thenReturn(0);
+    when(userService.getById(1L)).thenReturn(uploader);
+    when(proofRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    MockMultipartFile photo =
+        new MockMultipartFile("photo", "a.jpg", "image/jpeg", new byte[] {1, 2, 3});
+    service().createProof(1L, 2L, photo, "caption");
+
+    // 업로드 즉시 VERIFIED → 업로더 본인(1L)에게 진급 처리
+    verify(userService).applyVerifiedProgress(1L);
+    verify(badgeService).checkAndAward(1L);
   }
 
   @Test

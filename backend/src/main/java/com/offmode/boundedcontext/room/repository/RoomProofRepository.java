@@ -1,8 +1,10 @@
 package com.offmode.boundedcontext.room.repository;
 
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.room.entity.RoomProof;
 import com.offmode.boundedcontext.room.types.ProofStatus;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +28,20 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
   long countByUserId(Long userId);
 
   long countByUserIdAndStatus(Long userId, ProofStatus status);
+
+  // 카테고리별 방 인증 수 (WALKER/BEAUTY_CURATOR/LOCAL_HIPSTER 배지 + 카테고리 통계용).
+  // roomMission.category 가 null 인 인증은 어떤 카테고리에도 잡히지 않는다.
+  long countByUserIdAndStatusAndRoomMissionCategory(
+      Long userId, ProofStatus status, MissionCategory category);
+
+  // 키워드 배지(예: "하늘")용 — 방 미션 제목에 키워드가 포함된 인증 수
+  long countByUserIdAndStatusAndRoomMissionTitleContaining(
+      Long userId, ProofStatus status, String keyword);
+
+  // 시간대 배지용 — VERIFIED 방 인증의 생성 시각 목록(시(hour) 필터는 Java에서 수행)
+  @Query("SELECT p.createdAt FROM RoomProof p WHERE p.user.id = :userId AND p.status = :status")
+  List<LocalDateTime> findCreatedAtByUserIdAndStatus(
+      @Param("userId") Long userId, @Param("status") ProofStatus status);
 
   // 유저 연속 달성 일수 계산용: 유저가 VERIFIED 한 방 미션의 날짜들
   @Query(

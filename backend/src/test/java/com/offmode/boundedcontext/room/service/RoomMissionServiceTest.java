@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.mission.entity.Mission;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -68,6 +70,11 @@ class RoomMissionServiceTest {
     assertThat(response.title()).isEqualTo("산책하기");
     assertThat(response.icon()).isEqualTo("🚶");
     assertThat(response.source()).isEqualTo(MissionSource.RANDOM);
+
+    // 랜덤 미션은 master 미션의 카테고리를 그대로 저장한다.
+    ArgumentCaptor<RoomMission> captor = ArgumentCaptor.forClass(RoomMission.class);
+    verify(missionRepository).save(captor.capture());
+    assertThat(captor.getValue().getCategory()).isEqualTo(MissionCategory.VITALITY);
   }
 
   @Test
@@ -85,6 +92,11 @@ class RoomMissionServiceTest {
     assertThat(response.title()).isEqualTo("노래 들으며 산책");
     assertThat(response.icon()).isEqualTo("🎵");
     assertThat(response.source()).isEqualTo(MissionSource.DIRECT);
+
+    // 자유입력 미션은 카테고리 미분류(null).
+    ArgumentCaptor<RoomMission> captor = ArgumentCaptor.forClass(RoomMission.class);
+    verify(missionRepository).save(captor.capture());
+    assertThat(captor.getValue().getCategory()).isNull();
   }
 
   private SetRoomMissionRequest request(
