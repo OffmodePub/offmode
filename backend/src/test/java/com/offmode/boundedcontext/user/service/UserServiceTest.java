@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.types.ProofStatus;
@@ -70,5 +71,33 @@ class UserServiceTest {
     UserStatsResponse res = service().getStats(1L);
 
     assertThat(res.getStreak()).isEqualTo(2);
+  }
+
+  @Test
+  void getStats_카테고리_통계에_방인증을_합산한다() {
+    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
+    stubCategoryCounts(); // 레거시 카테고리 0
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(roomProofRepository.countByUserId(1L)).thenReturn(0L);
+    when(roomProofRepository.countByUserIdAndStatus(1L, ProofStatus.VERIFIED)).thenReturn(0L);
+    when(roomProofRepository.findVerifiedDatesByUser(1L, ProofStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+            1L, ProofStatus.VERIFIED, MissionCategory.ENERGY))
+        .thenReturn(0L);
+    when(roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+            1L, ProofStatus.VERIFIED, MissionCategory.INTELLECT))
+        .thenReturn(0L);
+    // 방 인증 VITALITY 5건 → vitality level 1 / fill 50
+    when(roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+            1L, ProofStatus.VERIFIED, MissionCategory.VITALITY))
+        .thenReturn(5L);
+
+    UserStatsResponse res = service().getStats(1L);
+
+    assertThat(res.getVitalityFill()).isEqualTo(50);
+    assertThat(res.getVitalityLevel()).isEqualTo(1);
   }
 }

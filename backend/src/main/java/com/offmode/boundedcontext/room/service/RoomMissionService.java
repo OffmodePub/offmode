@@ -2,6 +2,7 @@ package com.offmode.boundedcontext.room.service;
 
 import com.offmode.boundedcontext.mission.entity.Mission;
 import com.offmode.boundedcontext.mission.repository.MissionRepository;
+import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.room.dto.request.SetRoomMissionRequest;
 import com.offmode.boundedcontext.room.dto.response.MissionCandidateResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomMissionResponse;
@@ -48,10 +49,12 @@ public class RoomMissionService {
 
     String icon;
     String title;
+    MissionCategory category;
     if (request.getSource() == MissionSource.RANDOM) {
       Mission picked = pickRandomMission();
       icon = picked.getIcon();
       title = picked.getText();
+      category = picked.getCategory();
     } else if (request.getMissionId() != null) {
       Mission picked =
           masterMissionRepository
@@ -59,12 +62,15 @@ public class RoomMissionService {
               .orElseThrow(() -> new BusinessException(ErrorStatus.MISSION_NOT_FOUND));
       icon = picked.getIcon();
       title = picked.getText();
+      category = picked.getCategory();
     } else {
       if (request.getTitle() == null || request.getTitle().isBlank()) {
         throw new BusinessException(ErrorStatus.BAD_REQUEST);
       }
       title = request.getTitle();
       icon = request.getIcon() == null || request.getIcon().isBlank() ? "🎯" : request.getIcon();
+      // 자유입력 미션은 미분류 → 카테고리 레벨/배지에 반영하지 않는다.
+      category = null;
     }
 
     RoomMission saved =
@@ -75,6 +81,7 @@ public class RoomMissionService {
                 .icon(icon)
                 .title(title)
                 .source(request.getSource())
+                .category(category)
                 .build());
 
     return RoomMissionResponse.from(saved);

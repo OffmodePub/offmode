@@ -70,25 +70,42 @@ public class UserService {
     }
   }
 
+  // 인증(개인 미션 또는 방 인증)이 VERIFIED 로 확정될 때 호출 — 합산 누적 인증 수로 레벨업 반영
+  @Transactional
+  public void applyVerifiedProgress(Long userId) {
+    levelUp(userId, (int) totalVerifiedCount(userId));
+  }
+
+  // 합산 누적 VERIFIED 인증 수 (개인 미션 + 방 인증) — getStats·applyVerifiedProgress 공유
+  private long totalVerifiedCount(Long userId) {
+    return userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED)
+        + roomProofRepository.countByUserIdAndStatus(userId, ProofStatus.VERIFIED);
+  }
+
   public UserStatsResponse getStats(Long userId) {
     // 누적 통계는 레거시 개인 미션(UserMission)과 Rooms v2 방 인증(RoomProof)을 합산한다.
     // (현재 실제 인증은 방 인증으로만 저장되므로 RoomProof 미합산 시 누적이 오르지 않음)
     long totalMissions =
         userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size()
             + roomProofRepository.countByUserId(userId);
-    long totalVerified =
-        userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED)
-            + roomProofRepository.countByUserIdAndStatus(userId, ProofStatus.VERIFIED);
+    long totalVerified = totalVerifiedCount(userId);
 
+    // 카테고리 통계도 개인 미션 + 방 인증(해당 category)을 합산한다.
     long energy =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, MissionStatus.VERIFIED, MissionCategory.ENERGY);
+                userId, MissionStatus.VERIFIED, MissionCategory.ENERGY)
+            + roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+                userId, ProofStatus.VERIFIED, MissionCategory.ENERGY);
     long intellect =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, MissionStatus.VERIFIED, MissionCategory.INTELLECT);
+                userId, MissionStatus.VERIFIED, MissionCategory.INTELLECT)
+            + roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+                userId, ProofStatus.VERIFIED, MissionCategory.INTELLECT);
     long vitality =
         userMissionRepository.countByUserIdAndStatusAndMissionCategory(
-            userId, MissionStatus.VERIFIED, MissionCategory.VITALITY);
+                userId, MissionStatus.VERIFIED, MissionCategory.VITALITY)
+            + roomProofRepository.countByUserIdAndStatusAndRoomMissionCategory(
+                userId, ProofStatus.VERIFIED, MissionCategory.VITALITY);
 
     // 연속 달성 일수: 개인 미션 인증 날짜 + 방 인증 날짜를 합쳐서 계산
     Set<LocalDate> verifiedDates =

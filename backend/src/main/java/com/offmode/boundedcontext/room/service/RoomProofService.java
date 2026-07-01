@@ -1,5 +1,6 @@
 package com.offmode.boundedcontext.room.service;
 
+import com.offmode.boundedcontext.badge.service.BadgeService;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.HistoryProofResponse;
 import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
@@ -53,6 +54,7 @@ public class RoomProofService {
   private final RoomService roomService;
   private final RoomProofAssembler proofAssembler;
   private final UserService userService;
+  private final BadgeService badgeService;
   private final ImageUploadService imageUploadService;
 
   // ===== 사진 인증 =====
@@ -92,6 +94,11 @@ public class RoomProofService {
                 .caption(caption)
                 .status(status)
                 .build());
+
+    // 업로드 즉시 인증 완료된 경우(requiredConfirm<=0) 업로더 본인에게 진급 처리
+    if (status == ProofStatus.VERIFIED) {
+      applyVerifiedProgress(userId);
+    }
 
     return proofAssembler.build(proof, requiredConfirm, userId);
   }
@@ -161,6 +168,8 @@ public class RoomProofService {
     if (confirmCount >= requiredConfirm && proof.getStatus() != ProofStatus.VERIFIED) {
       proof.setStatus(ProofStatus.VERIFIED);
       proofRepository.save(proof);
+      // VERIFIED 전환 순간 인증 주인(업로더)에게 진급 처리
+      applyVerifiedProgress(proof.getUser().getId());
     }
 
     return new ConfirmResponse(confirmCount, requiredConfirm, proof.getStatus());
@@ -241,6 +250,12 @@ public class RoomProofService {
                 .build());
 
     return new ProofReportResponse(saved.getId());
+  }
+
+  // 방 인증이 VERIFIED 로 확정되면 인증 주인에게 레벨업 + 배지 획득 체크
+  private void applyVerifiedProgress(Long ownerId) {
+    userService.applyVerifiedProgress(ownerId);
+    badgeService.checkAndAward(ownerId);
   }
 
   private RoomProof getProofInRoomOrThrow(Long proofId, Long roomId) {
