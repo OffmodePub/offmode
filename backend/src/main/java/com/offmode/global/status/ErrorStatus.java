@@ -52,6 +52,8 @@ public enum ErrorStatus {
   ROOM_SELF_CONFIRM_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_001", "본인 인증은 확인할 수 없습니다."),
   ROOM_SELF_NUDGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_002", "자기 자신을 콕 찌를 수 없습니다."),
   ROOM_NUDGE_TARGET_DONE(HttpStatus.BAD_REQUEST, "ROOM_400_003", "이미 인증을 완료한 멤버입니다."),
+  ROOM_SELF_REPORT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_004", "본인 인증은 신고할 수 없습니다."),
+  ROOM_ALREADY_REPORTED(HttpStatus.CONFLICT, "ROOM_409_004", "이미 신고한 콘텐츠입니다."),
 
   // File
   FILE_EMPTY(HttpStatus.BAD_REQUEST, "FILE_400_001", "업로드할 파일이 비어있습니다."),

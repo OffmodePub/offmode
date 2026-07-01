@@ -28,6 +28,7 @@ public class RoomProofAssembler {
     int confirmCount = (int) confirmRepository.countByRoomProofId(proof.getId());
     boolean myConfirmed =
         confirmRepository.existsByRoomProofIdAndUserId(proof.getId(), currentUserId);
+    boolean mine = proof.getUser().getId().equals(currentUserId);
     List<RoomReactionSummaryResponse> reactions =
         aggregateReactions(reactionRepository.findRowsByRoomProofId(proof.getId()), currentUserId);
 
@@ -42,6 +43,7 @@ public class RoomProofAssembler {
         confirmCount,
         requiredConfirm,
         myConfirmed,
+        mine,
         reactions);
   }
 

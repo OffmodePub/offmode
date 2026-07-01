@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image,
+  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { W } from '../constants/warm';
 import { api, BASE_URL } from '../utils/api';
@@ -9,6 +9,7 @@ import * as H from '../utils/haptics';
 import {
   RoomTopBar, MemberAvatar, ReactionBar, ProofStatusBadge, OutlineButton,
 } from '../components/RoomBits';
+import ReportReasonModal from '../components/ReportReasonModal';
 
 function resolvePhoto(url) {
   if (!url) return null;
@@ -32,6 +33,8 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
   const [proof, setProof] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -73,11 +76,30 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
     }
   }, [roomId, proofId, onChanged]);
 
+  const handleReport = useCallback(async ({ reasonKey, detail }) => {
+    setReportSubmitting(true);
+    try {
+      await api.post(`/api/v1/rooms/${roomId}/proofs/${proofId}/report`, { reason: reasonKey, detail: detail?.trim() || null });
+      setReportOpen(false);
+      Alert.alert('신고 접수', '신고가 접수되었어요.\n운영자가 확인 후 조치할게요.');
+    } catch (e) {
+      Alert.alert('신고 실패', e?.message || '신고를 접수하지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setReportSubmitting(false);
+    }
+  }, [roomId, proofId]);
+
   const photo = resolvePhoto(proof?.photoUrl);
 
   return (
     <View style={s.screen}>
-      <RoomTopBar title="인증 상세" subtitle={missionTitle} onBack={onBack} />
+      <RoomTopBar
+        title="인증 상세"
+        subtitle={missionTitle}
+        onBack={onBack}
+        rightIcon={proof && !proof.mine ? 'ellipsis-horizontal' : undefined}
+        onRight={() => { H.tap(); setReportOpen(true); }}
+      />
       {loading ? (
         <View style={s.center}><ActivityIndicator color={C.green} /></View>
       ) : error || !proof ? (
@@ -127,6 +149,14 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
           </View>
         </ScrollView>
       )}
+
+      <ReportReasonModal
+        visible={reportOpen}
+        targetUser={proof?.authorNickname}
+        submitting={reportSubmitting}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleReport}
+      />
     </View>
   );
 }

@@ -15,4 +15,5 @@ public record RoomProofResponse(
     int confirmCount,
     int requiredConfirm,
     boolean myConfirmed,
+    boolean mine,
     List<RoomReactionSummaryResponse> reactions) {}

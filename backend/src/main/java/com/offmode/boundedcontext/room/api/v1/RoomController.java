@@ -3,11 +3,13 @@ package com.offmode.boundedcontext.room.api.v1;
 import com.offmode.boundedcontext.room.dto.request.CreateRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.RenameRoomRequest;
+import com.offmode.boundedcontext.room.dto.request.ReportRequest;
 import com.offmode.boundedcontext.room.dto.request.RoomReactRequest;
 import com.offmode.boundedcontext.room.dto.request.SetRoomMissionRequest;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.MissionCandidateResponse;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
+import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
@@ -152,6 +154,17 @@ public class RoomController {
   public ResponseEntity<ConfirmResponse> confirm(
       @AuthenticationPrincipal Long userId, @PathVariable Long roomId, @PathVariable Long proofId) {
     return ResponseEntity.ok(roomProofService.confirm(userId, roomId, proofId));
+  }
+
+  // POST /api/v1/rooms/{roomId}/proofs/{proofId}/report - 콘텐츠 신고
+  @PostMapping("/{roomId}/proofs/{proofId}/report")
+  public ResponseEntity<ProofReportResponse> report(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable Long roomId,
+      @PathVariable Long proofId,
+      @Valid @RequestBody ReportRequest request) {
+    return ResponseEntity.ok(
+        roomProofService.report(userId, roomId, proofId, request.reason(), request.detail()));
   }
 
   // ===== 기록 =====
