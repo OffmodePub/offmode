@@ -5,7 +5,7 @@ import { W } from '../constants/warm';
 /**
  * 웜 크림 리디자인 전용 텍스트 컴포넌트 (Gmarket Sans + 웜 팔레트).
  * 기존 `<T>`(Kkukkukk + ThemeContext)와 별개로, 웜 톤 화면에서 사용한다.
- * variant 표는 Mission 탭 파일럿(MissionScreen)의 Txt와 동일하게 맞춘다.
+ * variant 표는 Rooms v2·프로필 등 웜 톤 화면의 텍스트 스타일과 맞춘다.
  */
 const GL = 'GmarketSansLight';
 const GM = 'GmarketSansMedium';
