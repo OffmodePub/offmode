@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
 import { api, BASE_URL } from '../utils/api';
 import WarmText from '../components/WarmText';
@@ -83,7 +84,7 @@ const FILTERS = [
 
 export default function RoomDetailScreen({
   roomId, onBack, onOpenSettings, onOpenMissionPicker, onOpenVerify,
-  onOpenProof, onOpenHistory, onComplete, onChanged, version,
+  onOpenProof, onOpenHistory, onOpenLeaderboard, onComplete, onChanged, version,
 }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
@@ -208,6 +209,15 @@ export default function RoomDetailScreen({
             <View style={s.missionRow}>
               <WarmText size={18}>{mission.icon}</WarmText>
               <WarmText v="body" size={14} numberOfLines={1} style={{ flex: 1 }}>{mission.title}</WarmText>
+              {!solo ? (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                  onPress={() => { H.tap(); onOpenLeaderboard?.({ roomName: room.name, roomIcon: roomIconEmoji(room.iconKey) }); }}
+                >
+                  <Ionicons name="trophy-outline" size={18} color={C.textSub} />
+                </TouchableOpacity>
+              ) : null}
             </View>
             <View style={{ marginTop: 10 }}>
               {solo ? (
