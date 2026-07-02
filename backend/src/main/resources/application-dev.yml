@@ -23,6 +23,10 @@ spring:
     locations:
       - classpath:db/migration/h2
 
+apple:
+  # dev 실기기 빌드의 번들 ID는 .dev 접미사가 붙는다 (ios PRODUCT_BUNDLE_IDENTIFIER=com.minnnj.offmode.dev)
+  bundle-id: com.minnnj.offmode.dev
+
 offmode:
   security:
     cors:
