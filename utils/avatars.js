@@ -31,8 +31,8 @@ export function getAvatarSource(avatarId, _missionStatus) {
 
 /**
  * 선택 화면(picker)용 얼굴 이미지 source 반환.
+ * 현재 얼굴은 상태 변형이 없어 getAvatarSource와 동일하게 동작한다.
  */
 export function getAvatarDefaultSource(avatarId) {
-  const id = AVATAR_IDS.includes(avatarId) ? avatarId : '01';
-  return FACES[id];
+  return getAvatarSource(avatarId);
 }
