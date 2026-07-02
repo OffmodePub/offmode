@@ -74,8 +74,8 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
 
   return (
     <View style={slot.root}>
-      <LinearGradient colors={[C.bg, 'transparent']} style={[slot.fade, { top: 0 }]}    pointerEvents="none" />
-      <LinearGradient colors={['transparent', C.bg]} style={[slot.fade, { bottom: 0 }]} pointerEvents="none" />
+      <LinearGradient colors={[C.surface, C.surface + '00']} style={[slot.fade, { top: 0 }]}    pointerEvents="none" />
+      <LinearGradient colors={[C.surface + '00', C.surface]} style={[slot.fade, { bottom: 0 }]} pointerEvents="none" />
       <View style={slot.highlight} pointerEvents="none" />
       <View style={slot.window}>
         <Animated.View style={{ transform: [{ translateY }] }}>
@@ -84,7 +84,13 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
             return (
               <View key={i} style={slot.item}>
                 <Text style={slot.itemIcon}>{m.icon}</Text>
-                <T v="sub" size={15} style={[{ flex: 1, lineHeight: 22 }, isSelected && { color: getCategoryColor(m.category, C) }]} numberOfLines={2}>
+                <T
+                  v="sub"
+                  size={15}
+                  color={!isSelected && !C.isDark ? C.green : undefined}
+                  style={[{ flex: 1, lineHeight: 22 }, isSelected && { color: getCategoryColor(m.category, C) }]}
+                  numberOfLines={2}
+                >
                   {m.text}
                 </T>
               </View>

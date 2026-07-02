@@ -1,0 +1,12 @@
+CREATE TABLE room_nudges (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  room_mission_id BIGINT NOT NULL,
+  from_user_id BIGINT NOT NULL,
+  to_user_id BIGINT NOT NULL,
+  created_at DATETIME(6),
+  PRIMARY KEY (id),
+  CONSTRAINT uk_room_nudges_mission_from_to UNIQUE (room_mission_id, from_user_id, to_user_id),
+  CONSTRAINT fk_room_nudges_mission FOREIGN KEY (room_mission_id) REFERENCES room_missions (id),
+  CONSTRAINT fk_room_nudges_from_user FOREIGN KEY (from_user_id) REFERENCES users (id),
+  CONSTRAINT fk_room_nudges_to_user FOREIGN KEY (to_user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

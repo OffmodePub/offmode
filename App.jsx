@@ -1,13 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated, LogBox, Platform } from 'react-native';
+import 'react-native-gesture-handler';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, StyleSheet, Animated, LogBox, Platform, PanResponder } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
-import T from './components/ThemedText';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { Ionicons } from '@expo/vector-icons';
-import MissionScreen from './screens/MissionScreen';
-import FeedScreen from './screens/FeedScreen';
+import PageIndicator from './components/PageIndicator';
+import { W } from './constants/warm';
+import * as H from './utils/haptics';
+import RoomListScreen from './screens/RoomListScreen';
+import RoomDetailScreen from './screens/RoomDetailScreen';
+import CreateRoomScreen from './screens/CreateRoomScreen';
+import JoinRoomScreen from './screens/JoinRoomScreen';
+import MissionPickerScreen from './screens/MissionPickerScreen';
+import RoomSettingsScreen from './screens/RoomSettingsScreen';
+import RoomVerifyScreen from './screens/RoomVerifyScreen';
+import ProofDetailScreen from './screens/ProofDetailScreen';
+import RoomCompleteScreen from './screens/RoomCompleteScreen';
+import RoomHistoryScreen from './screens/RoomHistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import MissionTimeScreen from './screens/MissionTimeScreen';
 import MissionRouletteScreen from './screens/MissionRouletteScreen';
@@ -15,6 +26,9 @@ import VerifyScreen from './screens/VerifyScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 
 // [WORKAROUND] RN 0.83 iOS Release 빌드에서 RCTFatal abort로 escalate되는
@@ -52,12 +66,8 @@ import { scheduleMissionNotification, cancelMissionNotification } from './utils/
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const TABS = [
-  { key: 'mission',  label: '[MISSION]',     ionicon: 'home-outline'     },
-  { key: 'feed',     label: '[FEED]',        ionicon: 'list-outline'     },
-  { key: 'profile',  label: '[PROFILE]',     ionicon: 'person-outline'   },
-  { key: 'settings', label: '[SETTINGS]',    ionicon: 'settings-outline' },
-];
+// 최상위 3페이지 좌우 스와이프 순서 (Profile 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
+const PAGES = ['mission', 'profile', 'settings'];
 
 function AppInner() {
   const { colors: C, scheme } = useTheme();
@@ -101,9 +111,22 @@ function AppInner() {
   const [currentMission, setCurrentMission]     = useState(null);
   const [currentMissionId, setCurrentMissionId] = useState(null);
   const [showRoulette, setShowRoulette]         = useState(false);
+  const [showOnboarding, setShowOnboarding]     = useState(false);
   const [autoRoulette, setAutoRoulette]         = useState(true);
   const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '01' });
+  const [roomVersion, setRoomVersion]           = useState(0);
   const lastTriggeredRef = useRef(null);
+  const celebratedRoomsRef = useRef(new Set());
+
+  // 방 데이터 변경(생성/참여/나가기/미션/인증) 후 목록·상세 새로고침 트리거
+  const bumpRoom = () => setRoomVersion(v => v + 1);
+  // 방 전원 인증 완료 축하 — 미션 id 기준 1회만
+  const handleRoomComplete = (summary, key) => {
+    if (key == null) return;
+    if (celebratedRoomsRef.current.has(key)) return;
+    celebratedRoomsRef.current.add(key);
+    push('roomComplete', { summary });
+  };
 
   const loadTodayMission = async () => {
     try {
@@ -205,11 +228,15 @@ function AppInner() {
     setMissionTime(mt);
     await loadTodayMission();
     scheduleMissionNotification(mt.hour, mt.minute);
+    setShowOnboarding(true);   // 신규 유저: 인증 완료 후 온보딩 캐러셀 1회 노출
     setAuthStatus('authenticated');
   };
 
   const [fontsLoaded] = useFonts({
     Kkukkukk: require('./fonts/kkukkukk/MemomentKkukkukk.otf'),
+    GmarketSansLight:  require('./fonts/gmarket/GmarketSansLight.ttf'),
+    GmarketSansMedium: require('./fonts/gmarket/GmarketSansMedium.ttf'),
+    GmarketSansBold:   require('./fonts/gmarket/GmarketSansBold.ttf'),
   });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -242,17 +269,30 @@ function AppInner() {
     return () => clearInterval(id);
   }, [missionTime, hasMission]);
 
-  const statusStyle  = scheme === 'dark' ? 'light' : 'dark';
-  const navBg        = C.isDark ? '#0a0a12' : C.surface;
-  const navBorder    = C.isDark ? 'rgba(34,201,122,0.4)' : C.greenBorder;
-  const navShadow    = C.isDark ? '#22c97a' : 'transparent';
-  const navIconColor = C.isDark ? '#aaa' : '#888';
+  /* ── 최상위 3페이지 좌우 스와이프 (Mission | Profile | Settings) ──
+     세로 스크롤과 충돌하지 않도록 수평 우세 제스처만 캡처 (ProfileScreen 기존 방식 확장) */
+  const pagerResponder = useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderRelease: (_, g) => {
+        const idx = PAGES.indexOf(tab);
+        if (g.dx <= -60 && idx < PAGES.length - 1) { H.tap(); setTab(PAGES[idx + 1]); }
+        else if (g.dx >= 60 && idx > 0) { H.tap(); setTab(PAGES[idx - 1]); }
+      },
+    }),
+    [tab],
+  );
+
+  const statusStyle = scheme === 'dark' ? 'light' : 'dark';
 
   if (!fontsLoaded || authStatus === 'loading') return null;
 
-  const push = (screen) => setStack(s => [...s, screen]);
-  const pop  = ()       => setStack(s => s.slice(0, -1));
-  const currentStack = stack[stack.length - 1];
+  const push = (screen, params = null) => setStack(s => [...s, { name: screen, params }]);
+  const pop  = ()                       => setStack(s => s.slice(0, -1));
+  const topStack     = stack[stack.length - 1] ?? null;
+  const currentStack = topStack?.name ?? null;
+  const sp           = topStack?.params ?? null;   // 현재 스택 화면 파라미터
 
   /* 룰렛 완료 → 미션 시작 */
   const handleRouletteStart = async (mission) => {
@@ -337,72 +377,152 @@ function AppInner() {
             </View>
           )}
 
-          {/* ── 탭 화면 ── */}
+          {/* ── Rooms v2 스택 화면 ── */}
+          {currentStack === 'roomDetail' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <RoomDetailScreen
+                roomId={sp?.roomId}
+                version={roomVersion}
+                onBack={pop}
+                onChanged={bumpRoom}
+                onOpenSettings={() => push('roomSettings', { roomId: sp?.roomId })}
+                onOpenMissionPicker={() => push('missionPicker', { roomId: sp?.roomId })}
+                onOpenVerify={(room) => push('roomVerify', { room })}
+                onOpenProof={(info) => push('proofDetail', { roomId: sp?.roomId, ...info })}
+                onOpenHistory={() => push('historyRoom', { roomId: sp?.roomId })}
+                onOpenLeaderboard={(info) => push('leaderboard', info)}
+                onComplete={handleRoomComplete}
+              />
+            </View>
+          )}
+
+          {currentStack === 'createRoom' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <CreateRoomScreen
+                onBack={pop}
+                onCreated={(room) => { bumpRoom(); setStack([{ name: 'roomDetail', params: { roomId: room.id } }]); }}
+              />
+            </View>
+          )}
+
+          {currentStack === 'joinRoom' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <JoinRoomScreen
+                onBack={pop}
+                onJoined={(room) => { bumpRoom(); setStack([{ name: 'roomDetail', params: { roomId: room.id } }]); }}
+              />
+            </View>
+          )}
+
+          {currentStack === 'missionPicker' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <MissionPickerScreen roomId={sp?.roomId} onBack={pop} onChosen={() => { bumpRoom(); pop(); }} />
+            </View>
+          )}
+
+          {currentStack === 'roomSettings' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <RoomSettingsScreen
+                roomId={sp?.roomId}
+                onBack={pop}
+                onChanged={bumpRoom}
+                onLeft={() => { bumpRoom(); setStack([]); }}
+              />
+            </View>
+          )}
+
+          {currentStack === 'roomVerify' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <RoomVerifyScreen room={sp?.room} onBack={pop} onVerified={() => { bumpRoom(); pop(); }} />
+            </View>
+          )}
+
+          {currentStack === 'proofDetail' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <ProofDetailScreen
+                roomId={sp?.roomId}
+                proofId={sp?.proofId}
+                missionTitle={sp?.missionTitle}
+                isGroup={sp?.isGroup}
+                onBack={pop}
+                onChanged={bumpRoom}
+              />
+            </View>
+          )}
+
+          {currentStack === 'historyRoom' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <RoomHistoryScreen roomId={sp?.roomId} onBack={pop} />
+            </View>
+          )}
+
+          {currentStack === 'roomComplete' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <RoomCompleteScreen summary={sp?.summary} onBack={pop} />
+            </View>
+          )}
+
+          {currentStack === 'notifications' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <NotificationsScreen onBack={pop} />
+            </View>
+          )}
+
+          {currentStack === 'leaderboard' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <LeaderboardScreen roomName={sp?.roomName} roomIcon={sp?.roomIcon} onBack={pop} />
+            </View>
+          )}
+
+          {/* ── 최상위 3페이지 (좌우 스와이프: Mission | Profile | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
             pointerEvents={currentStack ? 'none' : 'auto'}
+            {...pagerResponder.panHandlers}
           >
-            {tab === 'mission' && (
-              <MissionScreen
-                missionTime={missionTime}
-                onOpenTimeSettings={() => push('missionTime')}
-                onOpenRoulette={() => setShowRoulette(true)}
-                onOpenVerify={() => push('verify')}
-                hasMission={hasMission}
-                currentMission={currentMission}
-                onRefresh={loadTodayMission}
-              />
-            )}
-            {tab === 'feed'     && <FeedScreen />}
-            {tab === 'profile'  && (
-              <ProfileScreen
-                profile={profile}
-                onSaveProfile={setProfile}
-                currentMission={currentMission}
-              />
-            )}
-            {tab === 'settings' && (
-              <SettingsScreen
-                onBack={null}
-                onOpenTimeSettings={() => push('missionTime')}
-                missionTime={missionTime}
-                autoRoulette={autoRoulette}
-                onSetAutoRoulette={(val) => {
-                  setAutoRoulette(val);
-                  api.put('/api/v1/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
-                }}
-                onLogout={handleLogout}
-                onDeleteAccount={handleDeleteAccount}
-              />
-            )}
-          </View>
-
-          {/* ── 탭 바 ── */}
-          {!currentStack && (
-            <View style={[styles.navBar, {
-              backgroundColor: navBg,
-              borderColor: navBorder,
-              shadowColor: navShadow,
-            }]}>
-              {TABS.map(t => (
-                <TouchableOpacity
-                  key={t.key}
-                  style={styles.navItem}
-                  onPress={() => setTab(t.key)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={t.ionicon}
-                    size={22}
-                    color={tab === t.key ? C.green : navIconColor}
-                  />
-                  <T v="label" size={9} color={tab === t.key ? C.green : navIconColor} style={{ opacity: tab === t.key ? 1 : 0.7, letterSpacing: 0.2 }}>
-                    {t.label}
-                  </T>
-                </TouchableOpacity>
-              ))}
+            <View style={{ flex: 1 }}>
+              {tab === 'mission' && (
+                <RoomListScreen
+                  version={roomVersion}
+                  onOpenRoom={(roomId) => push('roomDetail', { roomId })}
+                  onCreate={() => push('createRoom')}
+                  onJoin={() => push('joinRoom')}
+                  onOpenNotifications={() => push('notifications')}
+                />
+              )}
+              {tab === 'profile' && (
+                <ProfileScreen
+                  profile={profile}
+                  onSaveProfile={setProfile}
+                  currentMission={currentMission}
+                />
+              )}
+              {tab === 'settings' && (
+                <SettingsScreen
+                  onBack={null}
+                  onOpenTimeSettings={() => push('missionTime')}
+                  missionTime={missionTime}
+                  autoRoulette={autoRoulette}
+                  onSetAutoRoulette={(val) => {
+                    setAutoRoulette(val);
+                    api.put('/api/v1/users/me', { autoRoulette: val }).catch(e => console.warn('autoRoulette 저장 실패:', e));
+                  }}
+                  onLogout={handleLogout}
+                  onDeleteAccount={handleDeleteAccount}
+                />
+              )}
             </View>
-          )}
+
+            {/* 페이지 인디케이터 (3페이지 공통) — 3페이지 모두 웜 크림 */}
+            <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg={W.bg} />
+          </View>
+        </View>
+      )}
+
+      {/* ── 온보딩 캐러셀 (신규 유저, 최상위 오버레이) ── */}
+      {authStatus === 'authenticated' && showOnboarding && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <OnboardingScreen onDone={() => setShowOnboarding(false)} />
         </View>
       )}
 
@@ -414,36 +534,14 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   screenWrap: { flex: 1 },
-
-  navBar: {
-    position: 'absolute',
-    bottom: 20,
-    marginHorizontal: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    borderWidth: 1,
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
 });

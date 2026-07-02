@@ -35,6 +35,26 @@ public enum ErrorStatus {
       HttpStatus.BAD_REQUEST, "VERIFICATION_400_001", "자신의 인증은 확인할 수 없습니다."),
   VERIFICATION_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "VERIFICATION_409_002", "이미 인증해준 게시물입니다."),
 
+  // Part
+  PART_NOT_FOUND(HttpStatus.NOT_FOUND, "PART_404_001", "해당 파츠를 찾을 수 없습니다."),
+  PART_NOT_UNLOCKED(HttpStatus.BAD_REQUEST, "PART_400_001", "아직 해금되지 않은 파츠입니다."),
+  PART_DUPLICATE(HttpStatus.BAD_REQUEST, "PART_400_002", "같은 파츠를 중복으로 배치할 수 없습니다."),
+
+  // Room
+  ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_404_001", "방을 찾을 수 없습니다."),
+  ROOM_INVITE_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_404_002", "초대코드에 해당하는 방이 없습니다."),
+  ROOM_FORBIDDEN(HttpStatus.FORBIDDEN, "ROOM_403_001", "방에 대한 권한이 없습니다."),
+  ROOM_ALREADY_JOINED(HttpStatus.CONFLICT, "ROOM_409_001", "이미 참여한 방입니다."),
+  ROOM_MISSION_ALREADY_SET(HttpStatus.CONFLICT, "ROOM_409_002", "오늘 미션이 이미 정해졌습니다."),
+  ROOM_PROOF_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "ROOM_409_003", "오늘 이미 인증했습니다."),
+  ROOM_PROOF_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_404_003", "해당 인증을 찾을 수 없습니다."),
+  ROOM_MISSION_NOT_SET(HttpStatus.NOT_FOUND, "ROOM_404_004", "오늘 정해진 미션이 없습니다."),
+  ROOM_SELF_CONFIRM_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_001", "본인 인증은 확인할 수 없습니다."),
+  ROOM_SELF_NUDGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_002", "자기 자신을 콕 찌를 수 없습니다."),
+  ROOM_NUDGE_TARGET_DONE(HttpStatus.BAD_REQUEST, "ROOM_400_003", "이미 인증을 완료한 멤버입니다."),
+  ROOM_SELF_REPORT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_004", "본인 인증은 신고할 수 없습니다."),
+  ROOM_ALREADY_REPORTED(HttpStatus.CONFLICT, "ROOM_409_004", "이미 신고한 콘텐츠입니다."),
+
   // File
   FILE_EMPTY(HttpStatus.BAD_REQUEST, "FILE_400_001", "업로드할 파일이 비어있습니다."),
   FILE_INVALID_TYPE(HttpStatus.BAD_REQUEST, "FILE_400_002", "허용되지 않은 파일 형식입니다."),

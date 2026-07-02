@@ -1,4 +1,5 @@
 module.exports = {
+  root: true,
   extends: ['expo'],
   env: {
     browser: true, // setTimeout, setInterval, requestAnimationFrame 등 전역 허용
@@ -19,8 +20,8 @@ module.exports = {
   },
   overrides: [
     {
-      // ThemedText.js 자체는 예외
-      files: ['components/ThemedText.js'],
+      // 텍스트 래퍼 컴포넌트 자체는 예외 (ThemedText=기본, WarmText=웜 리디자인)
+      files: ['components/ThemedText.js', 'components/WarmText.jsx'],
       rules: { 'no-restricted-imports': 'off' },
     },
   ],
