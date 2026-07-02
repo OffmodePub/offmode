@@ -8,6 +8,9 @@ concurrency:
   group: deploy-backend-${{ github.ref_name }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,6 +25,8 @@ jobs:
       IMAGE_NAME: offmode-backend
       IMAGE_TAG: ${{ github.ref_name }}
       HOST_PORT: "8080"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
 
     steps:
       - name: Checkout release tag
@@ -63,13 +68,16 @@ jobs:
           printf -v image_name_q '%q' "$IMAGE_NAME"
           printf -v image_tag_q '%q' "$IMAGE_TAG"
           printf -v host_port_q '%q' "$HOST_PORT"
+          printf -v gh_token_q '%q' "$GH_TOKEN"
+          printf -v repo_q '%q' "$REPO"
 
           ssh -i ~/.ssh/offmode-ec2.pem "$EC2_USER@$EC2_HOST" \
-            "DEPLOY_PATH=$deploy_path_q BACKEND_ENV_FILE=$env_file_q CONTAINER_NAME=$container_name_q IMAGE_NAME=$image_name_q IMAGE_TAG=$image_tag_q HOST_PORT=$host_port_q bash -s" <<'REMOTE_SCRIPT'
+            "DEPLOY_PATH=$deploy_path_q BACKEND_ENV_FILE=$env_file_q CONTAINER_NAME=$container_name_q IMAGE_NAME=$image_name_q IMAGE_TAG=$image_tag_q HOST_PORT=$host_port_q GH_TOKEN=$gh_token_q REPO=$repo_q bash -s" <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
 
           cd "$DEPLOY_PATH"
-          git fetch origin main:refs/remotes/origin/main --tags
+          # 프라이빗 레포: EC2에 자격증명을 두지 않고 워크플로의 임시 GITHUB_TOKEN으로만 fetch
+          GIT_TERMINAL_PROMPT=0 git fetch "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" main:refs/remotes/origin/main --tags
           tag_commit="$(git rev-list -n 1 "$IMAGE_TAG")"
 
           if ! git merge-base --is-ancestor "$tag_commit" origin/main; then
