@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
+  View, Image, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
   Modal, TextInput, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,10 +9,10 @@ import { api } from '../utils/api';
 import T from '../components/ThemedText';
 import WarmText from '../components/WarmText';
 import { W } from '../constants/warm';
-import { AVATAR_IDS, getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
+import { getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
 import * as H from '../utils/haptics';
 import CharacterDecor from '../components/CharacterDecor';
-import { PARTS, isPartUnlocked } from '../constants/parts';
+import { PARTS, isPartUnlocked, getCharacterSource } from '../constants/parts';
 
 /**
  * GET /api/v1/parts/me 응답을 정적 카탈로그(PARTS)와 key로 병합.
@@ -95,10 +95,10 @@ function computeWeekData(history, joinDate) {
   });
 }
 
-/* ── SVG 아바타 렌더러 ───────────────────────────────── */
-function AvatarSvg({ source: SvgComponent, width = 72, height = 72 }) {
-  if (!SvgComponent) return <View style={{ width, height }} />;
-  return <SvgComponent width={width} height={height} />;
+/* ── 아바타 얼굴 이미지 렌더러 ───────────────────────── */
+function AvatarImage({ source, width = 72, height = 72 }) {
+  if (!source) return <View style={{ width, height }} />;
+  return <Image source={source} style={{ width, height }} resizeMode="contain" />;
 }
 
 /* ── 이번 주 활동 (웜) ───────────────────────────────── */
@@ -138,12 +138,12 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
   const C = useColors();
   const m = useMemo(() => makeEditModalStyles(C), [C]);
   const [name, setName] = useState('');
-  const [avatarId, setAvatarId] = useState('01');
+  // 아바타(이미지)는 회원가입 때 확정 — 편집에서는 변경할 수 없고 미리보기만 노출
+  const avatarId = profile.avatar ?? '01';
 
   useEffect(() => {
     if (visible) {
       setName(profile.name ?? '오프모더');
-      setAvatarId(profile.avatar ?? '01');
     }
   }, [visible]);
 
@@ -161,23 +161,7 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
         <View style={m.handle} />
         <T v="section" style={m.title}>프로필 편집</T>
         <View style={m.previewRow}>
-          <AvatarSvg source={getAvatarDefaultSource(avatarId)} width={80} height={80} />
-        </View>
-        <T v="label" style={m.sectionLabel}>아바타 선택</T>
-        <View style={m.avatarGrid}>
-          {AVATAR_IDS.map((id) => (
-            <TouchableOpacity
-              key={id}
-              style={[m.avatarCell, avatarId === id && m.avatarCellActive]}
-              onPress={() => { H.tap(); setAvatarId(id); }}
-              activeOpacity={0.7}
-            >
-              <AvatarSvg source={getAvatarDefaultSource(id)} width={52} height={52} />
-              {avatarId === id && (
-                <View style={m.avatarCheck}><T v="green" size={10}>✓</T></View>
-              )}
-            </TouchableOpacity>
-          ))}
+          <AvatarImage source={getAvatarDefaultSource(avatarId)} width={80} height={80} />
         </View>
         <T v="label" style={m.sectionLabel}>닉네임</T>
         <View style={m.inputWrap}>
@@ -284,7 +268,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
         <View style={s.header}>
           <View style={s.avatarSection}>
             <View style={s.avatarWrap}>
-              <AvatarSvg source={avatarSource} width={72} height={72} />
+              <AvatarImage source={avatarSource} width={72} height={72} />
             </View>
             <View style={s.nameBlock}>
               <WarmText size={22}>{profile?.name ?? userProfile?.name ?? '오프모더'}</WarmText>
@@ -322,8 +306,12 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
         {/* 이번 주 활동 */}
         <WeeklyActivity weekData={weekData} />
 
-        {/* 캐릭터 꾸미기 */}
-        <CharacterDecor parts={parts} onSaveLayout={handleSaveLayout} />
+        {/* 캐릭터 꾸미기 — 선택한 아바타와 동일 캐릭터의 몸통 사용 */}
+        <CharacterDecor
+          parts={parts}
+          characterSource={getCharacterSource(avatarId)}
+          onSaveLayout={handleSaveLayout}
+        />
       </ScrollView>
 
       {profile && (
@@ -399,18 +387,6 @@ function makeEditModalStyles(C) {
     title: { textAlign: 'center', marginBottom: 16 },
     previewRow: { alignItems: 'center', marginBottom: 20 },
     sectionLabel: { marginBottom: 10, opacity: 0.6, letterSpacing: 1 },
-    avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-    avatarCell: {
-      width: 60, height: 60, borderRadius: 14,
-      backgroundColor: C.surface2, borderWidth: 1.5, borderColor: C.border,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    avatarCellActive: { borderColor: C.green, backgroundColor: C.greenFaint },
-    avatarCheck: {
-      position: 'absolute', bottom: 4, right: 4,
-      backgroundColor: C.green, borderRadius: 6, width: 16, height: 16,
-      alignItems: 'center', justifyContent: 'center',
-    },
     inputWrap: {
       backgroundColor: C.surface2, borderRadius: 12,
       borderWidth: 1, borderColor: C.border,

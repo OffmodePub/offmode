@@ -31,8 +31,25 @@ export const PARTS = [
 /** key → 파츠 메타 빠른 조회 */
 export const PART_BY_KEY = Object.fromEntries(PARTS.map((p) => [p.key, p]));
 
-/** 캐릭터 베이스 이미지 */
-export const CHARACTER_BASE = require('../assets/character/character.png');
+/** 캐릭터 베이스 이미지 (기본: 토끼 = avatar_01) */
+export const CHARACTER_BASE = require('../assets/character/character_full_01.png');
+
+/**
+ * 아바타 id → 꾸미기 캐릭터(전신 몸통) 이미지.
+ * 회원가입에서 고른 얼굴 아바타와 동일 캐릭터의 전신 몸통을 연결한다.
+ */
+export const CHARACTER_BY_AVATAR = {
+  '01': require('../assets/character/character_full_01.png'), // 토끼
+  '02': require('../assets/character/character_full_02.png'), // 병아리
+  '03': require('../assets/character/character_full_03.png'), // 수달
+  '04': require('../assets/character/character_full_04.png'), // 펭귄
+  '05': require('../assets/character/character_full_05.png'), // 다람쥐
+};
+
+/** 아바타 id에 맞는 몸통 이미지 반환 (없으면 기본 토끼) */
+export function getCharacterSource(avatarId) {
+  return CHARACTER_BY_AVATAR[avatarId] ?? CHARACTER_BASE;
+}
 
 /** 누적 인증 미션 수 기준 해금 여부 (백엔드와 동일 기준) */
 export function isPartUnlocked(part, verifiedCount) {
