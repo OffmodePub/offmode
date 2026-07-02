@@ -14,6 +14,7 @@ import com.offmode.boundedcontext.part.dto.request.PlacementRequest;
 import com.offmode.boundedcontext.part.dto.response.PartResponse;
 import com.offmode.boundedcontext.part.entity.UserPart;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
@@ -30,10 +31,12 @@ class PartServiceTest {
 
   @Mock private UserPartRepository userPartRepository;
   @Mock private UserMissionRepository userMissionRepository;
+  @Mock private RoomProofRepository roomProofRepository;
   @Mock private UserRepository userRepository;
 
   private PartService service() {
-    return new PartService(userPartRepository, userMissionRepository, userRepository);
+    return new PartService(
+        userPartRepository, userMissionRepository, roomProofRepository, userRepository);
   }
 
   private PartResponse find(List<PartResponse> parts, String key) {

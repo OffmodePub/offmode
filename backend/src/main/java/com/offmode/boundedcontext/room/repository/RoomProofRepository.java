@@ -29,6 +29,9 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
 
   long countByUserIdAndStatus(Long userId, ProofStatus status);
 
+  // 프로필 활동 기록용: 유저가 올린 방 인증 전체(최신순, 사진·상태·미션 포함)
+  List<RoomProof> findByUserIdOrderByCreatedAtDesc(Long userId);
+
   // 카테고리별 방 인증 수 (WALKER/BEAUTY_CURATOR/LOCAL_HIPSTER 배지 + 카테고리 통계용).
   // roomMission.category 가 null 인 인증은 어떤 카테고리에도 잡히지 않는다.
   long countByUserIdAndStatusAndRoomMissionCategory(

@@ -8,6 +8,8 @@ import com.offmode.boundedcontext.part.dto.response.PartResponse.PlacementRespon
 import com.offmode.boundedcontext.part.entity.UserPart;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
 import com.offmode.boundedcontext.part.types.PartDefinition;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
@@ -27,6 +29,7 @@ public class PartService {
 
   private final UserPartRepository userPartRepository;
   private final UserMissionRepository userMissionRepository;
+  private final RoomProofRepository roomProofRepository;
   private final UserRepository userRepository;
 
   /** 모든 파츠 정의 + 유저별 해금 상태 + 배치 정보(미배치면 null). */
@@ -95,8 +98,10 @@ public class PartService {
         .toList();
   }
 
+  // 누적 인증 수 = 레거시 개인 미션 + Rooms v2 방 인증(RoomProof). UserService 와 동일 기준.
   private long countVerified(Long userId) {
-    return userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED);
+    return userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.VERIFIED)
+        + roomProofRepository.countByUserIdAndStatus(userId, ProofStatus.VERIFIED);
   }
 
   private User getUserRef(Long userId) {
