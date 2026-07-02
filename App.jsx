@@ -66,8 +66,8 @@ import { scheduleMissionNotification, cancelMissionNotification } from './utils/
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// 최상위 3페이지 좌우 스와이프 순서 (Profile 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
-const PAGES = ['mission', 'profile', 'settings'];
+// 최상위 3페이지 좌우 스와이프 순서 (Mission 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
+const PAGES = ['profile', 'mission', 'settings'];
 
 function AppInner() {
   const { colors: C, scheme } = useTheme();
@@ -474,7 +474,7 @@ function AppInner() {
             </View>
           )}
 
-          {/* ── 최상위 3페이지 (좌우 스와이프: Mission | Profile | Settings) ── */}
+          {/* ── 최상위 3페이지 (좌우 스와이프: Profile | Mission | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
             pointerEvents={currentStack ? 'none' : 'auto'}
