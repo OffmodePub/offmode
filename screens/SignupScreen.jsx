@@ -1,21 +1,26 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Image, StyleSheet, TouchableOpacity,
   TextInput, Keyboard, ScrollView, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors } from '../utils/useColors';
-import T from '../components/ThemedText';
+import T from '../components/WarmText';
+import { W } from '../constants/warm';
+import PageIndicator from '../components/PageIndicator';
+import { GreenButton } from '../components/RoomBits';
 import * as H from '../utils/haptics';
 import { AVATAR_IDS, getAvatarDefaultSource } from '../utils/avatars';
 
-const F = 'Kkukkukk';
+const GL = 'GmarketSansLight';
 const { width } = Dimensions.get('window');
 
-// ── 아바타 SVG 렌더러 ──────────────────────────────────────
-function AvatarSvg({ source: SvgComponent, width = 80, height = 80 }) {
-  if (!SvgComponent) return <View style={{ width, height }} />;
-  return <SvgComponent width={width} height={height} />;
+// Figma(59:27) 프로필 설정 화면 — 아바타 얼굴 5종
+const PICKER_IDS = AVATAR_IDS;
+
+// ── 아바타 얼굴 이미지 렌더러 ──────────────────────────────
+function AvatarImage({ source, width = 80, height = 80 }) {
+  if (!source) return <View style={{ width, height }} />;
+  return <Image source={source} style={{ width, height }} resizeMode="contain" />;
 }
 
 // ── 시간 휠 피커 ──────────────────────────────────────────
@@ -41,7 +46,6 @@ function ampmLabel(h) {
 }
 
 function WheelPicker({ items, selectedIndex, onChange }) {
-  const C = useColors();
   const scrollRef          = useRef(null);
   const isProgrammatic     = useRef(false);
   const selectedIndexRef   = useRef(selectedIndex);
@@ -73,11 +77,11 @@ function WheelPicker({ items, selectedIndex, onChange }) {
       {/* 선택 하이라이트 */}
       <View style={{
         position: 'absolute', top: ITEM_H * 1, left: 0, right: 0, height: ITEM_H,
-        borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
-        backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
+        borderTopWidth: 1, borderBottomWidth: 1, borderColor: W.greenBorder,
+        backgroundColor: W.greenFaint, zIndex: 1, borderRadius: 8,
       }} pointerEvents="none" />
-      <LinearGradient colors={[C.surface, C.surface + '00']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
-      <LinearGradient colors={[C.surface + '00', C.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={[W.surface, W.surface + '00']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
+      <LinearGradient colors={[W.surface + '00', W.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
       <ScrollView
         ref={scrollRef}
         style={{ height: PICKER_H }}
@@ -97,9 +101,8 @@ function WheelPicker({ items, selectedIndex, onChange }) {
             onPress={() => onChange(i)}
           >
             <T
-              v="sub"
               size={i === selectedIndex ? 30 : 24}
-              color={i === selectedIndex ? C.text : (C.isDark ? C.textSub : C.green)}
+              color={i === selectedIndex ? W.text : W.green}
               style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
             >
               {pad(val)}
@@ -113,12 +116,11 @@ function WheelPicker({ items, selectedIndex, onChange }) {
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────
 export default function SignupScreen({ defaultName = '', onComplete }) {
-  const C = useColors();
-  const s = useMemo(() => makeStyles(C), [C]);
+  const s = useMemo(() => makeStyles(), []);
 
   const [step,           setStep]           = useState(1); // 1: 프로필, 2: 미션 시간
   const [name,           setName]           = useState(defaultName);
-  const [avatarId,       setAvatarId]       = useState('01');
+  const [avatarId,       setAvatarId]       = useState(PICKER_IDS[0]);
   const [hourIdx,        setHourIdx]        = useState(8);
   const [minuteIdx,      setMinuteIdx]      = useState(0);
   const [outerScrollEnabled, setOuterScrollEnabled] = useState(true);
@@ -156,67 +158,67 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={s.stepIndicator}>
-            <View style={[s.dot, s.dotActive]} />
-            <View style={s.dot} />
-          </View>
+          <PageIndicator count={2} active={0} />
+
+          <View style={{ height: 72 }} />
 
           <View style={s.header}>
-            <T v="logo" size={20} style={{ letterSpacing: 4, marginBottom: 8 }}>OFFMODE</T>
-            <T v="title" size={22}>프로필을 설정해요</T>
-            <T v="sub" style={{ marginTop: 8, textAlign: 'center' }}>나중에 설정에서 변경할 수 있어요</T>
+            <T v="logo" size={20} style={{ letterSpacing: 4, marginBottom: 10, fontFamily: GL }}>OFFMODE</T>
+            <T v="title" size={22} color={W.green} style={{ marginBottom: 10 }}>프로필을 설정해요</T>
+            <T v="sub" style={{ textAlign: 'center' }}>나중에 설정에서 변경할 수 있어요</T>
           </View>
 
+          <View style={{ height: 56 }} />
+
           {/* 선택된 아바타 미리보기 */}
-          <View style={s.previewRow}>
-            <View style={s.previewRing}>
-              <AvatarSvg source={getAvatarDefaultSource(avatarId)} width={150} height={150} />
+          <View style={s.previewRing}>
+            <View style={s.previewInner}>
+              <AvatarImage source={getAvatarDefaultSource(avatarId)} width={140} height={140} />
             </View>
           </View>
 
+          <View style={{ height: 24 }} />
+
           {/* 아바타 선택 */}
-          <T v="label" style={s.sectionLabel}>아바타 선택</T>
-          <View style={s.avatarGrid}>
-            {AVATAR_IDS.map((id) => (
-              <TouchableOpacity
-                key={id}
-                style={[s.avatarCell, avatarId === id && s.avatarCellActive]}
-                onPress={() => { H.tap(); setAvatarId(id); }}
-                activeOpacity={0.7}
-              >
-                <AvatarSvg source={getAvatarDefaultSource(id)} width={52} height={52} />
-                {avatarId === id && (
-                  <View style={s.avatarCheck}><T v="green" size={10}>✓</T></View>
-                )}
-              </TouchableOpacity>
-            ))}
+          <View style={s.avatarRow}>
+            {PICKER_IDS.map((id) => {
+              const active = avatarId === id;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={[s.slot, active && s.slotActive]}
+                  onPress={() => { H.tap(); setAvatarId(id); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.avatarInner, !active && s.avatarInnerBorder]}>
+                    <AvatarImage source={getAvatarDefaultSource(id)} width={44} height={44} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
+          <View style={{ height: 40 }} />
+
           {/* 닉네임 */}
-          <T v="label" style={s.sectionLabel}>닉네임</T>
+          <T v="label" color={W.green} style={s.nickLabel}>닉네임</T>
           <View style={s.inputWrap}>
             <TextInput
               style={s.input}
               value={name}
               onChangeText={setName}
               placeholder="닉네임 입력 (최대 12자)"
-              placeholderTextColor={C.textSub}
+              placeholderTextColor="rgba(46,125,82,0.5)"
               maxLength={12}
               returnKeyType="next"
               onSubmitEditing={handleNext}
             />
-            <T v="caption" style={{ opacity: 0.4 }}>{name.length}/12</T>
+            <T v="caption" color={W.green} style={{ opacity: 0.4 }}>{name.length}/12</T>
           </View>
 
-          <TouchableOpacity onPress={handleNext} activeOpacity={0.85} disabled={!canNext}>
-            <LinearGradient
-              colors={canNext ? ['#26d67a', '#1ab065'] : [C.surface2, C.surface2]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={s.btn}
-            >
-              <T v="btn" style={{ color: canNext ? '#000' : C.textSub }}>다음 →</T>
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={{ height: 48 }} />
+
+          <GreenButton label="다음 →" onPress={handleNext} disabled={!canNext} style={{ width: '100%' }} />
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -230,23 +232,24 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
         showsVerticalScrollIndicator={false}
         scrollEnabled={outerScrollEnabled}
       >
-        <View style={s.stepIndicator}>
-          <View style={s.dot} />
-          <View style={[s.dot, s.dotActive]} />
-        </View>
+        <PageIndicator count={2} active={1} />
+
+        <View style={{ height: 40 }} />
 
         <View style={s.header}>
-          <T v="logo" size={20} style={{ letterSpacing: 4, marginBottom: 8 }}>OFFMODE</T>
-          <T v="title" size={22}>미션 시간을 정해요</T>
-          <T v="sub" style={{ marginTop: 8, textAlign: 'center' }}>
+          <T v="logo" size={20} style={{ letterSpacing: 4, marginBottom: 10, fontFamily: GL }}>OFFMODE</T>
+          <T v="title" size={22} color={W.green} style={{ marginBottom: 10 }}>미션 시간을 정해요</T>
+          <T v="sub" style={{ textAlign: 'center' }}>
             매일 이 시간에 오늘의 미션을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 설정하세요.
           </T>
         </View>
 
+        <View style={{ height: 28 }} />
+
         {/* 시간 미리보기 */}
         <View style={s.previewWrap}>
-          <T v="green" style={{ opacity: 0.8, marginBottom: 4, letterSpacing: 1 }}>{ampmLabel(h)}</T>
-          <T v="stat" size={52} style={{ letterSpacing: 2, lineHeight: 62 }}>{pad(h)} : {pad(m)}</T>
+          <T v="body" color={W.green} style={{ opacity: 0.8, marginBottom: 4, letterSpacing: 1 }}>{ampmLabel(h)}</T>
+          <T color={W.text} size={52} style={{ letterSpacing: 2, lineHeight: 62, fontFamily: GL }}>{pad(h)} : {pad(m)}</T>
           <T v="label" style={{ marginTop: 6 }}>매일 이 시간에 미션 도착</T>
         </View>
 
@@ -261,7 +264,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>시</T>
             <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
           </View>
-          <T v="sub" size={32} style={{ marginTop: 12, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
+          <T size={32} color={W.textSub} style={{ marginTop: 12, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
           <View style={{ flex: 1, alignItems: 'stretch' }}>
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>분</T>
             <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
@@ -269,7 +272,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
         </View>
 
         {/* 빠른 선택 */}
-        <T v="body" color={C.textSub} style={{ marginBottom: 12 }}>빠른 선택</T>
+        <T v="body" color={W.textSub} style={{ marginBottom: 12 }}>빠른 선택</T>
         <View style={s.presetGrid}>
           {PRESETS.map((p) => {
             const active = p.h === h && p.m === m;
@@ -281,10 +284,10 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
                 onPress={() => { setHourIdx(p.h); setMinuteIdx(mIdx >= 0 ? mIdx : 0); }}
                 activeOpacity={0.7}
               >
-                <T v="body" size={15} color={active ? C.green : C.textSub} style={{ marginBottom: 2 }}>
+                <T v="body" size={15} color={active ? W.green : W.textSub} style={{ marginBottom: 2 }}>
                   {pad(p.h)}:{pad(p.m)}
                 </T>
-                <T v="caption" color={active ? C.green : C.textSub} style={{ opacity: active ? 1 : 0.7 }}>
+                <T v="caption" color={active ? W.green : W.textSub} style={{ opacity: active ? 1 : 0.7 }}>
                   {p.label}
                 </T>
               </TouchableOpacity>
@@ -294,17 +297,9 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
 
         <View style={s.bottomRow}>
           <TouchableOpacity onPress={() => { H.tap(); setStep(1); }} style={s.backBtn} activeOpacity={0.7}>
-            <T v="body" color={C.textSub}>← 이전</T>
+            <T v="body" color={W.textSub}>← 이전</T>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDone} activeOpacity={0.85} style={{ flex: 1 }}>
-            <LinearGradient
-              colors={['#26d67a', '#1ab065']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={s.btn}
-            >
-              <T v="btn" style={{ color: '#000' }}>시작하기 →</T>
-            </LinearGradient>
-          </TouchableOpacity>
+          <GreenButton label="시작하기 →" onPress={handleDone} style={{ flex: 1 }} />
         </View>
 
       </ScrollView>
@@ -312,77 +307,80 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
   );
 }
 
-function makeStyles(C) {
+function makeStyles() {
   return StyleSheet.create({
-    screen:  { flex: 1, backgroundColor: C.bg },
+    screen:  { flex: 1, backgroundColor: W.bg },
     content: { paddingHorizontal: 28, paddingTop: 48, paddingBottom: 48 },
 
-    stepIndicator: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 32 },
-    dot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: C.border },
-    dotActive: { backgroundColor: C.green, width: 20 },
+    header: { alignItems: 'center' },
 
-    header: { alignItems: 'center', marginBottom: 28 },
-
-    previewRow:  { alignItems: 'center', marginBottom: 24 },
+    // 미리보기 링 — Figma: 흰 원(150) + 다크 아웃라인 1px, 내부 크림 원(140)
     previewRing: {
-      width: 150, height: 150, borderRadius: 50,
-      borderWidth: 2, borderColor: C.greenBorder,
-      backgroundColor: C.greenFaint,
+      width: 150, height: 150, borderRadius: 75,
+      borderWidth: 1, borderColor: W.text,
+      backgroundColor: W.white,
       alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden',
+      alignSelf: 'center', overflow: 'hidden',
+    },
+    previewInner: {
+      width: 140, height: 140, borderRadius: 70,
+      backgroundColor: W.surface2,
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
 
-    sectionLabel: { marginBottom: 12, opacity: 0.6, letterSpacing: 1 },
-
-    avatarGrid: {
-      flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28,
-      justifyContent: 'center',
+    // 아바타 선택 — Figma: 원형 5종, 선택 시 그린 링
+    avatarRow: {
+      flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center',
     },
-    avatarCell: {
-      width: 64, height: 64, borderRadius: 16,
-      backgroundColor: C.surface2, borderWidth: 1, borderColor: C.border,
+    slot: {
+      width: 52, height: 52, borderRadius: 26,
+      borderWidth: 2, borderColor: 'transparent',
       alignItems: 'center', justifyContent: 'center',
     },
-    avatarCellActive: { borderColor: C.green, backgroundColor: C.greenFaint },
-    avatarCheck: {
-      position: 'absolute', bottom: 4, right: 4,
-      backgroundColor: C.green, borderRadius: 6,
-      width: 14, height: 14, alignItems: 'center', justifyContent: 'center',
+    slotActive: { borderColor: W.greenBorder },
+    avatarInner: {
+      width: 44, height: 44, borderRadius: 22, overflow: 'hidden',
+      backgroundColor: W.surface2,
+      borderWidth: 1, borderColor: 'transparent',
+      alignItems: 'center', justifyContent: 'center',
     },
+    avatarInnerBorder: { borderColor: W.borderStrong },
 
+    // 닉네임 — Figma: 그린 라벨 + 그린 틴트 입력창
+    nickLabel: { alignSelf: 'stretch', opacity: 0.6 },
     inputWrap: {
-      backgroundColor: C.surface, borderRadius: 14,
-      borderWidth: 1, borderColor: C.border,
+      backgroundColor: W.greenFaint, borderRadius: 14,
+      borderWidth: 1, borderColor: W.green,
       paddingHorizontal: 16, paddingVertical: 14,
-      flexDirection: 'row', alignItems: 'center', marginBottom: 28,
+      flexDirection: 'row', alignItems: 'center', marginTop: 12,
     },
-    input: { flex: 1, fontFamily: F, fontSize: 16, color: C.text },
+    input: { flex: 1, fontFamily: GL, fontSize: 16, color: W.green },
 
-    btn: { borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-
+    // Step 2
     previewWrap: {
-      alignItems: 'center', backgroundColor: C.surface,
-      borderRadius: 20, borderWidth: 1, borderColor: C.greenBorder,
+      alignItems: 'center', backgroundColor: W.surface,
+      borderRadius: 20, borderWidth: 1, borderColor: W.greenBorder,
       paddingVertical: 20, marginBottom: 24,
     },
     pickerRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border,
+      backgroundColor: W.surface, borderRadius: 20, borderWidth: 1, borderColor: W.border,
       paddingHorizontal: 8, paddingVertical: 12, marginBottom: 24,
     },
     presetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 28 },
     presetChip: {
-      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+      backgroundColor: W.surface, borderWidth: 1, borderColor: W.border,
       borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
       alignItems: 'center', minWidth: (width - 56 - 16) / 3,
     },
-    presetChipActive: { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
+    presetChipActive: { backgroundColor: W.greenFaint, borderColor: W.greenBorder },
 
     bottomRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
     backBtn: {
-      paddingHorizontal: 16, paddingVertical: 18,
-      backgroundColor: C.surface, borderRadius: 16,
-      borderWidth: 1, borderColor: C.border,
+      paddingHorizontal: 16, paddingVertical: 16,
+      backgroundColor: W.surface, borderRadius: 16,
+      borderWidth: 1, borderColor: W.border,
+      alignItems: 'center', justifyContent: 'center',
     },
   });
 }

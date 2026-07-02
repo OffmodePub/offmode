@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, Modal, ScrollView,
+  View, Image, StyleSheet, TouchableOpacity, Modal, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,17 +42,17 @@ function makeBarStyles(C) {
   });
 }
 
-/* ── 멤버 아바타 (SVG) ──────────────────────────────────── */
+/* ── 멤버 아바타 (얼굴 이미지) ──────────────────────────── */
 export function MemberAvatar({ avatarId, size = 32 }) {
   const C = W;
-  const Svg = getAvatarDefaultSource(avatarId);
+  const src = getAvatarDefaultSource(avatarId);
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2, overflow: 'hidden',
       borderWidth: 1, borderColor: C.border, backgroundColor: C.surface2,
       alignItems: 'center', justifyContent: 'center',
     }}>
-      {Svg ? <Svg width={size} height={size} /> : null}
+      {src ? <Image source={src} style={{ width: size, height: size }} resizeMode="contain" /> : null}
     </View>
   );
 }
