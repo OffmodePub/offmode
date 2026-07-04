@@ -12,13 +12,14 @@ import {
   scheduleMissionNotification, cancelMissionNotification,
   scheduleReminderNotification, cancelReminderNotification,
 } from '../utils/notifications';
+import { usePagerBottomBarHeight } from '../components/PageIndicator';
 
 const openLink = (url) =>
   Linking.openURL(url).catch(() =>
     Alert.alert('오류', '페이지를 열 수 없어요. 잠시 후 다시 시도해주세요.')
   );
 
-/* ── 웜 토글 (Figma 46×26 pill) ──────────────────────── */
+/* ── 웜 토글 (Figma 46×28 pill) ──────────────────────── */
 function WarmToggle({ value, onValueChange }) {
   const C = W;
   return (
@@ -38,12 +39,12 @@ function WarmToggle({ value, onValueChange }) {
 }
 
 const toggleStyles = StyleSheet.create({
-  track: { width: 46, height: 26, borderRadius: 13, padding: 2, justifyContent: 'center' },
-  knob:  { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+  track: { width: 46, height: 28, borderRadius: 14, padding: 2, justifyContent: 'center' },
+  knob:  { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff' },
 });
 
 /* ── 설정 행 ─────────────────────────────────────────── */
-function SettingRow({ icon, label, sub, right, onPress, danger = false, last = false }) {
+function SettingRow({ icon, label, sub, right, onPress, last = false }) {
   const C = W;
   const row = useMemo(() => makeRowStyles(C), [C]);
   return (
@@ -54,9 +55,9 @@ function SettingRow({ icon, label, sub, right, onPress, danger = false, last = f
     >
       <View style={row.left}>
         <WarmText size={18}>{icon}</WarmText>
-        <View style={{ gap: 2 }}>
-          <WarmText v="body" size={15} color={danger ? C.coral : C.text}>{label}</WarmText>
-          {sub ? <WarmText v="caption" size={12} color={C.textSub}>{sub}</WarmText> : null}
+        <View style={{ gap: 6 }}>
+          <WarmText v="body" size={16} color={C.text}>{label}</WarmText>
+          {sub ? <WarmText v="caption" size={14} color={C.green}>{sub}</WarmText> : null}
         </View>
       </View>
       <View style={row.right}>{right}</View>
@@ -66,8 +67,8 @@ function SettingRow({ icon, label, sub, right, onPress, danger = false, last = f
 
 function makeRowStyles(C) {
   return StyleSheet.create({
-    wrap:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
-    divider: { borderBottomWidth: 1, borderBottomColor: C.border },
+    wrap:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16 },
+    divider: { borderBottomWidth: 1, borderBottomColor: C.borderStrong },
     left:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     right:   { alignItems: 'flex-end' },
   });
@@ -79,7 +80,7 @@ function Section({ title, children }) {
   const sec = useMemo(() => makeSecStyles(C), [C]);
   return (
     <View style={sec.wrap}>
-      {title ? <WarmText v="label" size={12} color={C.textSub}>{title}</WarmText> : null}
+      {title ? <WarmText v="label" size={16} color={C.text} style={{ opacity: 0.6, letterSpacing: 1 }}>{title}</WarmText> : null}
       <View style={sec.card}>{children}</View>
     </View>
   );
@@ -87,12 +88,12 @@ function Section({ title, children }) {
 
 function makeSecStyles(C) {
   return StyleSheet.create({
-    wrap: { gap: 8 },
-    card: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+    wrap: { gap: 15 },
+    card: { backgroundColor: C.neutralSoft, borderRadius: 16, borderWidth: 1, borderColor: C.borderStrong, overflow: 'hidden' },
   });
 }
 
-const Chevron = () => <WarmText size={16} color={W.textSub}>›</WarmText>;
+const Chevron = () => <WarmText size={13} color={W.green}>›</WarmText>;
 
 /* ── 메인 설정 화면 ──────────────────────────────────── */
 export default function SettingsScreen({
@@ -106,10 +107,11 @@ export default function SettingsScreen({
 }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
+  const pagerBottom = usePagerBottomBarHeight(); // 플로팅 인디케이터+인셋 높이
 
   const pad = (n) => String(n).padStart(2, '0');
   const { hour = 8, minute = 0 } = missionTime ?? {};
-  const timeLabel = `${hour < 12 ? '오전' : '오후'} ${hour % 12 === 0 ? 12 : hour % 12}:${pad(minute)}`;
+  const timeLabel = `${pad(hour)}:${pad(minute)}`;
 
   const [pushNotif, setPushNotif] = useState(false);
   const [reminder,  setReminder]  = useState(false);
@@ -197,19 +199,20 @@ export default function SettingsScreen({
         ) : (
           <View style={s.side} />
         )}
-        <WarmText v="body" size={18}>설정</WarmText>
+        <WarmText v="body" size={20}>설정</WarmText>
         <View style={s.side} />
       </View>
 
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[s.content, { paddingBottom: 40 + pagerBottom }]} showsVerticalScrollIndicator={false}>
         {/* 미션 */}
         <Section title="미션">
           <SettingRow
             icon="⏰"
             label="알림 시간"
+            sub="이 시간에 미션이 도착해요"
             right={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <WarmText size={14} color={C.green}>{timeLabel}</WarmText>
+                <WarmText size={15} color={C.green}>{timeLabel}</WarmText>
                 <Chevron />
               </View>
             }
@@ -296,7 +299,6 @@ export default function SettingsScreen({
           <SettingRow
             icon="⚠️"
             label="회원 탈퇴"
-            danger
             right={<Chevron />}
             onPress={() => {
               Alert.alert(
@@ -314,8 +316,8 @@ export default function SettingsScreen({
 
         {/* 버전 푸터 */}
         <View style={s.footer}>
-          <WarmText size={20} color={C.green}>OFFMODE</WarmText>
-          <WarmText v="caption" size={11} color={C.textSub} style={{ marginTop: 4, opacity: 0.6 }}>v1.0.0  •  Made with 🌙</WarmText>
+          <WarmText size={20} color={C.text} style={{ letterSpacing: 2 }}>OFFMODE</WarmText>
+          <WarmText v="caption" size={11} color={C.green} style={{ marginTop: 4, opacity: 0.6 }}>v1.0.0  •  Made with 🌙</WarmText>
         </View>
       </ScrollView>
     </View>

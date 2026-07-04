@@ -305,7 +305,7 @@ const s = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 1,
     borderColor: W.borderStrong,
-    backgroundColor: W.neutralFaint,
+    backgroundColor: W.neutralSoft,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -363,7 +363,7 @@ const s = StyleSheet.create({
   cellWrap: { width: '25%', alignItems: 'center' },
   pill: {
     width: 80,
-    height: 44,
+    height: 40,
     borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
@@ -371,7 +371,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   pillDefault: { backgroundColor: W.surface, borderColor: W.borderStrong },
-  pillEquipped: { backgroundColor: W.neutralFaint, borderColor: W.brown },
+  pillEquipped: { backgroundColor: 'rgba(168,149,138,0.3)', borderColor: W.brown }, // Figma 장착 상태 30% 틴트
   pillLocked: { opacity: 0.3 },
   partImg: { width: 48, height: 48 },
   placedBadge: {

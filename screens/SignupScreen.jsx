@@ -168,7 +168,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             <T v="sub" style={{ textAlign: 'center' }}>나중에 설정에서 변경할 수 있어요</T>
           </View>
 
-          <View style={{ height: 56 }} />
+          <View style={{ height: 73 }} />
 
           {/* 선택된 아바타 미리보기 */}
           <View style={s.previewRing}>
@@ -216,9 +216,19 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             <T v="caption" color={W.green} style={{ opacity: 0.4 }}>{name.length}/12</T>
           </View>
 
-          <View style={{ height: 48 }} />
+          <View style={{ height: 100 }} />
 
-          <GreenButton label="다음 →" onPress={handleNext} disabled={!canNext} style={{ width: '100%' }} />
+          {/* Figma py 18 — GreenButton은 내부 패딩 오버라이드가 안 돼 동일 규격 로컬 버튼 사용 */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleNext}
+            disabled={!canNext}
+            style={{ width: '100%' }}
+          >
+            <View style={[s.nextBtn, !canNext && s.nextBtnDisabled]}>
+              <T v="btn" style={!canNext ? { color: W.text } : undefined}>다음 →</T>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -355,6 +365,17 @@ function makeStyles() {
       flexDirection: 'row', alignItems: 'center', marginTop: 12,
     },
     input: { flex: 1, fontFamily: GL, fontSize: 16, color: W.green },
+
+    // "다음" 버튼 — GreenButton 규격 + Figma py 18
+    nextBtn: {
+      alignItems: 'center', justifyContent: 'center',
+      borderRadius: 16, paddingVertical: 18,
+      backgroundColor: W.green,
+    },
+    nextBtnDisabled: {
+      backgroundColor: W.neutralStrong,
+      borderWidth: 1, borderColor: W.text,
+    },
 
     // Step 2
     previewWrap: {

@@ -14,13 +14,17 @@ export const W = {
   textSub:   '#a8958a', // text sub
   border:    '#e3d6c6', // 부드러운 구분선
   borderStrong: '#a8958a', // 카드 아웃라인(1.5px)
-  neutral:      'rgba(168,149,138,0.5)',  // 뉴트럴 버튼/칩 채움
-  neutralFaint: 'rgba(168,149,138,0.22)',
+  neutral:       'rgba(168,149,138,0.5)',  // 뉴트럴 버튼/칩 채움
+  neutralStrong: 'rgba(168,149,138,0.4)',  // 비활성 버튼/미션 정보 카드
+  neutralSoft:   'rgba(168,149,138,0.2)',  // 카드·입력 배경 (Figma 뉴트럴 탠)
+  neutralFaint:  'rgba(168,149,138,0.12)', // 파스텔 틴트·비활성 칩
 
   // 브랜드 / Energy
-  green:       '#2e7d52',
-  greenFaint:  'rgba(46,125,82,0.12)',
-  greenBorder: 'rgba(46,125,82,0.35)',
+  green:             '#2e7d52',
+  greenFaint:        'rgba(46,125,82,0.12)',
+  greenSoft:         'rgba(46,125,82,0.2)',  // 진행률 트랙
+  greenBorder:       'rgba(46,125,82,0.35)',
+  greenBorderStrong: 'rgba(46,125,82,0.5)',  // 선택 상태 테두리
   // Vitality
   brown:       '#7a5c4f',
   brownFaint:  'rgba(122,92,79,0.12)',
@@ -28,6 +32,7 @@ export const W = {
   // Intellect
   coral:       '#e8513a',
   coralFaint:  'rgba(232,81,58,0.12)',
+  coralSoft:   'rgba(232,81,58,0.4)',   // 활성 리액션 칩
   coralBorder: 'rgba(232,81,58,0.35)',
 
   white: '#ffffff',

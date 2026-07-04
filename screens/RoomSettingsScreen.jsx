@@ -127,7 +127,7 @@ export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }
                   <MemberAvatar avatarId={m.avatarId} size={34} />
                   <WarmText v="body" size={14} style={{ flex: 1 }}>{m.nickname}</WarmText>
                   {m.role === 'OWNER' ? (
-                    <WarmText v="caption">방장</WarmText>
+                    <WarmText v="caption" color={C.brown}>방장</WarmText>
                   ) : isOwner ? (
                     <TouchableOpacity activeOpacity={0.7} onPress={() => kick(m)}>
                       <WarmText v="caption" color={C.coral}>내보내기</WarmText>
@@ -157,11 +157,11 @@ function makeStyles(C) {
     screen:  { flex: 1, backgroundColor: C.bg },
     content: { paddingHorizontal: 20, paddingBottom: 40 },
     label:   { marginTop: 20, marginBottom: 10 },
-    input:   { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontFamily: 'GmarketSansLight', fontSize: 15, color: C.text },
+    input:   { backgroundColor: C.neutralSoft, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontFamily: 'GmarketSansLight', fontSize: 15, color: C.text },
     codeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14 },
-    shareBtn: { borderWidth: 1.5, borderColor: C.greenBorder, backgroundColor: C.greenFaint, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
-    memberRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
+    shareBtn: { borderWidth: 1, borderColor: C.green, backgroundColor: C.greenFaint, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
+    memberRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
     soloInfo: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 16, paddingVertical: 24, alignItems: 'center', marginTop: 4 },
-    dangerBtn: { alignItems: 'center', borderWidth: 1.5, borderColor: C.coralBorder, backgroundColor: C.coralFaint, borderRadius: 16, paddingVertical: 15, marginTop: 28 },
+    dangerBtn: { alignItems: 'center', borderWidth: 1, borderColor: C.coralBorder, backgroundColor: C.coralFaint, borderRadius: 16, paddingVertical: 15, marginTop: 28 },
   });
 }

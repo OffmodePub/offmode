@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, StyleSheet, TouchableOpacity,
   Animated, Easing, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors } from '../utils/useColors';
+import { W, catColorsW } from '../constants/warm';
 import { api } from '../utils/api';
-import T from '../components/ThemedText';
+import WarmText from '../components/WarmText';
 
-const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
 
 const ITEM_H  = 80;
@@ -16,14 +15,8 @@ const VISIBLE = 3;
 const REPEATS = 6;
 const SLOT_H  = ITEM_H * VISIBLE;
 
-function getCategoryColor(cat, C) {
-  if (cat === 'Energy')    return C.blue;
-  if (cat === 'Intellect') return C.purple;
-  return C.green;
-}
-
 function SlotMachine({ onDone, autoSpin = true, missions }) {
-  const C = useColors();
+  const C = W;
   const slot = useMemo(() => makeSlotStyles(C), [C]);
   const translateY = useRef(new Animated.Value(0)).current;
   const [spinning,  setSpinning]  = useState(false);
@@ -74,8 +67,8 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
 
   return (
     <View style={slot.root}>
-      <LinearGradient colors={[C.surface, C.surface + '00']} style={[slot.fade, { top: 0 }]}    pointerEvents="none" />
-      <LinearGradient colors={[C.surface + '00', C.surface]} style={[slot.fade, { bottom: 0 }]} pointerEvents="none" />
+      <LinearGradient colors={[C.bg, C.bg + '00']} style={[slot.fade, { top: 0 }]}    pointerEvents="none" />
+      <LinearGradient colors={[C.bg + '00', C.bg]} style={[slot.fade, { bottom: 0 }]} pointerEvents="none" />
       <View style={slot.highlight} pointerEvents="none" />
       <View style={slot.window}>
         <Animated.View style={{ transform: [{ translateY }] }}>
@@ -83,16 +76,20 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
             const isSelected = landed && i === ((REPEATS - 2) * missions.length + (finalIdx ?? 0));
             return (
               <View key={i} style={slot.item}>
-                <Text style={slot.itemIcon}>{m.icon}</Text>
-                <T
-                  v="sub"
+                <WarmText style={slot.itemIcon}>{m.icon}</WarmText>
+                <WarmText
+                  v="body"
                   size={15}
-                  color={!isSelected && !C.isDark ? C.green : undefined}
-                  style={[{ flex: 1, lineHeight: 22 }, isSelected && { color: getCategoryColor(m.category, C) }]}
+                  style={[
+                    { flex: 1, lineHeight: 22 },
+                    isSelected
+                      ? { color: catColorsW(m.category).main }
+                      : { color: C.text, opacity: 0.55 },
+                  ]}
                   numberOfLines={2}
                 >
                   {m.text}
-                </T>
+                </WarmText>
               </View>
             );
           })}
@@ -102,9 +99,9 @@ function SlotMachine({ onDone, autoSpin = true, missions }) {
       {/* 수동 모드: 아직 돌리기 전 버튼 */}
       {!autoSpin && !started && (
         <TouchableOpacity onPress={spin} style={slot.manualBtn} activeOpacity={0.8}>
-          <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={slot.manualBtnInner}>
-            <T v="btn" size={16}>🎰  돌리기</T>
-          </LinearGradient>
+          <View style={slot.manualBtnInner}>
+            <WarmText v="btn">🎰  돌리기</WarmText>
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -115,24 +112,24 @@ function makeSlotStyles(C) {
   return StyleSheet.create({
     root: {
       height: SLOT_H, overflow: 'hidden',
-      borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
+      borderRadius: 16, borderWidth: 1, borderColor: C.green, backgroundColor: C.bg,
     },
     window:    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
     highlight: {
       position: 'absolute', top: ITEM_H, left: 0, right: 0, height: ITEM_H,
-      borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
-      backgroundColor: C.greenFaint, zIndex: 1,
+      borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.green,
+      backgroundColor: C.greenSoft, zIndex: 1,
     },
     fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.2, zIndex: 2 },
     item: { height: ITEM_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 14 },
     itemIcon: { fontSize: 28, width: 36, textAlign: 'center' },
-    manualBtn: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 10, backgroundColor: C.surface + 'cc' },
-    manualBtnInner: { paddingHorizontal: 40, paddingVertical: 16, borderRadius: 16 },
+    manualBtn: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 10, backgroundColor: C.bg + 'cc' },
+    manualBtnInner: { paddingHorizontal: 40, paddingVertical: 16, borderRadius: 16, backgroundColor: C.green },
   });
 }
 
 export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true }) {
-  const C = useColors();
+  const C = W;
   const styles = useMemo(() => makeStyles(C), [C]);
   const [result,          setResult]          = useState(null);
   const [showBtn,         setShowBtn]         = useState(false);
@@ -164,7 +161,7 @@ export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true
     Animated.timing(btnOpacity, { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }).start();
   };
 
-  const catColor = result ? getCategoryColor(result.category, C) : C.green;
+  const catW = catColorsW(result?.category);
 
   return (
     <View style={styles.screen}>
@@ -172,18 +169,15 @@ export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true
         opacity: titleAnim,
         transform: [{ translateY: titleAnim.interpolate({ inputRange: [0,1], outputRange: [-20, 0] }) }],
       }]}>
-        <T v="sub" style={{ letterSpacing: 1, marginBottom: 6 }}>매일 하나의 미션</T>
-        <T v="heading" size={28} style={{ letterSpacing: 0.5 }}>
-          {autoSpin ? '오늘의 미션 도착!' : '미션을 뽑을 시간!'}
-        </T>
+        <WarmText v="sub" color={C.green} style={{ letterSpacing: 1, marginBottom: 6 }}>매일 하나의 미션</WarmText>
+        <WarmText v="heading" size={28} style={{ letterSpacing: 0.5 }}>랜덤 미션 뽑기</WarmText>
       </Animated.View>
 
       {result && (
-        <View style={[styles.resultCard, { borderColor: catColor + '60', backgroundColor: catColor + '10' }]}>
-          <Text style={styles.resultIcon}>{result.icon}</Text>
+        <View style={[styles.resultCard, { borderColor: catW.main, backgroundColor: catW.border }]}>
+          <WarmText style={styles.resultIcon}>{result.icon}</WarmText>
           <View style={styles.resultInfo}>
-            <T v="label" color={catColor} style={{ marginBottom: 4, letterSpacing: 0.5 }}>{result.category} +1</T>
-            <T v="body" size={16} style={{ lineHeight: 22 }}>{result.text}</T>
+            <WarmText v="body" size={16} style={{ lineHeight: 22 }}>{result.text}</WarmText>
           </View>
         </View>
       )}
@@ -202,29 +196,34 @@ export default function MissionRouletteScreen({ onStart, onSkip, autoSpin = true
         {showBtn && (
           <>
             <TouchableOpacity onPress={() => onStart && onStart(result)} activeOpacity={0.85}>
-              <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.startBtn}>
-                <T v="btn" size={17}>이 미션 시작하기 →</T>
-              </LinearGradient>
+              <View style={styles.startBtn}>
+                <WarmText v="btn" size={17}>이 미션으로 정하기</WarmText>
+              </View>
             </TouchableOpacity>
             {!hasRetried && (
               <TouchableOpacity
                 style={styles.skipBtn}
+                hitSlop={10}
                 onPress={() => {
                   setResult(null); setShowBtn(false); btnOpacity.setValue(0);
                   setRouletteKey(k => k + 1); setHasRetried(true);
                 }}
                 activeOpacity={0.7}
               >
-                <T v="sub" style={{ opacity: 0.6 }}>다시 돌리기</T>
+                <WarmText v="section" size={13} style={{ opacity: 0.6 }}>다시 돌리기</WarmText>
               </TouchableOpacity>
             )}
           </>
         )}
-        {!showBtn && <T v="body" style={{ opacity: 0.5 }}>{autoSpin ? '미션을 뽑는 중...' : '버튼을 눌러 미션을 뽑아보세요'}</T>}
+        {!showBtn && (
+          <WarmText v="body" style={{ opacity: 0.5 }}>
+            {autoSpin ? '미션을 뽑는 중...' : '버튼을 눌러 미션을 뽑아보세요'}
+          </WarmText>
+        )}
       </Animated.View>
 
       <TouchableOpacity style={styles.closeBtn} onPress={onSkip} activeOpacity={0.7}>
-        <T v="body" color={C.textSub}>✕</T>
+        <WarmText size={20} color={C.text}>✕</WarmText>
       </TouchableOpacity>
     </View>
   );
@@ -234,18 +233,17 @@ function makeStyles(C) {
   return StyleSheet.create({
     screen:         { flex: 1, backgroundColor: C.bg, paddingHorizontal: 24, justifyContent: 'center' },
     header:         { alignItems: 'center', marginBottom: 28 },
-    resultCard:     { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, marginBottom: 16 },
+    resultCard:     { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, marginBottom: 60 },
     resultIcon:     { fontSize: 32 },
     resultInfo:     { flex: 1 },
-    slotWrap:       { marginBottom: 28 },
-    slotLoading:    { height: SLOT_H, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    btns:           { alignItems: 'center', gap: 12 },
-    startBtn:       { width: width - 48, borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
-    skipBtn:        { paddingVertical: 10 },
+    slotWrap:       { marginBottom: 50 },
+    slotLoading:    { height: SLOT_H, borderRadius: 16, borderWidth: 1, borderColor: C.green, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    btns:           { alignItems: 'center', gap: 30 },
+    startBtn:       { width: width - 48, borderRadius: 16, paddingVertical: 17, alignItems: 'center', backgroundColor: C.green + 'cc' },
+    skipBtn:        { paddingVertical: 0 },
     closeBtn: {
       position: 'absolute', top: 16, right: 24,
       width: 36, height: 36, borderRadius: 18,
-      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
       alignItems: 'center', justifyContent: 'center',
     },
   });

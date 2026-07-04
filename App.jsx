@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-nati
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import PageIndicator from './components/PageIndicator';
+import useBottomInset from './utils/useBottomInset';
 import { W } from './constants/warm';
 import * as H from './utils/haptics';
 import RoomListScreen from './screens/RoomListScreen';
@@ -66,8 +67,15 @@ import { scheduleMissionNotification, cancelMissionNotification } from './utils/
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// 최상위 3페이지 좌우 스와이프 순서 (Profile 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
-const PAGES = ['mission', 'profile', 'settings'];
+// 최상위 3페이지 좌우 스와이프 순서 (Mission 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
+const PAGES = ['profile', 'mission', 'settings'];
+
+// 최상위 페이저 하단 여백 (홈 인디케이터 있으면 그 높이, 없으면 24px — useBottomInset).
+// SafeAreaProvider 하위에서 렌더돼야 훅이 동작하므로 별도 컴포넌트로 분리.
+function PagerBottomInset() {
+  const height = useBottomInset();
+  return <View style={{ height, backgroundColor: 'transparent' }} />;
+}
 
 function AppInner() {
   const { colors: C, scheme } = useTheme();
@@ -284,7 +292,11 @@ function AppInner() {
     [tab],
   );
 
-  const statusStyle = scheme === 'dark' ? 'light' : 'dark';
+  // 회원가입·인증 후 메인 탭은 웜 크림 팔레트를 쓰므로 최상위 크롬(상태바·상단 세이프에어리어)도 크림으로 맞춘다.
+  const warmChrome =
+    authStatus === 'signingUp' || (authStatus === 'authenticated' && !showRoulette);
+  const chromeBg = warmChrome ? W.bg : C.bg;
+  const statusStyle = warmChrome ? 'dark' : scheme === 'dark' ? 'light' : 'dark';
 
   if (!fontsLoaded || authStatus === 'loading') return null;
 
@@ -312,8 +324,8 @@ function AppInner() {
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <StatusBar style={statusStyle} backgroundColor={C.bg} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      <StatusBar style={statusStyle} backgroundColor={chromeBg} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: chromeBg }} edges={['top']}>
 
       {/* ── 로그인 화면 ── */}
       {authStatus === 'unauthenticated' && (
@@ -344,7 +356,7 @@ function AppInner() {
 
       {/* ── 메인 탭 UI ── */}
       {authStatus === 'authenticated' && !showRoulette && (
-        <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, backgroundColor: W.bg }}>
 
           {/* ── 스택 화면 (오버레이) ── */}
           {currentStack === 'missionTime' && (
@@ -474,7 +486,7 @@ function AppInner() {
             </View>
           )}
 
-          {/* ── 최상위 3페이지 (좌우 스와이프: Mission | Profile | Settings) ── */}
+          {/* ── 최상위 3페이지 (좌우 스와이프: Profile | Mission | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
             pointerEvents={currentStack ? 'none' : 'auto'}
@@ -513,8 +525,12 @@ function AppInner() {
               )}
             </View>
 
-            {/* 페이지 인디케이터 (3페이지 공통) — 3페이지 모두 웜 크림 */}
-            <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg={W.bg} />
+            {/* 플로팅 바텀: 인디케이터 + 하단 인셋을 화면 위에 투명 오버레이로 띄움
+                → 스크롤 컨텐츠가 그 뒤로 비치는 엣지-투-엣지 룩 */}
+            <View style={styles.pagerBottomOverlay} pointerEvents="none">
+              <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg="transparent" />
+              <PagerBottomInset />
+            </View>
           </View>
         </View>
       )}
@@ -544,4 +560,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screenWrap: { flex: 1 },
+  pagerBottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'transparent' },
 });
