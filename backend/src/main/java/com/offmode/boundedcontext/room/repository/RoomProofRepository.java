@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,6 +29,18 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
   long countByUserId(Long userId);
 
   long countByUserIdAndStatus(Long userId, ProofStatus status);
+
+  // 프로필 활동 기록용: 유저가 올린 방 인증(방 미션 날짜 최신순).
+  // roomMission 을 fetch join 으로 함께 로드해 건당 추가 쿼리(N+1) 없이 사용한다.
+  @Query(
+      """
+        SELECT p
+        FROM RoomProof p
+        JOIN FETCH p.roomMission rm
+        WHERE p.user.id = :userId
+        ORDER BY rm.date DESC, p.id DESC
+    """)
+  List<RoomProof> findHistoryByUser(@Param("userId") Long userId, Pageable pageable);
 
   // 카테고리별 방 인증 수 (WALKER/BEAUTY_CURATOR/LOCAL_HIPSTER 배지 + 카테고리 통계용).
   // roomMission.category 가 null 인 인증은 어떤 카테고리에도 잡히지 않는다.
