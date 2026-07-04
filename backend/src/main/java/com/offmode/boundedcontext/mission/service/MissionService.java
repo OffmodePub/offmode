@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,11 +148,13 @@ public class MissionService {
   // 내 미션 기록 (최근 30개, 인증 사진 포함)
   // 레거시 개인 미션(UserMission)과 Rooms v2 방 인증(RoomProof)을 날짜순으로 병합한다.
   // (현재 실제 인증은 방 인증으로만 저장되므로 RoomProof 미포함 시 기록이 비어 보인다)
+  // 병합 정렬 키(assignedAt=방 미션 날짜)와 같은 키로 각 소스 상위 30건만 가져오므로
+  // 병합 후 상위 30건은 전체 조회와 동일하다.
   public List<UserMissionResponse> getHistory(Long userId) {
     Stream<UserMissionResponse> personal =
-        userMissionRepository.findHistoryWithPhoto(userId).stream();
+        userMissionRepository.findHistoryWithPhoto(userId).stream().limit(30);
     Stream<UserMissionResponse> rooms =
-        roomProofRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+        roomProofRepository.findHistoryByUser(userId, PageRequest.of(0, 30)).stream()
             .map(MissionService::toHistoryResponse);
     return Stream.concat(personal, rooms)
         .sorted(Comparator.comparing(UserMissionResponse::assignedAt).reversed())
