@@ -13,6 +13,7 @@ import { getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
 import * as H from '../utils/haptics';
 import CharacterDecor from '../components/CharacterDecor';
 import { PARTS, isPartUnlocked, getCharacterSource } from '../constants/parts';
+import { usePagerBottomBarHeight } from '../components/PageIndicator';
 
 /**
  * GET /api/v1/parts/me 응답을 정적 카탈로그(PARTS)와 key로 병합.
@@ -186,6 +187,7 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
 }
 
 export default function ProfileScreen({ profile, onSaveProfile, currentMission }) {
+  const pagerBottom = usePagerBottomBarHeight(); // 플로팅 인디케이터+인셋 높이
   const [userProfile, setUserProfile] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [weekItems, setWeekItems] = useState([]);
@@ -261,7 +263,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
     <View style={s.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: 48 + pagerBottom }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={W.green} colors={[W.green]} />}
       >
         {/* 헤더 */}
@@ -340,7 +342,7 @@ const s = StyleSheet.create({
   },
   nameBlock: { gap: 5 },
   editBadge: {
-    backgroundColor: W.neutral, borderWidth: 1, borderColor: W.borderStrong,
+    backgroundColor: W.neutralStrong, borderWidth: 1, borderColor: W.borderStrong,
     borderRadius: 15, paddingHorizontal: 8, paddingVertical: 3,
     height: 30, minWidth: 50, alignItems: 'center', justifyContent: 'center',
   },
@@ -355,12 +357,13 @@ const s = StyleSheet.create({
   /* 이번 주 활동 */
   weekWrap: { paddingHorizontal: 16, paddingBottom: 24 },
   weekCard: {
-    backgroundColor: W.neutralFaint, borderWidth: 1, borderColor: W.borderStrong,
+    backgroundColor: W.neutralSoft, borderWidth: 1, borderColor: W.borderStrong,
     borderRadius: 16, padding: 16, gap: 14,
   },
   weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   streakBadge: {
-    backgroundColor: W.coralFaint, borderWidth: 1, borderColor: W.coralBorder,
+    // Figma 정확값 — 코랄 15%/30% 틴트 (토큰 없음, 하드코딩 허용)
+    backgroundColor: 'rgba(232,81,58,0.15)', borderWidth: 1, borderColor: 'rgba(232,81,58,0.3)',
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
   },
   weekRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },

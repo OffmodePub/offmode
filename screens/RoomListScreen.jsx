@@ -7,7 +7,8 @@ import { W } from '../constants/warm';
 import { api } from '../utils/api';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
-import { RoomIcon, AvatarStack, ProgressBar, GreenButton, OutlineButton } from '../components/RoomBits';
+import { RoomIcon, AvatarStack, ProgressBar, GreenButton, OutlineButton, SourceBadge } from '../components/RoomBits';
+import { usePagerBottomBarHeight } from '../components/PageIndicator';
 
 /* ── 방 카드 ───────────────────────────────────────────── */
 function RoomCard({ room, solo, onPress }) {
@@ -16,17 +17,20 @@ function RoomCard({ room, solo, onPress }) {
   const mission = room.todayMission;
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[s.card, solo && { borderColor: C.greenBorder }]}>
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[s.card, solo && s.cardSolo]}>
       <View style={s.cardTop}>
-        <RoomIcon iconKey={room.iconKey} size={44} accent={solo} />
+        <RoomIcon iconKey={room.iconKey} size={30} accent={solo} />
         <View style={{ flex: 1, gap: 3 }}>
-          <WarmText v="section" size={16} numberOfLines={1}>{room.name}</WarmText>
-          <WarmText v="caption">{solo ? '혼자 수행하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
+          <View style={s.nameRow}>
+            <WarmText v="section" size={16} numberOfLines={1} style={{ flexShrink: 1 }}>{room.name}</WarmText>
+            {mission?.source ? <SourceBadge source={mission.source} /> : null}
+          </View>
+          <WarmText v="caption" color={C.text}>{solo ? '혼자 수행하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
         </View>
         {!solo && room.members ? <AvatarStack members={room.members} /> : null}
       </View>
 
-      <View style={s.divider} />
+      <View style={[s.divider, solo && s.dividerSolo]} />
 
       {mission ? (
         <View style={s.missionRow}>
@@ -64,10 +68,10 @@ function EmptyState() {
   return (
     <View style={s.empty}>
       <View style={s.emptyIcon}>
-        <Ionicons name="home-outline" size={34} color={C.textSub} />
+        <Ionicons name="home-outline" size={36} color={C.green} />
       </View>
-      <WarmText v="title" size={18} style={{ marginTop: 16 }}>아직 참여한 방이 없어요</WarmText>
-      <WarmText v="sub" style={{ textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+      <WarmText v="title" size={16} style={{ marginTop: 16 }}>아직 참여한 방이 없어요</WarmText>
+      <WarmText v="sub" color={C.brown} style={{ textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
         첫 방을 만들거나 초대코드로 참여해{'\n'}오늘의 미션을 시작해보세요
       </WarmText>
     </View>
@@ -77,6 +81,7 @@ function EmptyState() {
 export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNotifications, version }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
+  const pagerBottom = usePagerBottomBarHeight(); // 플로팅 인디케이터+인셋 높이
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,13 +115,14 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
     <View style={s.screen}>
       <ScrollView
         style={s.screen}
-        contentContainerStyle={s.content}
+        contentContainerStyle={[s.content, { paddingBottom: 110 + pagerBottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.green} colors={[C.green]} />}
       >
         <View style={s.header}>
           <WarmText v="logo">OFFMODE</WarmText>
           <WarmText v="section" size={17} color={C.green} style={{ marginTop: 8 }}>스크린 OFF. 일상 ON.</WarmText>
+          {/* TODO(알림): 백엔드 알림 피드 API 미구현 → 진입점 숨김. 알림 도메인(콕찌르기·리액션·피어확인·초대·방완료 적재 + GET /notifications + 읽음처리) 구현 후 벨 아이콘 복원. NotificationsScreen 은 현재 하드코딩 샘플.
           <TouchableOpacity
             style={s.bell}
             hitSlop={12}
@@ -125,10 +131,11 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
           >
             <Ionicons name="notifications-outline" size={24} color={C.text} />
           </TouchableOpacity>
+          */}
         </View>
 
         <View style={s.banner}>
-          <WarmText v="body" size={14} color={C.textSub}>📸  혼자 또는 친구와 미션을 인증해요</WarmText>
+          <WarmText v="body" size={14} color={C.text}>📸  혼자 또는 친구와 미션을 인증해요</WarmText>
         </View>
 
         {loading ? (
@@ -144,14 +151,14 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
           <>
             {solo ? (
               <>
-                <WarmText v="label" style={s.sectionLabel}>나의 방</WarmText>
+                <WarmText v="label" color={C.green} style={s.sectionLabel}>나의 방</WarmText>
                 <RoomCard room={solo} solo onPress={() => { H.tap(); onOpenRoom?.(solo.id); }} />
               </>
             ) : null}
 
             <View style={s.sectionLabelRow}>
               <WarmText v="label">함께하는 방</WarmText>
-              <WarmText v="caption" size={11}>{groups.length}개</WarmText>
+              <WarmText v="caption" size={11} color={C.text}>{groups.length}개</WarmText>
             </View>
             {groups.length === 0 ? (
               <View style={s.emptyGroups}>
@@ -165,9 +172,9 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
         )}
       </ScrollView>
 
-      <View style={s.bottomBar}>
+      <View style={[s.bottomBar, { bottom: pagerBottom }]}>
         <GreenButton label="새 방 만들기" ionicon="add" onPress={() => { H.tap(); onCreate?.(); }} style={{ flex: 1 }} />
-        <OutlineButton label="초대코드로 참여" ionicon="link-outline" onPress={() => { H.tap(); onJoin?.(); }} style={{ flex: 1 }} />
+        <OutlineButton label="초대코드로 참여하기" ionicon="link-outline" onPress={() => { H.tap(); onJoin?.(); }} style={{ flex: 1 }} />
       </View>
     </View>
   );
@@ -181,19 +188,24 @@ function makeStyles(C) {
 
     header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 12 },
     bell:   { position: 'absolute', right: 20, top: 24, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-    banner: { marginTop: 4, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: C.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
+    banner: { marginTop: 4, paddingVertical: 14, paddingHorizontal: 24, backgroundColor: C.neutralSoft, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.borderStrong },
     sectionLabel: { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 },
     sectionLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 24, marginBottom: 10 },
 
-    card:    { marginHorizontal: 20, marginBottom: 12, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 16 },
-    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    divider: { height: 1, backgroundColor: C.border, marginVertical: 12 },
+    card:     { marginHorizontal: 20, marginBottom: 12, backgroundColor: C.neutralSoft, borderRadius: 20, borderWidth: 1, borderColor: C.borderStrong, padding: 16 },
+    cardSolo: { backgroundColor: C.greenFaint, borderColor: C.greenBorder },
+    cardTop:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    divider:  { height: 1, backgroundColor: C.borderStrong, marginVertical: 12 },
+    dividerSolo: { backgroundColor: C.greenBorder },
     missionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
     empty:     { alignItems: 'center', paddingVertical: 70, paddingHorizontal: 40 },
-    emptyIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center' },
+    emptyIcon: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.greenFaint, alignItems: 'center', justifyContent: 'center' },
     emptyGroups: { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.border, paddingVertical: 28, alignItems: 'center' },
 
-    bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
+    // bottom 위치는 호출부에서 플로팅 바텀 높이만큼 올려줌(인디케이터와 겹침 방지)
+    // 배경 완전 투명 — 버튼 자체 배경만 보이고 컨텐츠가 그 주변으로 비침 (엣지-투-엣지)
+    bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 16, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, backgroundColor: 'transparent' },
   });
 }

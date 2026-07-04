@@ -17,10 +17,10 @@ const VARIANTS = {
   section: { fontFamily: GM, fontSize: 15, color: W.text },
   body: { fontFamily: GL, fontSize: 14, color: W.text },
   sub: { fontFamily: GL, fontSize: 13, color: W.textSub, lineHeight: 19 },
-  label: { fontFamily: GM, fontSize: 12, color: W.textSub, letterSpacing: 1 },
+  label: { fontFamily: GM, fontSize: 12, color: W.text, letterSpacing: 1 },
   caption: { fontFamily: GL, fontSize: 11, color: W.textSub },
   mission: { fontFamily: GL, fontSize: 24, color: W.text, textAlign: 'center', lineHeight: 32 },
-  btn: { fontFamily: GM, fontSize: 16, color: W.white },
+  btn: { fontFamily: GM, fontSize: 16, color: '#fff9f3' },
 };
 
 export default function WarmText({ v = 'body', size, color, style, children, ...rest }) {

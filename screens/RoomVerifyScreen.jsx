@@ -86,7 +86,7 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
 
   return (
     <View style={s.screen}>
-      <RoomTopBar title="미션 인증" onBack={onBack} />
+      <RoomTopBar title="미션 인증" titleSize={20} onBack={onBack} />
 
       {!permission?.granted ? (
         <PermissionScreen onRequest={requestPermission} />
@@ -94,13 +94,16 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView ref={scrollRef} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View style={s.roomBadge}>
-              <WarmText v="caption" color={C.green}>{roomIconEmoji(room?.iconKey)} {room?.name} · 오늘의 미션 인증</WarmText>
+              <WarmText v="sub" size={13} color={C.text}>
+                {roomIconEmoji(room?.iconKey)} {room?.name}
+                <WarmText v="caption" size={12} color={C.textSub}> · 오늘의 미션 인증</WarmText>
+              </WarmText>
             </View>
 
             <View style={s.missionInfo}>
               <WarmText size={26}>{mission?.icon ?? '📋'}</WarmText>
               <View style={{ flex: 1 }}>
-                <WarmText v="caption" color={C.green} style={{ marginBottom: 2 }}>오늘의 미션</WarmText>
+                <WarmText v="caption" size={11} color={C.text} style={{ marginBottom: 2, opacity: 0.8 }}>오늘의 미션</WarmText>
                 <WarmText v="body">{mission?.title ?? '미션 완료하기'}</WarmText>
               </View>
             </View>
@@ -109,7 +112,14 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
               <View style={s.cameraWrap}>
                 <CameraView ref={cameraRef} style={{ flex: 1 }} facing={facing} />
                 <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-                  <View style={s.tsTop}><WarmText v="sub" color="#fff">🕐 {timestamp}</WarmText></View>
+                  <View style={[s.bracket, s.brTL]} pointerEvents="none" />
+                  <View style={[s.bracket, s.brTR]} pointerEvents="none" />
+                  <View style={[s.bracket, s.brBL]} pointerEvents="none" />
+                  <View style={[s.bracket, s.brBR]} pointerEvents="none" />
+                  <View style={s.tsTop}>
+                    <Ionicons name="time-outline" size={13} color="#fff" />
+                    <WarmText v="sub" size={13} color="#fff" style={s.tsText}>{timestamp}</WarmText>
+                  </View>
                   <TouchableOpacity style={s.flipBtn} onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')} activeOpacity={0.7}>
                     <Ionicons name="camera-reverse-outline" size={20} color="#fff" />
                   </TouchableOpacity>
@@ -125,7 +135,10 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
             ) : (
               <View style={s.takenWrap}>
                 <Image source={{ uri: photoUri }} style={s.takenPhoto} resizeMode="cover" />
-                <View style={s.takenTs}><WarmText v="caption" color="#fff">{timestamp}</WarmText></View>
+                <View style={s.takenTs}>
+                  <Ionicons name="time-outline" size={13} color="#fff" />
+                  <WarmText v="sub" size={13} color="#fff" style={s.tsText}>{timestamp}</WarmText>
+                </View>
                 <TouchableOpacity style={s.retakeBtn} onPress={() => setPhotoUri(null)} activeOpacity={0.7}>
                   <WarmText v="sub">다시 찍기</WarmText>
                 </TouchableOpacity>
@@ -140,10 +153,10 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
                 placeholderTextColor={C.textSub}
                 value={caption}
                 onChangeText={setCaption}
-                maxLength={80}
+                maxLength={50}
                 onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)}
               />
-              <WarmText v="caption" style={{ opacity: 0.5, textAlign: 'right' }}>{caption.length}/80</WarmText>
+              <WarmText v="caption" style={{ opacity: 0.5, textAlign: 'right' }}>{caption.length}/50</WarmText>
             </View>
 
             <GreenButton
@@ -161,18 +174,24 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
 function makeStyles(C) {
   return StyleSheet.create({
     screen:  { flex: 1, backgroundColor: C.bg },
-    content: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
-    roomBadge: { alignSelf: 'flex-start', backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
-    missionInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12 },
-    cameraWrap: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: C.border, height: 360 },
-    tsTop: { position: 'absolute', top: 12, alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
-    flipBtn: { position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+    content: { paddingHorizontal: 20, paddingBottom: 40, gap: 20 },
+    roomBadge: { alignSelf: 'flex-start', backgroundColor: C.coralFaint, borderWidth: 1, borderColor: C.coralBorder, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
+    missionInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.neutralStrong, borderRadius: 14, borderWidth: 1, borderColor: C.text, paddingHorizontal: 14, paddingVertical: 12 },
+    cameraWrap: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: C.border, height: 387 },
+    bracket: { position: 'absolute', width: 22, height: 22, borderColor: 'rgba(255,255,255,0.8)' },
+    brTL: { top: 12, left: 12, borderTopWidth: 2, borderLeftWidth: 2 },
+    brTR: { top: 12, right: 12, borderTopWidth: 2, borderRightWidth: 2 },
+    brBL: { bottom: 112, left: 12, borderBottomWidth: 2, borderLeftWidth: 2 },
+    brBR: { bottom: 112, right: 12, borderBottomWidth: 2, borderRightWidth: 2 },
+    tsTop: { position: 'absolute', top: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5 },
+    tsText: { textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    flipBtn: { position: 'absolute', top: 46, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
     shutterRow: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingVertical: 16, alignItems: 'center' },
     shutter: { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
     shutterInner: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#fff' },
     takenWrap: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: C.greenBorder },
     takenPhoto: { width: '100%', height: 320 },
-    takenTs: { position: 'absolute', bottom: 44, left: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+    takenTs: { position: 'absolute', bottom: 52, left: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
     retakeBtn: { backgroundColor: C.surface2, paddingVertical: 11, alignItems: 'center', borderTopWidth: 1, borderTopColor: C.border },
     captionWrap: { backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, gap: 6 },
     captionInput: { fontFamily: F, fontSize: 14, color: C.text, borderBottomWidth: 1, borderBottomColor: C.border, paddingVertical: 6 },

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   View, Image, StyleSheet, TouchableOpacity, Modal, ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
 import WarmText from './WarmText';
@@ -11,17 +10,17 @@ import { roomIconEmoji, DEFAULT_REACTIONS, EMOJI_PALETTE } from '../constants/ro
 import { getAvatarDefaultSource } from '../utils/avatars';
 
 /* ── 상단 헤더 (뒤로/제목/우측액션) ─────────────────────── */
-export function RoomTopBar({ title, subtitle, onBack, rightIcon, onRight }) {
+export function RoomTopBar({ title, subtitle, onBack, rightIcon, onRight, titleSize = 18, subtitleColor }) {
   const C = W;
   const s = useMemo(() => makeBarStyles(C), [C]);
   return (
     <View style={s.bar}>
       <TouchableOpacity onPress={onBack} hitSlop={12} style={s.side} activeOpacity={0.7}>
-        <Ionicons name="chevron-back" size={24} color={C.text} />
+        <Ionicons name="chevron-back" size={20} color={C.text} />
       </TouchableOpacity>
       <View style={s.center}>
-        <WarmText v="title" size={18} numberOfLines={1}>{title}</WarmText>
-        {subtitle ? <WarmText v="caption" color={C.green} style={{ marginTop: 2 }}>{subtitle}</WarmText> : null}
+        <WarmText v="title" size={titleSize} numberOfLines={1}>{title}</WarmText>
+        {subtitle ? <WarmText v="caption" color={subtitleColor ?? C.green} style={{ marginTop: 2 }}>{subtitle}</WarmText> : null}
       </View>
       {rightIcon ? (
         <TouchableOpacity onPress={onRight} hitSlop={12} style={s.side} activeOpacity={0.7}>
@@ -36,20 +35,20 @@ export function RoomTopBar({ title, subtitle, onBack, rightIcon, onRight }) {
 
 function makeBarStyles(C) {
   return StyleSheet.create({
-    bar:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 16, paddingBottom: 10 },
+    bar:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
     side:   { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     center: { flex: 1, alignItems: 'center' },
   });
 }
 
 /* ── 멤버 아바타 (얼굴 이미지) ──────────────────────────── */
-export function MemberAvatar({ avatarId, size = 32 }) {
+export function MemberAvatar({ avatarId, size = 32, borderColor }) {
   const C = W;
   const src = getAvatarDefaultSource(avatarId);
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2, overflow: 'hidden',
-      borderWidth: 1, borderColor: C.border, backgroundColor: C.surface2,
+      borderWidth: 1, borderColor: borderColor ?? C.borderStrong, backgroundColor: C.surface2,
       alignItems: 'center', justifyContent: 'center',
     }}>
       {src ? <Image source={src} style={{ width: size, height: size }} resizeMode="contain" /> : null}
@@ -100,45 +99,44 @@ export function RoomIcon({ iconKey, size = 44, accent = false }) {
 export function SourceBadge({ source }) {
   const C = W;
   const isRandom = source === 'RANDOM';
+  const tone = isRandom
+    ? { bg: C.brownFaint, border: C.brownBorder, text: C.brown }
+    : { bg: C.greenFaint, border: C.green, text: C.green };
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 3,
       borderWidth: 1, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2,
-      borderColor: C.border, backgroundColor: C.surface2,
+      borderColor: tone.border, backgroundColor: tone.bg,
     }}>
       <WarmText size={11}>{isRandom ? '🎲' : '✍️'}</WarmText>
-      <WarmText v="caption" size={11}>{isRandom ? '랜덤' : '직접'}</WarmText>
+      <WarmText v="caption" size={11} color={tone.text}>{isRandom ? '랜덤' : '직접'}</WarmText>
     </View>
   );
 }
 
 /* ── 진행률 바 ──────────────────────────────────────────── */
-export function ProgressBar({ value = 0, total = 0, showLabel = true }) {
+export function ProgressBar({ value = 0, total = 0, showLabel = true, height = 6 }) {
   const C = W;
   const pct = total > 0 ? Math.min(100, (value / total) * 100) : 0;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: C.surface2, overflow: 'hidden' }}>
-        <View style={{ height: '100%', width: `${pct}%`, borderRadius: 3, backgroundColor: C.green }} />
+      <View style={{ flex: 1, height, borderRadius: height / 2, backgroundColor: C.greenSoft, overflow: 'hidden' }}>
+        <View style={{ height: '100%', width: `${pct}%`, borderRadius: height / 2, backgroundColor: C.green }} />
       </View>
-      {showLabel && <WarmText v="caption" size={11}>{value}/{total} 인증</WarmText>}
+      {showLabel && <WarmText v="caption" size={11} color={C.text}>{value}/{total} 인증</WarmText>}
     </View>
   );
 }
 
 /* ── 그린 버튼 / 아웃라인 버튼 ──────────────────────────── */
-export function GreenButton({ label, onPress, disabled, style, ionicon }) {
+export function GreenButton({ label, onPress, disabled, style, ionicon, radius }) {
   const C = W;
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} disabled={disabled} style={style}>
-      <LinearGradient
-        colors={disabled ? [C.surface2, C.surface2] : ['#26d67a', '#1ab065']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={btnStyles.green}
-      >
-        {ionicon ? <Ionicons name={ionicon} size={17} color={disabled ? C.textSub : '#000'} style={{ marginRight: 7 }} /> : null}
-        <WarmText v="btn" style={disabled ? { color: C.textSub } : undefined}>{label}</WarmText>
-      </LinearGradient>
+      <View style={[btnStyles.green, disabled ? btnStyles.greenDisabled : { backgroundColor: C.green }, radius != null && { borderRadius: radius }]}>
+        {ionicon ? <Ionicons name={ionicon} size={17} color={disabled ? C.text : '#fff9f3'} style={{ marginRight: 7 }} /> : null}
+        <WarmText v="btn" style={disabled ? { color: C.text } : undefined}>{label}</WarmText>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -155,6 +153,7 @@ export function OutlineButton({ label, onPress, style, ionicon }) {
 
 const btnStyles = StyleSheet.create({
   green:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 16, paddingVertical: 16 },
+  greenDisabled: { backgroundColor: W.neutralStrong, borderWidth: 1, borderColor: W.text },
   outline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 16, paddingVertical: 15, borderWidth: 1.5 },
 });
 
@@ -176,19 +175,19 @@ export function ReactionBar({ reactions = [], onToggle }) {
           key={r.emoji}
           activeOpacity={0.7}
           onPress={() => { H.tap(); onToggle?.(r.emoji); }}
-          style={[reactStyles.chip, { borderColor: C.border, backgroundColor: C.surface },
-            r.mine && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
+          style={[reactStyles.chip, { borderColor: C.brown, backgroundColor: C.neutralStrong },
+            r.mine && { borderColor: C.coral, backgroundColor: C.coralSoft }]}
         >
           <WarmText size={13}>{r.emoji}</WarmText>
-          {r.count > 0 && <WarmText v="caption" size={11} color={r.mine ? C.green : C.textSub}>{r.count}</WarmText>}
+          {r.count > 0 && <WarmText v="caption" size={12} color={C.text}>{r.count}</WarmText>}
         </TouchableOpacity>
       ))}
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => { H.tap(); setPickerOpen(true); }}
-        style={[reactStyles.chip, { borderColor: C.border, backgroundColor: C.surface }]}
+        style={[reactStyles.chip, { borderColor: C.brown, backgroundColor: C.neutralStrong }]}
       >
-        <Ionicons name="add" size={14} color={C.textSub} />
+        <Ionicons name="add" size={14} color={C.text} />
       </TouchableOpacity>
 
       <EmojiPickerModal
@@ -248,10 +247,10 @@ export function NudgeChip({ nudged, onPress }) {
       activeOpacity={0.8}
       disabled={nudged}
       onPress={() => { H.tap(); onPress?.(); }}
-      style={[nudgeStyles.chip, { borderColor: C.border, backgroundColor: C.surface },
+      style={[nudgeStyles.chip, { borderColor: C.borderStrong, backgroundColor: C.surface },
         nudged && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
     >
-      <WarmText v="caption" size={12} color={nudged ? C.green : C.textSub}>
+      <WarmText v="caption" size={11} color={nudged ? C.green : C.brown}>
         {nudged ? '✓ 콕 찔렀어요' : '👉 콕 찌르기'}
       </WarmText>
     </TouchableOpacity>
@@ -269,12 +268,11 @@ export function ProofStatusBadge({ status }) {
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 4,
-      borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
-      borderColor: verified ? C.greenBorder : C.border,
+      borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
       backgroundColor: verified ? C.greenFaint : C.surface2,
     }}>
       <WarmText v="caption" size={11} color={verified ? C.green : C.textSub}>
-        {verified ? '✓ 인증완료' : '· 대기'}
+        {verified ? '인증 완료' : '대기 중'}
       </WarmText>
     </View>
   );
