@@ -8,6 +8,7 @@ import { api, BASE_URL } from '../utils/api';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import { RoomTopBar, MemberAvatar, ProofStatusBadge, OutlineButton } from '../components/RoomBits';
+import { pad } from '../utils/date';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -16,8 +17,7 @@ function resolvePhoto(url) {
   return url.startsWith('/') ? `${BASE_URL}${url}` : url;
 }
 
-function pad2(n) { return String(n).padStart(2, '0'); }
-function monthKey(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; }
+function monthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
 function parseDate(str) {
   if (!str) return null;
   const [y, m, day] = String(str).split('-').map(Number);

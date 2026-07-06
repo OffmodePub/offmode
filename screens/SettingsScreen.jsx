@@ -13,6 +13,7 @@ import {
   scheduleReminderNotification, cancelReminderNotification,
 } from '../utils/notifications';
 import { usePagerBottomBarHeight } from '../components/PageIndicator';
+import { pad } from '../utils/date';
 
 const openLink = (url) =>
   Linking.openURL(url).catch(() =>
@@ -109,7 +110,6 @@ export default function SettingsScreen({
   const s = useMemo(() => makeStyles(C), [C]);
   const pagerBottom = usePagerBottomBarHeight(); // 플로팅 인디케이터+인셋 높이
 
-  const pad = (n) => String(n).padStart(2, '0');
   const { hour = 8, minute = 0 } = missionTime ?? {};
   const timeLabel = `${pad(hour)}:${pad(minute)}`;
 

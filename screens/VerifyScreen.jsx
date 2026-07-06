@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
 import { api } from '../utils/api';
 import T from '../components/ThemedText';
+import { pad } from '../utils/date';
 
 const F = 'Kkukkukk';
 
@@ -17,7 +18,6 @@ const PHOTO_GRADS = [
   ['#ffd180', '#e65100'], ['#90caf9', '#1a3a6a'],
 ];
 
-function pad(n) { return String(n).padStart(2, '0'); }
 function nowLabel() {
   const d = new Date();
   return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}  ${pad(d.getHours())}:${pad(d.getMinutes())}`;

@@ -1,4 +1,5 @@
 import { Alert, Linking } from 'react-native';
+import { pad } from './date';
 
 const DEFAULT_REPORT_EMAIL = 'calla20032@naver.com';
 export const REPORT_EMAIL = process.env.EXPO_PUBLIC_REPORT_EMAIL || DEFAULT_REPORT_EMAIL;
@@ -10,10 +11,6 @@ export const REPORT_REASONS = [
   { key: 'VIOLENCE',  label: '폭력적 / 위협적 콘텐츠',},
   { key: 'OTHER',     label: '기타',                  },
 ];
-
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
 
 function nowStamp() {
   const d = new Date();

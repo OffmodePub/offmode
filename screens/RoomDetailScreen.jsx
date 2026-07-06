@@ -12,6 +12,7 @@ import {
   ReactionBar, NudgeChip,
 } from '../components/RoomBits';
 import { roomIconEmoji } from '../constants/rooms';
+import { pad } from '../utils/date';
 
 function resolvePhoto(url) {
   if (!url) return null;
@@ -24,8 +25,7 @@ function timeLabel(createdAt) {
     ? new Date(createdAt[0], (createdAt[1] || 1) - 1, createdAt[2] || 1, createdAt[3] || 0, createdAt[4] || 0)
     : new Date(createdAt);
   if (isNaN(d.getTime())) return '';
-  const p = (n) => String(n).padStart(2, '0');
-  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function reactionTotal(proof) {

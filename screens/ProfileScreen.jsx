@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  View, Image, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
+  View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
   Modal, TextInput, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,8 @@ import * as H from '../utils/haptics';
 import CharacterDecor from '../components/CharacterDecor';
 import { PARTS, isPartUnlocked, getCharacterSource } from '../constants/parts';
 import { usePagerBottomBarHeight } from '../components/PageIndicator';
+import AvatarImage from '../components/AvatarImage';
+import { pad } from '../utils/date';
 
 /**
  * GET /api/v1/parts/me 응답을 정적 카탈로그(PARTS)와 key로 병합.
@@ -45,8 +47,7 @@ function parseLocalDT(val) {
   return new Date(val);
 }
 
-function pad2(n) { return String(n).padStart(2, '0'); }
-function ymd(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
 function getMondayOfWeek(date) {
   const d = new Date(date);
@@ -59,7 +60,7 @@ function getMondayOfWeek(date) {
 function formatJoinDate(val) {
   const dt = parseLocalDT(val);
   if (!dt) return '';
-  return `${dt.getFullYear()}.${pad2(dt.getMonth() + 1)}.${pad2(dt.getDate())} 합류`;
+  return `${dt.getFullYear()}.${pad(dt.getMonth() + 1)}.${pad(dt.getDate())} 합류`;
 }
 
 /** 인증 히스토리 → 주간 활동용 최소 형태 */
@@ -94,12 +95,6 @@ function computeWeekData(history, joinDate) {
     else status = 'missed';                                  // 과거 + 가입 후 + 기록 없음 → 놓침
     return { day, status };
   });
-}
-
-/* ── 아바타 얼굴 이미지 렌더러 ───────────────────────── */
-function AvatarImage({ source, width = 72, height = 72 }) {
-  if (!source) return <View style={{ width, height }} />;
-  return <Image source={source} style={{ width, height }} resizeMode="contain" />;
 }
 
 /* ── 이번 주 활동 (웜) ───────────────────────────────── */

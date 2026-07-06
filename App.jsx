@@ -61,9 +61,10 @@ if (!__DEV__ && Platform.OS === 'ios') {
     });
   }
 }
-import { signInWithApple, signInWithKakao } from './utils/auth';
-import { api, loadToken, clearToken } from './utils/api';
-import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
+import { api } from './utils/api';
+import { scheduleMissionNotification } from './utils/notifications';
+import useAuth from './utils/useAuth';
+import useMissionRouletteTrigger from './utils/useMissionRouletteTrigger';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -80,38 +81,6 @@ function PagerBottomInset() {
 function AppInner() {
   const { colors: C, scheme } = useTheme();
 
-  // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
-  const [authStatus, setAuthStatus] = useState('loading');
-  const [authUser,   setAuthUser]   = useState(null);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState('');
-
-  useEffect(() => {
-    loadToken().then(async (token) => {
-      if (token) {
-        try {
-          const user = await api.get('/api/v1/users/me');
-          setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-          const hour   = user.missionHour   ?? 8;
-          const minute = user.missionMinute ?? 0;
-          if (user.missionHour != null) setMissionTime({ hour, minute });
-          if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-          await loadTodayMission();
-          scheduleMissionNotification(hour, minute);
-          setAuthStatus('authenticated');
-        } catch (e) {
-          console.warn('자동 로그인 실패:', e);
-          setAuthStatus('unauthenticated');
-        }
-      } else {
-        setAuthStatus('unauthenticated');
-      }
-    }).catch((e) => {
-      console.warn('자동 로그인 토큰 로드 실패:', e);
-      setAuthStatus('unauthenticated');
-    });
-  }, []);
-
   const [tab, setTab]                           = useState('mission');
   const [stack, setStack]                       = useState([]);
   const [missionTime, setMissionTime]           = useState({ hour: 8, minute: 0 });
@@ -123,7 +92,6 @@ function AppInner() {
   const [autoRoulette, setAutoRoulette]         = useState(true);
   const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '01' });
   const [roomVersion, setRoomVersion]           = useState(0);
-  const lastTriggeredRef = useRef(null);
   const celebratedRoomsRef = useRef(new Set());
 
   // 방 데이터 변경(생성/참여/나가기/미션/인증) 후 목록·상세 새로고침 트리거
@@ -149,76 +117,31 @@ function AppInner() {
     }
   };
 
-  const handleKakaoLogin = async () => {
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const { user, isNew } = await signInWithKakao();
-      setAuthUser(user);
-      if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        const hour   = user.missionHour   ?? 8;
-        const minute = user.missionMinute ?? 0;
-        if (user.missionHour != null) setMissionTime({ hour, minute });
-        if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-        await loadTodayMission();
-        scheduleMissionNotification(hour, minute);
-      }
-      setAuthStatus(isNew ? 'signingUp' : 'authenticated');
-    } catch (e) {
-      console.warn(e);
-      setLoginError(e?.message || '카카오 로그인에 실패했습니다.');
-    } finally {
-      setLoginLoading(false);
-    }
+  // 로그인/자동 로그인 성공 시 공통 후처리 — 프로필·미션시간·오늘미션·알림 예약
+  const applySession = async (user) => {
+    setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
+    const hour   = user.missionHour   ?? 8;
+    const minute = user.missionMinute ?? 0;
+    if (user.missionHour != null) setMissionTime({ hour, minute });
+    if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
+    await loadTodayMission();
+    scheduleMissionNotification(hour, minute);
   };
 
-  const handleAppleLogin = async () => {
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const { user, isNew } = await signInWithApple();
-      setAuthUser(user);
-      if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        const hour   = user.missionHour   ?? 8;
-        const minute = user.missionMinute ?? 0;
-        if (user.missionHour != null) setMissionTime({ hour, minute });
-        if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-        await loadTodayMission();
-        scheduleMissionNotification(hour, minute);
-      }
-      setAuthStatus(isNew ? 'signingUp' : 'authenticated');
-    } catch (e) {
-      if (e?.code !== 'ERR_CANCELED') {
-        console.warn(e);
-        setLoginError(e?.message || 'Apple 로그인에 실패했습니다.');
-      }
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await cancelMissionNotification();
-    await clearToken();
-    setAuthUser(null);
+  // 로그아웃 시 세션 상태 초기화
+  const resetSession = () => {
     setProfile({ name: '오프모더', avatar: '01' });
     setMissionTime({ hour: 8, minute: 0 });
     setHasMission(false);
     setCurrentMission(null);
     setCurrentMissionId(null);
-    setAuthStatus('unauthenticated');
   };
 
-  const handleDeleteAccount = async () => {
-    try {
-      await api.delete('/api/v1/users/me');
-    } catch (e) {
-      console.warn('회원탈퇴 실패:', e);
-    }
-    await handleLogout();
-  };
+  // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
+  const {
+    authStatus, setAuthStatus, authUser, loginLoading, loginError,
+    handleKakaoLogin, handleAppleLogin, handleLogout, handleDeleteAccount,
+  } = useAuth({ applySession, resetSession });
 
   const handleSignupComplete = async (profileData) => {
     const { name, avatar, missionTime: mt } = profileData;
@@ -259,23 +182,10 @@ function AppInner() {
 
   /* ── 설정 시간 감지 → 룰렛 표시 ──
      정책: 오늘 미션이 이미 있으면 시간을 바꿔도 룰렛을 다시 띄우지 않음 */
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = new Date();
-      const key = `${now.getHours()}:${now.getMinutes()}`;
-      if (
-        now.getHours()   === missionTime.hour &&
-        now.getMinutes() === missionTime.minute &&
-        lastTriggeredRef.current !== key &&
-        !hasMission   // 오늘 미션이 없을 때만 룰렛 트리거
-      ) {
-        lastTriggeredRef.current = key;
-        setShowRoulette(true);
-        setTab('mission');
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, [missionTime, hasMission]);
+  useMissionRouletteTrigger(missionTime, hasMission, () => {
+    setShowRoulette(true);
+    setTab('mission');
+  });
 
   /* ── 최상위 3페이지 좌우 스와이프 (Mission | Profile | Settings) ──
      세로 스크롤과 충돌하지 않도록 수평 우세 제스처만 캡처 (ProfileScreen 기존 방식 확장) */

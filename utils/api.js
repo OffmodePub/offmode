@@ -43,12 +43,19 @@ export const loadToken  = async () => { _token = await SecureStore.getItemAsync(
 export const getToken   = ()       => _token;
 export const clearToken = ()       => setToken(null);
 
+// 401(세션 만료) 전역 처리 — App.jsx가 로그아웃 핸들러를 등록한다.
+// 토큰이 있는 상태의 401만 세션 만료로 취급한다 (로그인 실패 401은 각 화면이 처리).
+let _onUnauthorized = null;
+export const setOnUnauthorized = (handler) => { _onUnauthorized = handler; };
+
 async function request(method, path, body, isFormData = false) {
   const headers = {};
   if (_token)       headers['Authorization'] = `Bearer ${_token}`;
   if (!isFormData)  headers['Content-Type']  = 'application/json';
   const url = `${BASE_URL}${path}`;
-  console.log(`[API] ${method} ${path} | token: ${_token ? _token.slice(0, 20) + '...' : 'NONE'}`);
+  if (__DEV__) {
+    console.log(`[API] ${method} ${path} | token: ${_token ? _token.slice(0, 20) + '...' : 'NONE'}`);
+  }
 
   let res;
   const controller = new AbortController();
@@ -87,7 +94,10 @@ async function request(method, path, body, isFormData = false) {
     console.info(`[API] ${method} ${url} -> ${res.status}`);
     if (!res.ok && data) console.warn('[API] error body', data);
   }
-  if (!res.ok) throw Object.assign(new Error(data?.message || text || `요청 실패 (${res.status})`), { status: res.status });
+  if (!res.ok) {
+    if (res.status === 401 && _token && _onUnauthorized) _onUnauthorized();
+    throw Object.assign(new Error(data?.message || text || `요청 실패 (${res.status})`), { status: res.status });
+  }
   return data;
 }
 
