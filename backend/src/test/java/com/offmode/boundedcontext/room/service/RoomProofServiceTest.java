@@ -77,7 +77,7 @@ class RoomProofServiceTest {
     RoomProof proof = proofOf(100L, 2L, 1L, ProofStatus.PENDING);
     when(roomService.getRoomOrThrow(2L)).thenReturn(room);
     when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
-    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+    when(proofRepository.findWithLockById(100L)).thenReturn(Optional.of(proof));
 
     assertThatThrownBy(() -> service().confirm(1L, 2L, 100L))
         .isInstanceOf(BusinessException.class)
@@ -91,7 +91,7 @@ class RoomProofServiceTest {
     User confirmer = User.builder().id(1L).provider("kakao").providerId("c").build();
     when(roomService.getRoomOrThrow(2L)).thenReturn(room);
     when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
-    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+    when(proofRepository.findWithLockById(100L)).thenReturn(Optional.of(proof));
     when(roomService.getMemberCount(2L)).thenReturn(4L);
     when(roomService.requiredConfirm(RoomType.GROUP, 4)).thenReturn(3);
     when(confirmRepository.existsByRoomProofIdAndUserId(100L, 1L)).thenReturn(false);
@@ -116,7 +116,7 @@ class RoomProofServiceTest {
     RoomProof proof = proofOf(100L, 2L, 9L, ProofStatus.PENDING);
     when(roomService.getRoomOrThrow(2L)).thenReturn(room);
     when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
-    when(proofRepository.findById(100L)).thenReturn(Optional.of(proof));
+    when(proofRepository.findWithLockById(100L)).thenReturn(Optional.of(proof));
     when(roomService.getMemberCount(2L)).thenReturn(4L);
     when(roomService.requiredConfirm(RoomType.GROUP, 4)).thenReturn(3);
     when(confirmRepository.existsByRoomProofIdAndUserId(100L, 1L)).thenReturn(true);

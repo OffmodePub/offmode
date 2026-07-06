@@ -123,7 +123,7 @@ public class RoomProofService {
       Long userId, Long roomId, Long proofId, String emoji) {
     roomService.getRoomOrThrow(roomId);
     roomService.getMembershipOrThrow(roomId, userId);
-    RoomProof proof = getProofInRoomOrThrow(proofId, roomId);
+    RoomProof proof = getProofInRoomForUpdateOrThrow(proofId, roomId);
 
     RoomReaction existing =
         reactionRepository.findByRoomProofIdAndUserId(proofId, userId).stream()
@@ -149,7 +149,7 @@ public class RoomProofService {
   public ConfirmResponse confirm(Long userId, Long roomId, Long proofId) {
     Room room = roomService.getRoomOrThrow(roomId);
     roomService.getMembershipOrThrow(roomId, userId);
-    RoomProof proof = getProofInRoomOrThrow(proofId, roomId);
+    RoomProof proof = getProofInRoomForUpdateOrThrow(proofId, roomId);
 
     if (proof.getUser().getId().equals(userId)) {
       throw new BusinessException(ErrorStatus.ROOM_SELF_CONFIRM_NOT_ALLOWED);
@@ -259,10 +259,25 @@ public class RoomProofService {
   }
 
   private RoomProof getProofInRoomOrThrow(Long proofId, Long roomId) {
-    RoomProof proof =
+    return checkProofInRoom(
         proofRepository
             .findById(proofId)
-            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_PROOF_NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_PROOF_NOT_FOUND)),
+        roomId);
+  }
+
+  // 쓰기 경로(confirm/리액션)용 — 행 락으로 같은 인증의 동시 요청을 직렬화한다.
+  // 임계치 이중 통과(이중 진급/뱃지)와 find-then-save 경합의 UNIQUE 위반을 막는다.
+  // 읽기 경로(getProof)는 락 없는 getProofInRoomOrThrow 를 유지한다.
+  private RoomProof getProofInRoomForUpdateOrThrow(Long proofId, Long roomId) {
+    return checkProofInRoom(
+        proofRepository
+            .findWithLockById(proofId)
+            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_PROOF_NOT_FOUND)),
+        roomId);
+  }
+
+  private RoomProof checkProofInRoom(RoomProof proof, Long roomId) {
     if (!proof.getRoomMission().getRoom().getId().equals(roomId)) {
       throw new BusinessException(ErrorStatus.ROOM_PROOF_NOT_FOUND);
     }

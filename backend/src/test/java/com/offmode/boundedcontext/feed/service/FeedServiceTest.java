@@ -84,7 +84,7 @@ class FeedServiceTest {
   void confirmRejectsSelfConfirm() {
     User owner = User.builder().id(1L).provider("kakao").providerId("owner").build();
     Verification verification = Verification.builder().id(20L).user(owner).build();
-    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(verificationRepository.findWithLockById(20L)).thenReturn(Optional.of(verification));
 
     assertThatThrownBy(() -> feedService.confirm(1L, 20L))
         .isInstanceOf(BusinessException.class)
@@ -105,7 +105,7 @@ class FeedServiceTest {
             .build();
     Verification verification =
         Verification.builder().id(20L).user(owner).userMission(mission).build();
-    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(verificationRepository.findWithLockById(20L)).thenReturn(Optional.of(verification));
     when(confirmRepository.existsByVerificationIdAndUserId(20L, 2L)).thenReturn(false);
     when(userService.getById(2L)).thenReturn(confirmer);
     when(confirmRepository.countByVerificationId(20L)).thenReturn(1L);
@@ -126,7 +126,7 @@ class FeedServiceTest {
     Verification verification = Verification.builder().id(20L).build();
     Reaction reaction =
         Reaction.builder().id(30L).verification(verification).user(user).emoji("🔥").build();
-    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(verificationRepository.findWithLockById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(reaction));
     when(reactionRepository.findRowsByVerificationId(20L)).thenReturn(List.of());
 
@@ -141,7 +141,7 @@ class FeedServiceTest {
     User viewer = User.builder().id(1L).provider("kakao").providerId("viewer").build();
     User reactor = User.builder().id(2L).provider("kakao").providerId("reactor").build();
     Verification verification = Verification.builder().id(20L).build();
-    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(verificationRepository.findWithLockById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of());
     when(userService.getById(1L)).thenReturn(viewer);
     when(reactionRepository.findRowsByVerificationId(20L))
@@ -169,7 +169,7 @@ class FeedServiceTest {
     Verification verification = Verification.builder().id(20L).build();
     Reaction heart =
         Reaction.builder().id(30L).verification(verification).user(viewer).emoji("💜").build();
-    when(verificationRepository.findById(20L)).thenReturn(Optional.of(verification));
+    when(verificationRepository.findWithLockById(20L)).thenReturn(Optional.of(verification));
     when(reactionRepository.findByVerificationIdAndUserId(20L, 1L)).thenReturn(List.of(heart));
     when(userService.getById(1L)).thenReturn(viewer);
     when(reactionRepository.findRowsByVerificationId(20L))

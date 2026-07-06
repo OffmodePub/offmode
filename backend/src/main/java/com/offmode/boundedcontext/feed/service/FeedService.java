@@ -82,9 +82,10 @@ public class FeedService {
 
   @Transactional
   public void confirm(Long userId, Long verificationId) {
+    // 행 락으로 같은 인증의 confirm 을 직렬화 — count 기반 임계치 판정의 이중 통과 방지
     Verification v =
         verificationRepository
-            .findById(verificationId)
+            .findWithLockById(verificationId)
             .orElseThrow(() -> new BusinessException(ErrorStatus.VERIFICATION_NOT_FOUND));
 
     // 본인 인증은 불가
@@ -121,9 +122,10 @@ public class FeedService {
 
   @Transactional
   public List<ReactionSummaryResponse> react(Long userId, Long verificationId, String emoji) {
+    // 행 락으로 같은 인증의 토글을 직렬화 — find-then-save 경합의 UNIQUE 위반 방지
     Verification v =
         verificationRepository
-            .findById(verificationId)
+            .findWithLockById(verificationId)
             .orElseThrow(() -> new BusinessException(ErrorStatus.VERIFICATION_NOT_FOUND));
 
     List<Reaction> userReactions =
