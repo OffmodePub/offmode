@@ -11,10 +11,10 @@ import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import { RoomTopBar, GreenButton } from '../components/RoomBits';
 import { roomIconEmoji } from '../constants/rooms';
+import { pad } from '../utils/date';
 
 const F = 'GmarketSansLight';
 
-function pad(n) { return String(n).padStart(2, '0'); }
 function nowLabel() {
   const d = new Date();
   return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}  ${pad(d.getHours())}:${pad(d.getMinutes())}`;
