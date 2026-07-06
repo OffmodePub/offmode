@@ -13,6 +13,7 @@ public enum ErrorStatus {
   BAD_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_400", "잘못된 요청입니다."),
   UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
   FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON_403", "금지된 요청입니다."),
+  CONFLICT(HttpStatus.CONFLICT, "COMMON_409", "이미 처리된 요청입니다."),
   VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "VALID_400_001", "입력값이 올바르지 않습니다."),
 
   // Auth

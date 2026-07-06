@@ -33,11 +33,13 @@ import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -105,10 +107,27 @@ public class RoomService {
     List<GroupRoomSummaryResponse> groupRooms = new ArrayList<>();
     LocalDate today = LocalDate.now();
 
+    // 오늘 미션·멤버 수·달성 수를 방 개수와 무관하게 상수 쿼리로 배치 조회한다.
+    List<Long> roomIds = memberships.stream().map(m -> m.getRoom().getId()).toList();
+    Map<Long, RoomMission> todayMissions =
+        roomIds.isEmpty()
+            ? Map.of()
+            : missionRepository.findByRoomIdInAndDate(roomIds, today).stream()
+                .collect(
+                    Collectors.toMap(mission -> mission.getRoom().getId(), mission -> mission));
+    Map<Long, Long> memberCounts =
+        roomIds.isEmpty() ? Map.of() : toCountMap(memberRepository.countRowsByRoomIdIn(roomIds));
+    List<Long> missionIds = todayMissions.values().stream().map(RoomMission::getId).toList();
+    Map<Long, Long> verifiedCounts =
+        missionIds.isEmpty()
+            ? Map.of()
+            : toCountMap(
+                proofRepository.countRowsByRoomMissionIdInAndStatus(
+                    missionIds, ProofStatus.VERIFIED));
+
     for (RoomMember membership : memberships) {
       Room room = membership.getRoom();
-      RoomMission todayMission =
-          missionRepository.findByRoomIdAndDate(room.getId(), today).orElse(null);
+      RoomMission todayMission = todayMissions.get(room.getId());
       MiniMissionResponse mini =
           todayMission == null
               ? null
@@ -125,17 +144,15 @@ public class RoomService {
                 room.getName(),
                 room.getIconKey(),
                 room.getType(),
-                (int) memberRepository.countByRoomId(room.getId()),
+                memberCounts.getOrDefault(room.getId(), 0L).intValue(),
                 mini,
                 done);
       } else {
-        int memberCount = (int) memberRepository.countByRoomId(room.getId());
+        int memberCount = memberCounts.getOrDefault(room.getId(), 0L).intValue();
         int verifiedCount =
             todayMission == null
                 ? 0
-                : (int)
-                    proofRepository.countByRoomMissionIdAndStatus(
-                        todayMission.getId(), ProofStatus.VERIFIED);
+                : verifiedCounts.getOrDefault(todayMission.getId(), 0L).intValue();
         groupRooms.add(
             new GroupRoomSummaryResponse(
                 room.getId(),
@@ -159,7 +176,9 @@ public class RoomService {
     Room room = getRoomOrThrow(roomId);
     RoomMember myMembership = getMembershipOrThrow(roomId, userId);
 
-    int memberCount = (int) memberRepository.countByRoomId(roomId);
+    List<RoomMember> memberEntities =
+        memberRepository.findWithUserByRoomIdOrderByJoinedAtAsc(roomId);
+    int memberCount = memberEntities.size();
     int requiredConfirm = requiredConfirm(room.getType(), memberCount);
     LocalDate today = LocalDate.now();
 
@@ -173,8 +192,18 @@ public class RoomService {
             ? Set.of()
             : new HashSet<>(nudgeRepository.findToUserIdsByMissionAndFromUser(missionId, userId));
 
+    // 오늘 인증을 한 번에 로드해 멤버별 상태·달성 수를 애플리케이션에서 집계한다
+    // (멤버/인증 수와 무관하게 상수 쿼리).
+    List<RoomProof> todayProofs =
+        missionId == null ? List.of() : proofRepository.findWithUserByRoomMissionId(missionId);
+    Map<Long, ProofStatus> statusByUserId =
+        todayProofs.stream()
+            .collect(
+                Collectors.toMap(
+                    proof -> proof.getUser().getId(), RoomProof::getStatus, (first, dup) -> first));
+
     List<RoomMemberResponse> members =
-        memberRepository.findByRoomIdOrderByJoinedAtAsc(roomId).stream()
+        memberEntities.stream()
             .map(
                 member -> {
                   Long memberUserId = member.getUser().getId();
@@ -186,31 +215,22 @@ public class RoomService {
                       member.getRole(),
                       missionId == null
                           ? MemberTodayStatus.NONE
-                          : computeTodayStatus(missionId, memberUserId),
+                          : toTodayStatus(statusByUserId.get(memberUserId)),
                       memberUserId.equals(userId),
                       nudgedTargetIds.contains(memberUserId));
                 })
             .toList();
 
     int verifiedCount =
-        todayMission == null
-            ? 0
-            : (int)
-                proofRepository.countByRoomMissionIdAndStatus(
-                    todayMission.getId(), ProofStatus.VERIFIED);
+        (int) todayProofs.stream().filter(p -> p.getStatus() == ProofStatus.VERIFIED).count();
 
     List<RoomProofResponse> proofs =
         todayMission == null
             ? List.of()
-            : proofAssembler.buildAll(
-                proofRepository.findByRoomMissionIdOrderByCreatedAtDesc(todayMission.getId()),
-                requiredConfirm,
-                userId);
+            : proofAssembler.buildAll(todayProofs, requiredConfirm, userId);
 
     MemberTodayStatus myTodayStatus =
-        todayMission == null
-            ? MemberTodayStatus.NONE
-            : computeTodayStatus(todayMission.getId(), userId);
+        missionId == null ? MemberTodayStatus.NONE : toTodayStatus(statusByUserId.get(userId));
 
     return new RoomDetailResponse(
         room.getId(),
@@ -347,11 +367,23 @@ public class RoomService {
   }
 
   private MemberTodayStatus computeTodayStatus(Long roomMissionId, Long userId) {
-    Optional<RoomProof> proof = proofRepository.findByRoomMissionIdAndUserId(roomMissionId, userId);
-    if (proof.isEmpty()) return MemberTodayStatus.NONE;
-    return proof.get().getStatus() == ProofStatus.VERIFIED
-        ? MemberTodayStatus.DONE
-        : MemberTodayStatus.PENDING;
+    return proofRepository
+        .findByRoomMissionIdAndUserId(roomMissionId, userId)
+        .map(proof -> toTodayStatus(proof.getStatus()))
+        .orElse(MemberTodayStatus.NONE);
+  }
+
+  private static MemberTodayStatus toTodayStatus(ProofStatus status) {
+    if (status == null) return MemberTodayStatus.NONE;
+    return status == ProofStatus.VERIFIED ? MemberTodayStatus.DONE : MemberTodayStatus.PENDING;
+  }
+
+  private static Map<Long, Long> toCountMap(List<Object[]> rows) {
+    Map<Long, Long> result = new HashMap<>();
+    for (Object[] row : rows) {
+      result.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+    }
+    return result;
   }
 
   // 오늘(완료 시) 또는 어제부터 거꾸로 이어진 VERIFIED 달성 일수

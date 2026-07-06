@@ -7,9 +7,13 @@ import com.offmode.boundedcontext.room.repository.RoomProofConfirmRepository;
 import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,33 +29,46 @@ public class RoomProofAssembler {
   private final RoomReactionRepository reactionRepository;
 
   public RoomProofResponse build(RoomProof proof, int requiredConfirm, Long currentUserId) {
-    int confirmCount = (int) confirmRepository.countByRoomProofId(proof.getId());
-    boolean myConfirmed =
-        confirmRepository.existsByRoomProofIdAndUserId(proof.getId(), currentUserId);
-    boolean mine = proof.getUser().getId().equals(currentUserId);
-    List<RoomReactionSummaryResponse> reactions =
-        aggregateReactions(reactionRepository.findRowsByRoomProofId(proof.getId()), currentUserId);
-
-    return new RoomProofResponse(
-        proof.getId(),
-        proof.getUser().getName(),
-        proof.getUser().getAvatar(),
-        proof.getPhotoUrl(),
-        proof.getCaption(),
-        proof.getCreatedAt(),
-        proof.getStatus(),
-        confirmCount,
-        requiredConfirm,
-        myConfirmed,
-        mine,
-        reactions);
+    return buildAll(List.of(proof), requiredConfirm, currentUserId).getFirst();
   }
 
   public List<RoomProofResponse> buildAll(
       List<RoomProof> proofs, int requiredConfirm, Long currentUserId) {
+    if (proofs.isEmpty()) return List.of();
+
+    // confirm/리액션을 인증 건수와 무관하게 상수 쿼리로 배치 조회해 집계한다.
+    List<Long> proofIds = proofs.stream().map(RoomProof::getId).toList();
+    Map<Long, Long> confirmCounts = new HashMap<>();
+    Set<Long> myConfirmedProofIds = new HashSet<>();
+    for (Object[] row : confirmRepository.findRowsByRoomProofIdIn(proofIds)) {
+      Long proofId = ((Number) row[0]).longValue();
+      Long confirmerUserId = ((Number) row[1]).longValue();
+      confirmCounts.merge(proofId, 1L, Long::sum);
+      if (confirmerUserId.equals(currentUserId)) {
+        myConfirmedProofIds.add(proofId);
+      }
+    }
+    Map<Long, List<Object[]>> reactionRowsByProofId =
+        reactionRepository.findRowsByRoomProofIdIn(proofIds).stream()
+            .collect(Collectors.groupingBy(row -> ((Number) row[0]).longValue()));
+
     List<RoomProofResponse> result = new ArrayList<>();
     for (RoomProof proof : proofs) {
-      result.add(build(proof, requiredConfirm, currentUserId));
+      result.add(
+          new RoomProofResponse(
+              proof.getId(),
+              proof.getUser().getName(),
+              proof.getUser().getAvatar(),
+              proof.getPhotoUrl(),
+              proof.getCaption(),
+              proof.getCreatedAt(),
+              proof.getStatus(),
+              confirmCounts.getOrDefault(proof.getId(), 0L).intValue(),
+              requiredConfirm,
+              myConfirmedProofIds.contains(proof.getId()),
+              proof.getUser().getId().equals(currentUserId),
+              aggregateReactions(
+                  reactionRowsByProofId.getOrDefault(proof.getId(), List.of()), currentUserId)));
     }
     return result;
   }
