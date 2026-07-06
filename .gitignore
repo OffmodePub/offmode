@@ -152,6 +152,7 @@ backend/offmode-db*
 !.claude/skills/
 !.claude/agents/
 !.claude/hooks/
+!.claude/rules/
 !.claude/settings.json
 .claude/settings.local.json
 .claude/worktrees/
