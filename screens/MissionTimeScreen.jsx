@@ -1,18 +1,16 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Dimensions, Animated,
+  ScrollView, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '../utils/useColors';
 import T from '../components/ThemedText';
+import WheelPicker from '../components/WheelPicker';
+import { pad } from '../utils/date';
 
 const F = 'Kkukkukk';
 const { width } = Dimensions.get('window');
-
-const ITEM_H  = 60;
-const VISIBLE = 3;
-const PICKER_H = ITEM_H * VISIBLE;
 
 const HOURS   = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 5분 단위
@@ -26,7 +24,6 @@ const PRESETS = [
   { label: '자정 전',  time: { h: 23, m: 0 } },
 ];
 
-function pad(n) { return String(n).padStart(2, '0'); }
 function ampmLabel(h) {
   if (h < 6)  return '새벽';
   if (h < 12) return '오전';
@@ -34,93 +31,21 @@ function ampmLabel(h) {
   return '밤';
 }
 
-function WheelPicker({ items, selectedIndex, onChange }) {
-  const C = useColors();
-  const wheel = useMemo(() => makeWheelStyles(C), [C]);
-  const scrollRef           = useRef(null);
-  const isProgrammatic      = useRef(false);
-  const selectedIndexRef    = useRef(selectedIndex);
-  selectedIndexRef.current  = selectedIndex; // 매 렌더마다 최신값 유지
-
-  // selectedIndex 변경 시 스크롤 위치 동기화
-  useEffect(() => {
-    isProgrammatic.current = true;
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
-      requestAnimationFrame(() => { isProgrammatic.current = false; });
-    });
-  }, [selectedIndex]);
-
-  // 초기 레이아웃 완료 후 위치 설정 (ref로 최신값 참조 → stale closure 방지)
-  const onLayout = useCallback(() => {
-    isProgrammatic.current = true;
-    scrollRef.current?.scrollTo({ y: selectedIndexRef.current * ITEM_H, animated: false });
-    requestAnimationFrame(() => { isProgrammatic.current = false; });
-  }, []);
-
-  // 사용자가 직접 스크롤했을 때만 onChange 호출
-  const handleMomentumEnd = useCallback((e) => {
-    if (isProgrammatic.current) return;
-    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-    const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    if (clamped !== selectedIndex) onChange(clamped);
-  }, [items.length, selectedIndex, onChange]);
-
-  return (
-    <View style={wheel.wrap}>
-      <View style={wheel.highlight} pointerEvents="none" />
-      <LinearGradient colors={[C.surface, C.surface + '00']} style={[wheel.fade, { top: 0 }]}    pointerEvents="none" />
-      <LinearGradient colors={[C.surface + '00', C.surface]} style={[wheel.fade, { bottom: 0 }]} pointerEvents="none" />
-      <ScrollView
-        ref={scrollRef}
-        style={{ height: PICKER_H, width: '100%' }}
-        contentContainerStyle={{ paddingVertical: ITEM_H * 1 }}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleMomentumEnd}
-        onLayout={onLayout}
-        scrollEventThrottle={16}
-      >
-        {items.map((val, i) => (
-          <TouchableOpacity
-            key={i}
-            style={wheel.item}
-            activeOpacity={0.6}
-            onPress={() => onChange(i)}
-          >
-            <T
-              v="sub"
-              size={i === selectedIndex ? 34 : 28}
-              color={i === selectedIndex ? C.text : (C.isDark ? C.textSub : C.green)}
-              style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
-            >
-              {pad(val)}
-            </T>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-function makeWheelStyles(C) {
-  return StyleSheet.create({
-    wrap: { flex: 1, position: 'relative', overflow: 'hidden', height: PICKER_H },
-    highlight: {
-      position: 'absolute', top: ITEM_H * 1, left: 0, right: 0, height: ITEM_H,
-      borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.greenBorder,
-      backgroundColor: C.greenFaint, zIndex: 1, borderRadius: 8,
-    },
-    fade: { position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.0, zIndex: 2 },
-    item: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
-    itemTextSelected: { color: C.text, opacity: 1, fontSize: 34 },
-  });
-}
-
 export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour: 8, minute: 0 } }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+
+  // 공용 WheelPicker 항목 텍스트 (기존 이 화면 전용 렌더링 그대로)
+  const renderWheelLabel = (val, selected) => (
+    <T
+      v="sub"
+      size={selected ? 34 : 28}
+      color={selected ? C.text : (C.isDark ? C.textSub : C.green)}
+      style={{ opacity: selected ? 1 : 0.4 }}
+    >
+      {pad(val)}
+    </T>
+  );
 
   const [hourIdx,   setHourIdx]   = useState(initialTime.hour);
   const [minuteIdx, setMinuteIdx] = useState(Math.round(initialTime.minute / 5));
@@ -156,12 +81,12 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
         <View style={styles.pickerRow}>
           <View style={styles.pickerBlock}>
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>시</T>
-            <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
+            <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx}   colors={C} renderLabel={renderWheelLabel} />
           </View>
           <T v="sub" size={36} style={{ marginTop: 16, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
           <View style={styles.pickerBlock}>
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>분</T>
-            <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
+            <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} colors={C} renderLabel={renderWheelLabel} />
           </View>
         </View>
 

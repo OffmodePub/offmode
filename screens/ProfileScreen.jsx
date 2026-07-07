@@ -1,18 +1,20 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  View, Image, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
+  View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
   Modal, TextInput, Keyboard, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useColors } from '../utils/useColors';
 import { api } from '../utils/api';
-import T from '../components/ThemedText';
 import WarmText from '../components/WarmText';
 import { W } from '../constants/warm';
+import { GreenButton } from '../components/RoomBits';
 import { getAvatarSource, getAvatarDefaultSource } from '../utils/avatars';
 import * as H from '../utils/haptics';
 import CharacterDecor from '../components/CharacterDecor';
 import { PARTS, isPartUnlocked, getCharacterSource } from '../constants/parts';
+import { usePagerBottomBarHeight } from '../components/PageIndicator';
+import AvatarImage from '../components/AvatarImage';
+import { pad } from '../utils/date';
 
 /**
  * GET /api/v1/parts/me 응답을 정적 카탈로그(PARTS)와 key로 병합.
@@ -44,8 +46,7 @@ function parseLocalDT(val) {
   return new Date(val);
 }
 
-function pad2(n) { return String(n).padStart(2, '0'); }
-function ymd(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
 function getMondayOfWeek(date) {
   const d = new Date(date);
@@ -58,7 +59,7 @@ function getMondayOfWeek(date) {
 function formatJoinDate(val) {
   const dt = parseLocalDT(val);
   if (!dt) return '';
-  return `${dt.getFullYear()}.${pad2(dt.getMonth() + 1)}.${pad2(dt.getDate())} 합류`;
+  return `${dt.getFullYear()}.${pad(dt.getMonth() + 1)}.${pad(dt.getDate())} 합류`;
 }
 
 /** 인증 히스토리 → 주간 활동용 최소 형태 */
@@ -95,12 +96,6 @@ function computeWeekData(history, joinDate) {
   });
 }
 
-/* ── 아바타 얼굴 이미지 렌더러 ───────────────────────── */
-function AvatarImage({ source, width = 72, height = 72 }) {
-  if (!source) return <View style={{ width, height }} />;
-  return <Image source={source} style={{ width, height }} resizeMode="contain" />;
-}
-
 /* ── 이번 주 활동 (웜) ───────────────────────────────── */
 function WeeklyActivity({ weekData }) {
   const doneCount = weekData.filter(d => d.status === 'done').length;
@@ -135,7 +130,7 @@ function WeeklyActivity({ weekData }) {
 
 /* ── 프로필 편집 모달 ────────────────────────────────── */
 function ProfileEditModal({ visible, profile, onSave, onClose }) {
-  const C = useColors();
+  const C = W;
   const m = useMemo(() => makeEditModalStyles(C), [C]);
   const [name, setName] = useState('');
   // 아바타(이미지)는 회원가입 때 확정 — 편집에서는 변경할 수 없고 미리보기만 노출
@@ -147,6 +142,8 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
     }
   }, [visible]);
 
+  const handleClose = () => { Keyboard.dismiss(); onClose(); };
+
   const handleSave = () => {
     Keyboard.dismiss();
     H.success();
@@ -156,36 +153,47 @@ function ProfileEditModal({ visible, profile, onSave, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={() => { Keyboard.dismiss(); onClose(); }} />
-      <View style={m.sheet}>
-        <View style={m.handle} />
-        <T v="section" style={m.title}>프로필 편집</T>
-        <View style={m.previewRow}>
-          <AvatarImage source={getAvatarDefaultSource(avatarId)} width={80} height={80} />
+      <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={handleClose} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={m.kvWrap}
+        pointerEvents="box-none"
+      >
+        <View style={m.sheet}>
+          <View style={m.handle} />
+          <View style={m.header}>
+            <WarmText v="section" size={18}>프로필 편집</WarmText>
+            <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <WarmText v="sub" size={14} color={C.textSub}>닫기</WarmText>
+            </TouchableOpacity>
+          </View>
+
+          <View style={m.previewRow}>
+            <AvatarImage source={getAvatarDefaultSource(avatarId)} width={80} height={80} />
+          </View>
+
+          <WarmText v="label" size={12} color={C.textSub} style={m.sectionLabel}>닉네임</WarmText>
+          <View style={m.inputWrap}>
+            <TextInput
+              style={m.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="닉네임 입력"
+              placeholderTextColor={C.textSub}
+              maxLength={12}
+            />
+            <WarmText v="caption" size={12} color={C.textSub}>{name.length}/12</WarmText>
+          </View>
+
+          <GreenButton label="저장하기" onPress={handleSave} />
         </View>
-        <T v="label" style={m.sectionLabel}>닉네임</T>
-        <View style={m.inputWrap}>
-          <TextInput
-            style={m.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="닉네임 입력"
-            placeholderTextColor={C.textSub}
-            maxLength={12}
-          />
-          <T v="caption" style={{ opacity: 0.4 }}>{name.length}/12</T>
-        </View>
-        <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
-          <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={m.saveBtn}>
-            <T v="btn">저장하기</T>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 export default function ProfileScreen({ profile, onSaveProfile, currentMission }) {
+  const pagerBottom = usePagerBottomBarHeight(); // 플로팅 인디케이터+인셋 높이
   const [userProfile, setUserProfile] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [weekItems, setWeekItems] = useState([]);
@@ -261,7 +269,7 @@ export default function ProfileScreen({ profile, onSaveProfile, currentMission }
     <View style={s.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: 48 + pagerBottom }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={W.green} colors={[W.green]} />}
       >
         {/* 헤더 */}
@@ -340,7 +348,7 @@ const s = StyleSheet.create({
   },
   nameBlock: { gap: 5 },
   editBadge: {
-    backgroundColor: W.neutral, borderWidth: 1, borderColor: W.borderStrong,
+    backgroundColor: W.neutralStrong, borderWidth: 1, borderColor: W.borderStrong,
     borderRadius: 15, paddingHorizontal: 8, paddingVertical: 3,
     height: 30, minWidth: 50, alignItems: 'center', justifyContent: 'center',
   },
@@ -355,12 +363,13 @@ const s = StyleSheet.create({
   /* 이번 주 활동 */
   weekWrap: { paddingHorizontal: 16, paddingBottom: 24 },
   weekCard: {
-    backgroundColor: W.neutralFaint, borderWidth: 1, borderColor: W.borderStrong,
+    backgroundColor: W.neutralSoft, borderWidth: 1, borderColor: W.borderStrong,
     borderRadius: 16, padding: 16, gap: 14,
   },
   weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   streakBadge: {
-    backgroundColor: W.coralFaint, borderWidth: 1, borderColor: W.coralBorder,
+    // Figma 정확값 — 코랄 15%/30% 틴트 (토큰 없음, 하드코딩 허용)
+    backgroundColor: 'rgba(232,81,58,0.15)', borderWidth: 1, borderColor: 'rgba(232,81,58,0.3)',
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
   },
   weekRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
@@ -376,24 +385,24 @@ const s = StyleSheet.create({
 
 function makeEditModalStyles(C) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+    kvWrap:   { flex: 1, justifyContent: 'flex-end' },
     sheet: {
       backgroundColor: C.surface,
       borderTopLeftRadius: 24, borderTopRightRadius: 24,
       borderTopWidth: 1, borderColor: C.greenBorder,
-      paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12,
+      paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32,
     },
-    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
-    title: { textAlign: 'center', marginBottom: 16 },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 14 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
     previewRow: { alignItems: 'center', marginBottom: 20 },
-    sectionLabel: { marginBottom: 10, opacity: 0.6, letterSpacing: 1 },
+    sectionLabel: { marginBottom: 10 },
     inputWrap: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: C.surface2, borderRadius: 12,
       borderWidth: 1, borderColor: C.border,
-      paddingHorizontal: 14, paddingVertical: 10,
-      flexDirection: 'row', alignItems: 'center', marginBottom: 24,
+      paddingHorizontal: 14, paddingVertical: 12, marginBottom: 20,
     },
-    input: { flex: 1, fontFamily: 'Kkukkukk', fontSize: 15, color: C.text },
-    saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
+    input: { flex: 1, fontFamily: 'GmarketSansLight', fontSize: 15, color: C.text, padding: 0 },
   });
 }

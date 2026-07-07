@@ -9,16 +9,23 @@ import com.offmode.boundedcontext.mission.repository.MissionRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.room.entity.RoomMission;
+import com.offmode.boundedcontext.room.entity.RoomProof;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +36,7 @@ public class MissionService {
 
   private final MissionRepository missionRepository;
   private final UserMissionRepository userMissionRepository;
+  private final RoomProofRepository roomProofRepository;
   private final UserRepository userRepository;
   private final BadgeService badgeService;
 
@@ -138,8 +146,38 @@ public class MissionService {
   }
 
   // 내 미션 기록 (최근 30개, 인증 사진 포함)
+  // 레거시 개인 미션(UserMission)과 Rooms v2 방 인증(RoomProof)을 날짜순으로 병합한다.
+  // (현재 실제 인증은 방 인증으로만 저장되므로 RoomProof 미포함 시 기록이 비어 보인다)
+  // 병합 정렬 키(assignedAt=방 미션 날짜)와 같은 키로 각 소스 상위 30건만 가져오므로
+  // 병합 후 상위 30건은 전체 조회와 동일하다.
   public List<UserMissionResponse> getHistory(Long userId) {
-    return userMissionRepository.findHistoryWithPhoto(userId).stream().limit(30).toList();
+    Stream<UserMissionResponse> personal =
+        userMissionRepository.findHistoryWithPhoto(userId).stream().limit(30);
+    Stream<UserMissionResponse> rooms =
+        roomProofRepository.findHistoryByUser(userId, PageRequest.of(0, 30)).stream()
+            .map(MissionService::toHistoryResponse);
+    return Stream.concat(personal, rooms)
+        .sorted(Comparator.comparing(UserMissionResponse::assignedAt).reversed())
+        .limit(30)
+        .toList();
+  }
+
+  // 방 인증(RoomProof) → 미션 기록 DTO. 날짜는 방 미션 날짜 기준(업로드 시각 아님)으로 버킷팅.
+  private static UserMissionResponse toHistoryResponse(RoomProof proof) {
+    RoomMission rm = proof.getRoomMission();
+    boolean verified = proof.getStatus() == ProofStatus.VERIFIED;
+    String status = (verified ? MissionStatus.VERIFIED : MissionStatus.PENDING).value();
+    String category = rm.getCategory() == null ? null : rm.getCategory().value();
+    return new UserMissionResponse(
+        proof.getId(),
+        rm.getIcon(),
+        rm.getTitle(),
+        category,
+        status,
+        rm.getDate().atStartOfDay(),
+        verified ? proof.getCreatedAt() : null,
+        proof.getPhotoUrl(),
+        proof.getCaption());
   }
 
   // 미션 풀 전체 조회

@@ -21,4 +21,25 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
 
   @Query("SELECT m FROM RoomMember m JOIN FETCH m.room WHERE m.user.id = :userId")
   List<RoomMember> findWithRoomByUserId(@Param("userId") Long userId);
+
+  // 방 목록용: 방별 멤버 수를 한 번에 집계
+  @Query(
+      """
+        SELECT m.room.id, COUNT(m)
+        FROM RoomMember m
+        WHERE m.room.id IN :roomIds
+        GROUP BY m.room.id
+    """)
+  List<Object[]> countRowsByRoomIdIn(@Param("roomIds") List<Long> roomIds);
+
+  // 방 상세용: 멤버를 유저와 함께 한 번에 로드 (멤버마다 유저 쿼리 없음)
+  @Query(
+      """
+        SELECT m
+        FROM RoomMember m
+        JOIN FETCH m.user
+        WHERE m.room.id = :roomId
+        ORDER BY m.joinedAt ASC
+    """)
+  List<RoomMember> findWithUserByRoomIdOrderByJoinedAtAsc(@Param("roomId") Long roomId);
 }

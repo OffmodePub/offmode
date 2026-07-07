@@ -6,13 +6,15 @@ import { W } from '../constants/warm';
 import { api } from '../utils/api';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
+import useBottomInset from '../utils/useBottomInset';
 import { RoomTopBar, GreenButton } from '../components/RoomBits';
 
-export default function JoinRoomScreen({ onBack, onJoined }) {
+export default function JoinRoomScreen({ onBack, onJoined, initialCode }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
+  const bottomInset = useBottomInset();
 
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode ? String(initialCode).toUpperCase() : '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -45,13 +47,13 @@ export default function JoinRoomScreen({ onBack, onJoined }) {
             value={code}
             onChangeText={(t) => { setCode(t.toUpperCase()); setError(''); }}
             placeholder="예) OFF111"
-            placeholderTextColor={C.textSub}
+            placeholderTextColor={C.brown}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={8}
             style={[s.input, { letterSpacing: 2 }]}
           />
-          <WarmText v="caption" style={{ marginTop: 4 }}>친구에게 받은 6자리 코드를 입력하세요</WarmText>
+          <WarmText v="caption" color={C.text} style={{ marginTop: 4 }}>친구에게 받은 6자리 코드를 입력하세요 (예: RUN777, BOOK10)</WarmText>
         </View>
 
         {error ? (
@@ -61,7 +63,7 @@ export default function JoinRoomScreen({ onBack, onJoined }) {
         ) : null}
       </ScrollView>
 
-      <View style={s.bottom}>
+      <View style={[s.bottom, { paddingBottom: bottomInset }]}>
         <GreenButton label="참여하기" onPress={handleJoin} disabled={!canJoin} />
       </View>
     </View>
@@ -72,8 +74,8 @@ function makeStyles(C) {
   return StyleSheet.create({
     screen:  { flex: 1, backgroundColor: C.bg },
     content: { paddingHorizontal: 20, paddingBottom: 40, gap: 20 },
-    input:   { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontFamily: 'GmarketSansLight', fontSize: 16, color: C.text },
+    input:   { backgroundColor: C.neutralSoft, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontFamily: 'GmarketSansLight', fontSize: 15, color: C.text },
     errorBox: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16 },
-    bottom:  { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
+    bottom:  { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, backgroundColor: C.bg },
   });
 }

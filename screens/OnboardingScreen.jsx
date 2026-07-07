@@ -86,7 +86,9 @@ export default function OnboardingScreen({ onDone }) {
           const Hero = slide.hero;
           return (
             <View key={slide.key} style={[s.slide, { width }]}>
-              <Hero C={C} />
+              <View style={s.heroBox}>
+                <Hero C={C} />
+              </View>
               <WarmText v="heading" size={26} style={s.title}>{slide.title}</WarmText>
               <WarmText v="section" size={15} color={C.brown} style={s.subtitle}>{slide.subtitle}</WarmText>
             </View>
@@ -114,7 +116,7 @@ function DirectBadge({ C }) {
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 3,
-      backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder,
+      backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.green,
       borderRadius: 7, paddingHorizontal: 6, paddingVertical: 2,
     }}>
       <WarmText size={9}>✏️</WarmText>
@@ -153,7 +155,7 @@ function HeroRoomCard({ C }) {
         <WarmText v="body" size={12} style={{ flex: 1 }} numberOfLines={1}>동네 한 바퀴 산책하기</WarmText>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[heroStyles.track, { backgroundColor: C.greenFaint }]}>
+        <View style={[heroStyles.track, { backgroundColor: C.greenSoft }]}>
           <View style={{ height: '100%', width: '50%', borderRadius: 3, backgroundColor: C.green }} />
         </View>
         <WarmText v="caption" size={10} color={C.brown}>2/4 인증</WarmText>
@@ -220,7 +222,7 @@ function HeroProofCard({ C }) {
               <WarmText size={10} color={C.text}>{r.count}</WarmText>
             </View>
           ))}
-          <View style={[heroStyles.addReact, { borderColor: C.brown }]}>
+          <View style={[heroStyles.addReact, { backgroundColor: C.borderStrong, borderColor: C.brown }]}>
             <WarmText size={10} color={C.text}>+</WarmText>
           </View>
         </View>
@@ -249,7 +251,7 @@ const heroStyles = StyleSheet.create({
 
   proofCard: { width: 300, borderWidth: 1, borderRadius: 15, overflow: 'hidden',
     shadowColor: '#2b211a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 28, elevation: 4 },
-  photo: { height: 150, width: '100%' },
+  photo: { height: 182, width: '100%' },
   userRow: {
     position: 'absolute', top: 10, left: 10, right: 10,
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -267,10 +269,12 @@ function makeStyles(C) {
     screen: { flex: 1, backgroundColor: C.bg },
     topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 24, paddingTop: 20, minHeight: 32 },
     slide: { paddingHorizontal: 24, paddingTop: 44, alignItems: 'center' },
-    title: { marginTop: 40, textAlign: 'center' },
+    // 3장 모두 타이틀이 같은 y(피그마 388)에 오도록 히어로를 고정 높이로 감싼다
+    heroBox: { height: 260, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+    title: { marginTop: 32, textAlign: 'center' },
     subtitle: { marginTop: 14, textAlign: 'center', lineHeight: 23 },
     bottom: { paddingHorizontal: 24, paddingBottom: 32 },
-    dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 },
+    dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 44 },
     dot: { height: 8, borderRadius: 4 },
     dotActive: { width: 20, backgroundColor: C.green },
     dotIdle: { width: 8, backgroundColor: C.border },

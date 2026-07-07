@@ -41,6 +41,21 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  void dataIntegrityViolationReturnsConflict() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("POST", "/api/v1/rooms/1/proofs/2/confirm");
+
+    ResponseEntity<ApiResponse<?>> response =
+        handler.handleDataIntegrityViolation(
+            new org.springframework.dao.DataIntegrityViolationException("duplicate key"), request);
+
+    assertThat(response.getStatusCode()).isEqualTo(ErrorStatus.CONFLICT.getHttpStatus());
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getCode()).isEqualTo("COMMON_409");
+    assertThat(response.getBody().getMessage()).isEqualTo("이미 처리된 요청입니다.");
+  }
+
+  @Test
   void typeMismatchReturnsValidationError() {
     MethodArgumentTypeMismatchException exception =
         new MethodArgumentTypeMismatchException("abc", Long.class, "id", null, null);

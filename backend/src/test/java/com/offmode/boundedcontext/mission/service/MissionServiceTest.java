@@ -14,6 +14,7 @@ import com.offmode.boundedcontext.mission.repository.MissionRepository;
 import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -30,13 +31,19 @@ class MissionServiceTest {
 
   @Mock private MissionRepository missionRepository;
   @Mock private UserMissionRepository userMissionRepository;
+  @Mock private RoomProofRepository roomProofRepository;
   @Mock private UserRepository userRepository;
   @Mock private BadgeService badgeService;
 
   @Test
   void setTodayMissionCreatesMissionWhenTodayMissionDoesNotExist() {
     MissionService service =
-        new MissionService(missionRepository, userMissionRepository, userRepository, badgeService);
+        new MissionService(
+            missionRepository,
+            userMissionRepository,
+            roomProofRepository,
+            userRepository,
+            badgeService);
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     when(userMissionRepository.findFirstByUserIdAndAssignedAtBetweenOrderByAssignedAtDesc(
             eq(1L), any(), any()))
@@ -56,7 +63,12 @@ class MissionServiceTest {
   @Test
   void setTodayMissionOverwritesPendingMission() {
     MissionService service =
-        new MissionService(missionRepository, userMissionRepository, userRepository, badgeService);
+        new MissionService(
+            missionRepository,
+            userMissionRepository,
+            roomProofRepository,
+            userRepository,
+            badgeService);
     UserMission existing =
         UserMission.builder()
             .id(10L)
@@ -84,7 +96,12 @@ class MissionServiceTest {
   @Test
   void setTodayMissionCreatesNewMissionWhenExistingMissionIsVerified() {
     MissionService service =
-        new MissionService(missionRepository, userMissionRepository, userRepository, badgeService);
+        new MissionService(
+            missionRepository,
+            userMissionRepository,
+            roomProofRepository,
+            userRepository,
+            badgeService);
     User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
     UserMission existing =
         UserMission.builder()
@@ -111,7 +128,12 @@ class MissionServiceTest {
   @Test
   void weightedPoolReducesWeightForRecentlyAssignedMission() {
     MissionService service =
-        new MissionService(missionRepository, userMissionRepository, userRepository, badgeService);
+        new MissionService(
+            missionRepository,
+            userMissionRepository,
+            roomProofRepository,
+            userRepository,
+            badgeService);
     when(missionRepository.findAll())
         .thenReturn(
             List.of(

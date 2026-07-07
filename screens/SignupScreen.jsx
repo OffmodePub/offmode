@@ -1,15 +1,17 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View, Image, StyleSheet, TouchableOpacity,
+  View, StyleSheet, TouchableOpacity,
   TextInput, Keyboard, ScrollView, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import T from '../components/WarmText';
 import { W } from '../constants/warm';
 import PageIndicator from '../components/PageIndicator';
 import { GreenButton } from '../components/RoomBits';
 import * as H from '../utils/haptics';
 import { AVATAR_IDS, getAvatarDefaultSource } from '../utils/avatars';
+import AvatarImage from '../components/AvatarImage';
+import WheelPicker from '../components/WheelPicker';
+import { pad } from '../utils/date';
 
 const GL = 'GmarketSansLight';
 const { width } = Dimensions.get('window');
@@ -17,16 +19,7 @@ const { width } = Dimensions.get('window');
 // Figma(59:27) 프로필 설정 화면 — 아바타 얼굴 5종
 const PICKER_IDS = AVATAR_IDS;
 
-// ── 아바타 얼굴 이미지 렌더러 ──────────────────────────────
-function AvatarImage({ source, width = 80, height = 80 }) {
-  if (!source) return <View style={{ width, height }} />;
-  return <Image source={source} style={{ width, height }} resizeMode="contain" />;
-}
-
-// ── 시간 휠 피커 ──────────────────────────────────────────
-const ITEM_H  = 60;
-const VISIBLE = 3;
-const PICKER_H = ITEM_H * VISIBLE;
+// ── 시간 휠 피커 데이터 ───────────────────────────────────
 const HOURS   = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 5분 단위
 const PRESETS = [
@@ -37,7 +30,6 @@ const PRESETS = [
   { label: '밤',       h: 21, m: 0 },
 ];
 
-function pad(n) { return String(n).padStart(2, '0'); }
 function ampmLabel(h) {
   if (h < 6)  return '새벽';
   if (h < 12) return '오전';
@@ -45,72 +37,16 @@ function ampmLabel(h) {
   return '밤';
 }
 
-function WheelPicker({ items, selectedIndex, onChange }) {
-  const scrollRef          = useRef(null);
-  const isProgrammatic     = useRef(false);
-  const selectedIndexRef   = useRef(selectedIndex);
-  selectedIndexRef.current = selectedIndex;
-
-  useEffect(() => {
-    isProgrammatic.current = true;
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
-      requestAnimationFrame(() => { isProgrammatic.current = false; });
-    });
-  }, [selectedIndex]);
-
-  const onLayout = useCallback(() => {
-    isProgrammatic.current = true;
-    scrollRef.current?.scrollTo({ y: selectedIndexRef.current * ITEM_H, animated: false });
-    requestAnimationFrame(() => { isProgrammatic.current = false; });
-  }, []);
-
-  const handleMomentumEnd = useCallback((e) => {
-    if (isProgrammatic.current) return;
-    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-    const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    if (clamped !== selectedIndex) onChange(clamped);
-  }, [items.length, selectedIndex, onChange]);
-
+// 공용 WheelPicker 항목 텍스트 (기존 이 화면 전용 렌더링 그대로)
+function renderWheelLabel(val, selected) {
   return (
-    <View style={{ flex: 1, position: 'relative', overflow: 'hidden', height: PICKER_H }}>
-      {/* 선택 하이라이트 */}
-      <View style={{
-        position: 'absolute', top: ITEM_H * 1, left: 0, right: 0, height: ITEM_H,
-        borderTopWidth: 1, borderBottomWidth: 1, borderColor: W.greenBorder,
-        backgroundColor: W.greenFaint, zIndex: 1, borderRadius: 8,
-      }} pointerEvents="none" />
-      <LinearGradient colors={[W.surface, W.surface + '00']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
-      <LinearGradient colors={[W.surface + '00', W.surface]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ITEM_H * 1.0, zIndex: 2 }} pointerEvents="none" />
-      <ScrollView
-        ref={scrollRef}
-        style={{ height: PICKER_H }}
-        contentContainerStyle={{ paddingVertical: ITEM_H * 1 }}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleMomentumEnd}
-        onLayout={onLayout}
-        scrollEventThrottle={16}
-      >
-        {items.map((val, i) => (
-          <TouchableOpacity
-            key={i}
-            style={{ height: ITEM_H, alignItems: 'center', justifyContent: 'center' }}
-            activeOpacity={0.6}
-            onPress={() => onChange(i)}
-          >
-            <T
-              size={i === selectedIndex ? 30 : 24}
-              color={i === selectedIndex ? W.text : W.green}
-              style={{ opacity: i === selectedIndex ? 1 : 0.4 }}
-            >
-              {pad(val)}
-            </T>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+    <T
+      size={selected ? 30 : 24}
+      color={selected ? W.text : W.green}
+      style={{ opacity: selected ? 1 : 0.4 }}
+    >
+      {pad(val)}
+    </T>
   );
 }
 
@@ -168,7 +104,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             <T v="sub" style={{ textAlign: 'center' }}>나중에 설정에서 변경할 수 있어요</T>
           </View>
 
-          <View style={{ height: 56 }} />
+          <View style={{ height: 73 }} />
 
           {/* 선택된 아바타 미리보기 */}
           <View style={s.previewRing}>
@@ -216,9 +152,19 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
             <T v="caption" color={W.green} style={{ opacity: 0.4 }}>{name.length}/12</T>
           </View>
 
-          <View style={{ height: 48 }} />
+          <View style={{ height: 100 }} />
 
-          <GreenButton label="다음 →" onPress={handleNext} disabled={!canNext} style={{ width: '100%' }} />
+          {/* Figma py 18 — GreenButton은 내부 패딩 오버라이드가 안 돼 동일 규격 로컬 버튼 사용 */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleNext}
+            disabled={!canNext}
+            style={{ width: '100%' }}
+          >
+            <View style={[s.nextBtn, !canNext && s.nextBtnDisabled]}>
+              <T v="btn" style={!canNext ? { color: W.text } : undefined}>다음 →</T>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -262,12 +208,12 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
         >
           <View style={{ flex: 1, alignItems: 'stretch' }}>
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>시</T>
-            <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx} />
+            <WheelPicker items={HOURS}   selectedIndex={hourIdx}   onChange={setHourIdx}   colors={W} renderLabel={renderWheelLabel} />
           </View>
           <T size={32} color={W.textSub} style={{ marginTop: 12, paddingHorizontal: 8, opacity: 0.5 }}>:</T>
           <View style={{ flex: 1, alignItems: 'stretch' }}>
             <T v="sub" style={{ marginBottom: 8, textAlign: 'center' }}>분</T>
-            <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
+            <WheelPicker items={MINUTES} selectedIndex={minuteIdx} onChange={setMinuteIdx} colors={W} renderLabel={renderWheelLabel} />
           </View>
         </View>
 
@@ -355,6 +301,17 @@ function makeStyles() {
       flexDirection: 'row', alignItems: 'center', marginTop: 12,
     },
     input: { flex: 1, fontFamily: GL, fontSize: 16, color: W.green },
+
+    // "다음" 버튼 — GreenButton 규격 + Figma py 18
+    nextBtn: {
+      alignItems: 'center', justifyContent: 'center',
+      borderRadius: 16, paddingVertical: 18,
+      backgroundColor: W.green,
+    },
+    nextBtnDisabled: {
+      backgroundColor: W.neutralStrong,
+      borderWidth: 1, borderColor: W.text,
+    },
 
     // Step 2
     previewWrap: {

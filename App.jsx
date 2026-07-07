@@ -1,14 +1,18 @@
 import 'react-native-gesture-handler';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, Animated, LogBox, Platform, PanResponder } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, StyleSheet, Animated, LogBox, Platform, PanResponder, Linking } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import PageIndicator from './components/PageIndicator';
+import useBottomInset from './utils/useBottomInset';
 import { W } from './constants/warm';
+import * as SecureStore from 'expo-secure-store';
 import * as H from './utils/haptics';
+import * as S from './utils/sounds';
+import { parseInviteCode } from './utils/invite';
 import RoomListScreen from './screens/RoomListScreen';
 import RoomDetailScreen from './screens/RoomDetailScreen';
 import CreateRoomScreen from './screens/CreateRoomScreen';
@@ -60,49 +64,25 @@ if (!__DEV__ && Platform.OS === 'ios') {
     });
   }
 }
-import { signInWithApple, signInWithKakao } from './utils/auth';
-import { api, loadToken, clearToken } from './utils/api';
-import { scheduleMissionNotification, cancelMissionNotification } from './utils/notifications';
+import { api } from './utils/api';
+import { scheduleMissionNotification } from './utils/notifications';
+import useAuth from './utils/useAuth';
+import useMissionRouletteTrigger from './utils/useMissionRouletteTrigger';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// 최상위 3페이지 좌우 스와이프 순서 (Profile 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
-const PAGES = ['mission', 'profile', 'settings'];
+// 최상위 3페이지 좌우 스와이프 순서 (Mission 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
+const PAGES = ['profile', 'mission', 'settings'];
+
+// 최상위 페이저 하단 여백 (홈 인디케이터 있으면 그 높이, 없으면 24px — useBottomInset).
+// SafeAreaProvider 하위에서 렌더돼야 훅이 동작하므로 별도 컴포넌트로 분리.
+function PagerBottomInset() {
+  const height = useBottomInset();
+  return <View style={{ height, backgroundColor: 'transparent' }} />;
+}
 
 function AppInner() {
   const { colors: C, scheme } = useTheme();
-
-  // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
-  const [authStatus, setAuthStatus] = useState('loading');
-  const [authUser,   setAuthUser]   = useState(null);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState('');
-
-  useEffect(() => {
-    loadToken().then(async (token) => {
-      if (token) {
-        try {
-          const user = await api.get('/api/v1/users/me');
-          setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-          const hour   = user.missionHour   ?? 8;
-          const minute = user.missionMinute ?? 0;
-          if (user.missionHour != null) setMissionTime({ hour, minute });
-          if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-          await loadTodayMission();
-          scheduleMissionNotification(hour, minute);
-          setAuthStatus('authenticated');
-        } catch (e) {
-          console.warn('자동 로그인 실패:', e);
-          setAuthStatus('unauthenticated');
-        }
-      } else {
-        setAuthStatus('unauthenticated');
-      }
-    }).catch((e) => {
-      console.warn('자동 로그인 토큰 로드 실패:', e);
-      setAuthStatus('unauthenticated');
-    });
-  }, []);
 
   const [tab, setTab]                           = useState('mission');
   const [stack, setStack]                       = useState([]);
@@ -115,7 +95,7 @@ function AppInner() {
   const [autoRoulette, setAutoRoulette]         = useState(true);
   const [profile, setProfile]                   = useState({ name: '오프모더', avatar: '01' });
   const [roomVersion, setRoomVersion]           = useState(0);
-  const lastTriggeredRef = useRef(null);
+  const [pendingInvite, setPendingInvite]       = useState(null); // 딥링크로 들어온 초대코드 (인증 후 처리)
   const celebratedRoomsRef = useRef(new Set());
 
   // 방 데이터 변경(생성/참여/나가기/미션/인증) 후 목록·상세 새로고침 트리거
@@ -141,76 +121,31 @@ function AppInner() {
     }
   };
 
-  const handleKakaoLogin = async () => {
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const { user, isNew } = await signInWithKakao();
-      setAuthUser(user);
-      if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        const hour   = user.missionHour   ?? 8;
-        const minute = user.missionMinute ?? 0;
-        if (user.missionHour != null) setMissionTime({ hour, minute });
-        if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-        await loadTodayMission();
-        scheduleMissionNotification(hour, minute);
-      }
-      setAuthStatus(isNew ? 'signingUp' : 'authenticated');
-    } catch (e) {
-      console.warn(e);
-      setLoginError(e?.message || '카카오 로그인에 실패했습니다.');
-    } finally {
-      setLoginLoading(false);
-    }
+  // 로그인/자동 로그인 성공 시 공통 후처리 — 프로필·미션시간·오늘미션·알림 예약
+  const applySession = async (user) => {
+    setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
+    const hour   = user.missionHour   ?? 8;
+    const minute = user.missionMinute ?? 0;
+    if (user.missionHour != null) setMissionTime({ hour, minute });
+    if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
+    await loadTodayMission();
+    scheduleMissionNotification(hour, minute);
   };
 
-  const handleAppleLogin = async () => {
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const { user, isNew } = await signInWithApple();
-      setAuthUser(user);
-      if (!isNew) {
-        setProfile({ name: user.name ?? '오프모더', avatar: user.avatar ?? '01' });
-        const hour   = user.missionHour   ?? 8;
-        const minute = user.missionMinute ?? 0;
-        if (user.missionHour != null) setMissionTime({ hour, minute });
-        if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
-        await loadTodayMission();
-        scheduleMissionNotification(hour, minute);
-      }
-      setAuthStatus(isNew ? 'signingUp' : 'authenticated');
-    } catch (e) {
-      if (e?.code !== 'ERR_CANCELED') {
-        console.warn(e);
-        setLoginError(e?.message || 'Apple 로그인에 실패했습니다.');
-      }
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await cancelMissionNotification();
-    await clearToken();
-    setAuthUser(null);
+  // 로그아웃 시 세션 상태 초기화
+  const resetSession = () => {
     setProfile({ name: '오프모더', avatar: '01' });
     setMissionTime({ hour: 8, minute: 0 });
     setHasMission(false);
     setCurrentMission(null);
     setCurrentMissionId(null);
-    setAuthStatus('unauthenticated');
   };
 
-  const handleDeleteAccount = async () => {
-    try {
-      await api.delete('/api/v1/users/me');
-    } catch (e) {
-      console.warn('회원탈퇴 실패:', e);
-    }
-    await handleLogout();
-  };
+  // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
+  const {
+    authStatus, setAuthStatus, authUser, loginLoading, loginError,
+    handleKakaoLogin, handleAppleLogin, handleLogout, handleDeleteAccount,
+  } = useAuth({ applySession, resetSession });
 
   const handleSignupComplete = async (profileData) => {
     const { name, avatar, missionTime: mt } = profileData;
@@ -241,6 +176,20 @@ function AppInner() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // 앱 시작 시 햅틱·효과음 설정을 전역 복원 (설정 화면을 열지 않아도 반영)
+  useEffect(() => {
+    (async () => {
+      try {
+        const hp = await SecureStore.getItemAsync('haptic');
+        const sd = await SecureStore.getItemAsync('sound');
+        if (hp !== null) H.setEnabled(hp === 'true');
+        if (sd !== null) S.setEnabled(sd === 'true');
+      } catch (e) {
+        if (__DEV__) console.warn('피드백 설정 복원 실패:', e?.message);
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded && authStatus !== 'loading') {
       SplashScreen.hideAsync().finally(() => {
@@ -251,23 +200,10 @@ function AppInner() {
 
   /* ── 설정 시간 감지 → 룰렛 표시 ──
      정책: 오늘 미션이 이미 있으면 시간을 바꿔도 룰렛을 다시 띄우지 않음 */
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = new Date();
-      const key = `${now.getHours()}:${now.getMinutes()}`;
-      if (
-        now.getHours()   === missionTime.hour &&
-        now.getMinutes() === missionTime.minute &&
-        lastTriggeredRef.current !== key &&
-        !hasMission   // 오늘 미션이 없을 때만 룰렛 트리거
-      ) {
-        lastTriggeredRef.current = key;
-        setShowRoulette(true);
-        setTab('mission');
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, [missionTime, hasMission]);
+  useMissionRouletteTrigger(missionTime, hasMission, () => {
+    setShowRoulette(true);
+    setTab('mission');
+  });
 
   /* ── 최상위 3페이지 좌우 스와이프 (Mission | Profile | Settings) ──
      세로 스크롤과 충돌하지 않도록 수평 우세 제스처만 캡처 (ProfileScreen 기존 방식 확장) */
@@ -284,7 +220,32 @@ function AppInner() {
     [tab],
   );
 
-  const statusStyle = scheme === 'dark' ? 'light' : 'dark';
+  /* ── 초대 딥링크 수신 (유니버설 링크 /invite/CODE · offmode:// 스킴) ──
+     인증 전에 도착하면 pendingInvite 에 저장했다가 로그인 완료 후 참여 화면으로 이동 */
+  const handleInviteUrl = useCallback((url) => {
+    const code = parseInviteCode(url);
+    if (code) setPendingInvite(code);
+  }, []);
+
+  useEffect(() => {
+    Linking.getInitialURL().then(url => { if (url) handleInviteUrl(url); }).catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => handleInviteUrl(url));
+    return () => sub.remove();
+  }, [handleInviteUrl]);
+
+  useEffect(() => {
+    if (authStatus === 'authenticated' && pendingInvite) {
+      setShowRoulette(false);
+      setStack(prev => [...prev, { name: 'joinRoom', params: { initialCode: pendingInvite } }]);
+      setPendingInvite(null);
+    }
+  }, [authStatus, pendingInvite]);
+
+  // 회원가입·인증 후 메인 탭은 웜 크림 팔레트를 쓰므로 최상위 크롬(상태바·상단 세이프에어리어)도 크림으로 맞춘다.
+  const warmChrome =
+    authStatus === 'signingUp' || (authStatus === 'authenticated' && !showRoulette);
+  const chromeBg = warmChrome ? W.bg : C.bg;
+  const statusStyle = warmChrome ? 'dark' : scheme === 'dark' ? 'light' : 'dark';
 
   if (!fontsLoaded || authStatus === 'loading') return null;
 
@@ -312,8 +273,8 @@ function AppInner() {
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <StatusBar style={statusStyle} backgroundColor={C.bg} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      <StatusBar style={statusStyle} backgroundColor={chromeBg} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: chromeBg }} edges={['top']}>
 
       {/* ── 로그인 화면 ── */}
       {authStatus === 'unauthenticated' && (
@@ -344,7 +305,7 @@ function AppInner() {
 
       {/* ── 메인 탭 UI ── */}
       {authStatus === 'authenticated' && !showRoulette && (
-        <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, backgroundColor: W.bg }}>
 
           {/* ── 스택 화면 (오버레이) ── */}
           {currentStack === 'missionTime' && (
@@ -409,6 +370,7 @@ function AppInner() {
             <View style={StyleSheet.absoluteFillObject}>
               <JoinRoomScreen
                 onBack={pop}
+                initialCode={sp?.initialCode}
                 onJoined={(room) => { bumpRoom(); setStack([{ name: 'roomDetail', params: { roomId: room.id } }]); }}
               />
             </View>
@@ -474,7 +436,7 @@ function AppInner() {
             </View>
           )}
 
-          {/* ── 최상위 3페이지 (좌우 스와이프: Mission | Profile | Settings) ── */}
+          {/* ── 최상위 3페이지 (좌우 스와이프: Profile | Mission | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
             pointerEvents={currentStack ? 'none' : 'auto'}
@@ -513,8 +475,12 @@ function AppInner() {
               )}
             </View>
 
-            {/* 페이지 인디케이터 (3페이지 공통) — 3페이지 모두 웜 크림 */}
-            <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg={W.bg} />
+            {/* 플로팅 바텀: 인디케이터 + 하단 인셋을 화면 위에 투명 오버레이로 띄움
+                → 스크롤 컨텐츠가 그 뒤로 비치는 엣지-투-엣지 룩 */}
+            <View style={styles.pagerBottomOverlay} pointerEvents="none">
+              <PageIndicator count={PAGES.length} active={PAGES.indexOf(tab)} bg="transparent" />
+              <PagerBottomInset />
+            </View>
           </View>
         </View>
       )}
@@ -544,4 +510,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screenWrap: { flex: 1 },
+  pagerBottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'transparent' },
 });

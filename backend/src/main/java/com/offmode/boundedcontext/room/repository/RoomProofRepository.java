@@ -3,17 +3,48 @@ package com.offmode.boundedcontext.room.repository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.room.entity.RoomProof;
 import com.offmode.boundedcontext.room.types.ProofStatus;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
 
   List<RoomProof> findByRoomMissionIdOrderByCreatedAtDesc(Long roomMissionId);
+
+  // confirm/리액션 직렬화용 행 락 — 같은 인증에 대한 동시 요청이 순서대로 처리되어
+  // 임계치 이중 통과(이중 진급/뱃지)와 UNIQUE 위반 500을 막는다.
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT p FROM RoomProof p WHERE p.id = :id")
+  Optional<RoomProof> findWithLockById(@Param("id") Long id);
+
+  // 방 목록용: 미션별 VERIFIED 수를 한 번에 집계 (방 개수만큼 반복 호출하지 않는다)
+  @Query(
+      """
+        SELECT p.roomMission.id, COUNT(p)
+        FROM RoomProof p
+        WHERE p.roomMission.id IN :missionIds AND p.status = :status
+        GROUP BY p.roomMission.id
+    """)
+  List<Object[]> countRowsByRoomMissionIdInAndStatus(
+      @Param("missionIds") List<Long> missionIds, @Param("status") ProofStatus status);
+
+  // 방 상세용: 오늘 인증들을 업로더와 함께 한 번에 로드 (인증 건마다 유저 쿼리 없음)
+  @Query(
+      """
+        SELECT p
+        FROM RoomProof p
+        JOIN FETCH p.user
+        WHERE p.roomMission.id = :missionId
+        ORDER BY p.createdAt DESC
+    """)
+  List<RoomProof> findWithUserByRoomMissionId(@Param("missionId") Long missionId);
 
   Optional<RoomProof> findByRoomMissionIdAndUserId(Long roomMissionId, Long userId);
 
@@ -28,6 +59,18 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
   long countByUserId(Long userId);
 
   long countByUserIdAndStatus(Long userId, ProofStatus status);
+
+  // 프로필 활동 기록용: 유저가 올린 방 인증(방 미션 날짜 최신순).
+  // roomMission 을 fetch join 으로 함께 로드해 건당 추가 쿼리(N+1) 없이 사용한다.
+  @Query(
+      """
+        SELECT p
+        FROM RoomProof p
+        JOIN FETCH p.roomMission rm
+        WHERE p.user.id = :userId
+        ORDER BY rm.date DESC, p.id DESC
+    """)
+  List<RoomProof> findHistoryByUser(@Param("userId") Long userId, Pageable pageable);
 
   // 카테고리별 방 인증 수 (WALKER/BEAUTY_CURATOR/LOCAL_HIPSTER 배지 + 카테고리 통계용).
   // roomMission.category 가 null 인 인증은 어떤 카테고리에도 잡히지 않는다.

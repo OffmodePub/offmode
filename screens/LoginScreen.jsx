@@ -1,15 +1,13 @@
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Platform,
+  View, StyleSheet, TouchableOpacity, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors } from '../utils/useColors';
-import T from '../components/ThemedText';
-
-const F = 'Kkukkukk';
+import { W } from '../constants/warm';
+import WarmText from '../components/WarmText';
 
 export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error }) {
-  const C = useColors();
+  const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
 
   return (
@@ -17,18 +15,16 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
 
       {/* 상단 브랜딩 */}
       <View style={s.brand}>
-        <View style={s.logoWrap}>
-          <LinearGradient
-            colors={['#22c97a', '#1ab065']}
-            style={s.logoCircle}
-          >
-            <Text style={s.logoMoon}>🌙</Text>
-          </LinearGradient>
-        </View>
-        <T v="logo" size={36} style={s.logoText}>OFFMODE</T>
-        <T v="sub" style={s.tagline}>
+        <LinearGradient
+          colors={['#22c97a', '#1ab065']}
+          style={s.logoCircle}
+        >
+          <WarmText style={s.logoMoon}>🌙</WarmText>
+        </LinearGradient>
+        <WarmText v="logo" style={s.logoText}>OFFMODE</WarmText>
+        <WarmText v="sub" size={15} color={C.green} style={s.tagline}>
           매일 하나의 미션으로{'\n'}오프라인을 시작하세요
-        </T>
+        </WarmText>
       </View>
 
       {/* 로그인 버튼들 */}
@@ -41,35 +37,37 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
           activeOpacity={0.85}
           disabled={loading}
         >
-          <Text style={s.kakaoIcon}>💬</Text>
-          <Text style={s.kakaoText}>{loading ? '로그인 중...' : '카카오로 시작하기'}</Text>
+          <WarmText size={20}>💬</WarmText>
+          <WarmText v="body" size={16} style={s.kakaoText}>
+            {loading ? '로그인 중...' : '카카오로 시작하기'}
+          </WarmText>
           <View style={{ width: 24 }} />
         </TouchableOpacity>
 
         {/* Apple (iOS only) */}
         {Platform.OS === 'ios' && (
           <TouchableOpacity
-            style={[s.appleBtn, { backgroundColor: C.isDark ? '#ffffff' : '#000000' }]}
+            style={s.appleBtn}
             onPress={onAppleLogin}
             activeOpacity={0.85}
             disabled={loading}
           >
-            <Text style={[s.appleIcon, { color: C.isDark ? '#000' : '#fff' }]}></Text>
-            <Text style={[s.appleText, { color: C.isDark ? '#000' : '#fff' }]}>
+            <WarmText size={18} color="#000000"></WarmText>
+            <WarmText v="body" size={16} style={s.appleText}>
               {loading ? '로그인 중...' : 'Apple로 시작하기'}
-            </Text>
+            </WarmText>
             <View style={{ width: 24 }} />
           </TouchableOpacity>
         )}
 
-        {!!error && <T v="caption" style={s.error}>{error}</T>}
+        {!!error && <WarmText v="caption" color={C.coral} style={s.error}>{error}</WarmText>}
 
       </View>
 
       {/* 하단 약관 */}
-      <T v="caption" style={s.terms}>
+      <WarmText v="caption" color={C.text} style={s.terms}>
         시작하면 서비스 이용약관 및{'\n'}개인정보 처리방침에 동의하는 것으로 간주됩니다
-      </T>
+      </WarmText>
 
     </View>
   );
@@ -83,19 +81,15 @@ function makeStyles(C) {
       paddingHorizontal: 28, paddingTop: 100, paddingBottom: 48,
     },
 
-    brand: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+    brand: { alignItems: 'center', flex: 1, justifyContent: 'center', gap: 18 },
 
-    logoWrap:   { marginBottom: 20 },
     logoCircle: {
       width: 80, height: 80, borderRadius: 40,
       alignItems: 'center', justifyContent: 'center',
     },
     logoMoon: { fontSize: 40 },
-    logoText: { letterSpacing: 6, marginBottom: 16 },
-    tagline:  {
-      textAlign: 'center', lineHeight: 22, opacity: 0.7,
-      fontFamily: F, fontSize: 15,
-    },
+    logoText: { letterSpacing: 6 },
+    tagline:  { textAlign: 'center', lineHeight: 22, opacity: 0.7 },
 
     btns: { width: '100%', gap: 12, marginBottom: 32 },
 
@@ -106,19 +100,19 @@ function makeStyles(C) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8,
     },
-    kakaoIcon: { fontSize: 20 },
-    kakaoText: { fontFamily: F, fontSize: 16, color: 'rgba(0,0,0,0.85)', flex: 1, textAlign: 'center' },
+    kakaoText: { color: 'rgba(0,0,0,0.85)', flex: 1, textAlign: 'center' },
 
     /* Apple */
     appleBtn: {
+      backgroundColor: '#ffffff',
+      borderWidth: 1, borderColor: '#000000',
       borderRadius: 16, height: 54,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8,
     },
-    appleIcon: { fontSize: 18, fontFamily: F },
-    appleText: { fontFamily: F, fontSize: 16, flex: 1, textAlign: 'center' },
+    appleText: { color: '#000000', flex: 1, textAlign: 'center' },
 
-    error: { textAlign: 'center', color: C.danger, lineHeight: 18 },
+    error: { textAlign: 'center', lineHeight: 18 },
     terms: { textAlign: 'center', lineHeight: 18, opacity: 0.4 },
   });
 }

@@ -10,6 +10,7 @@ import {
   RoomTopBar, MemberAvatar, ReactionBar, ProofStatusBadge, OutlineButton,
 } from '../components/RoomBits';
 import ReportReasonModal from '../components/ReportReasonModal';
+import { pad } from '../utils/date';
 
 function resolvePhoto(url) {
   if (!url) return null;
@@ -22,8 +23,7 @@ function timeLabel(createdAt) {
     ? new Date(createdAt[0], (createdAt[1] || 1) - 1, createdAt[2] || 1, createdAt[3] || 0, createdAt[4] || 0)
     : new Date(createdAt);
   if (isNaN(d.getTime())) return '';
-  const p = (n) => String(n).padStart(2, '0');
-  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGroup = true, onBack, onChanged }) {
@@ -96,6 +96,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
       <RoomTopBar
         title="인증 상세"
         subtitle={missionTitle}
+        subtitleColor={W.textSub}
         onBack={onBack}
         rightIcon={proof && !proof.mine ? 'ellipsis-horizontal' : undefined}
         onRight={() => { H.tap(); setReportOpen(true); }}
@@ -110,42 +111,45 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
       ) : (
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           <View style={s.card}>
-            <View style={s.cardTop}>
-              <MemberAvatar avatarId={proof.authorAvatarId} size={32} />
-              <View style={{ flex: 1 }}>
-                <WarmText v="section" size={14}>{proof.authorNickname}</WarmText>
-                <WarmText v="caption" size={11}>{timeLabel(proof.createdAt)} 미션 완료</WarmText>
+            <View style={s.photoWrap}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={s.photo} resizeMode="cover" />
+              ) : (
+                <View style={[s.photo, s.photoEmpty]}><WarmText size={52}>📷</WarmText></View>
+              )}
+              <View style={s.statusBadge}><ProofStatusBadge status={proof.status} /></View>
+              <View style={s.authorOverlay}>
+                <MemberAvatar avatarId={proof.authorAvatarId} size={32} />
+                <WarmText v="section" size={14} color="#fff" style={{ flex: 1 }} numberOfLines={1}>
+                  {proof.authorNickname}
+                </WarmText>
+                <WarmText v="sub" size={13} color="rgba(255,255,255,0.6)">{timeLabel(proof.createdAt)}</WarmText>
               </View>
-              <ProofStatusBadge status={proof.status} />
             </View>
 
-            {photo ? (
-              <Image source={{ uri: photo }} style={s.photo} resizeMode="cover" />
-            ) : (
-              <View style={[s.photo, s.photoEmpty]}><WarmText size={52}>📷</WarmText></View>
-            )}
+            <View style={s.cardBody}>
+              {proof.caption ? <WarmText v="body" size={14} style={{ lineHeight: 21 }}>{proof.caption}</WarmText> : null}
 
-            {proof.caption ? <WarmText v="body" size={15} style={{ marginTop: 12 }}>{proof.caption}</WarmText> : null}
-
-            <View style={{ marginTop: 14 }}>
-              <ReactionBar reactions={proof.reactions} onToggle={handleReact} />
-            </View>
-
-            {isGroup ? (
-              <View style={s.confirmRow}>
-                <WarmText v="caption" size={12}>{proof.confirmCount ?? 0}/{proof.requiredConfirm ?? 0}명 인증</WarmText>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={proof.myConfirmed}
-                  onPress={handleConfirm}
-                  style={[s.confirmBtn, proof.myConfirmed && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
-                >
-                  <WarmText v="section" size={14} color={proof.myConfirmed ? C.green : C.text}>
-                    {proof.myConfirmed ? '✓ 인증함' : '인증해주기'}
-                  </WarmText>
-                </TouchableOpacity>
+              <View style={proof.caption ? { marginTop: 14 } : null}>
+                <ReactionBar reactions={proof.reactions} onToggle={handleReact} />
               </View>
-            ) : null}
+
+              {isGroup ? (
+                <View style={s.confirmRow}>
+                  <WarmText v="caption" size={12} color={C.text}>{proof.confirmCount ?? 0}/{proof.requiredConfirm ?? 0}명 인증</WarmText>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={proof.myConfirmed}
+                    onPress={handleConfirm}
+                    style={[s.confirmBtn, proof.myConfirmed && { borderColor: C.greenBorder, backgroundColor: C.greenFaint }]}
+                  >
+                    <WarmText v="caption" size={12} color={proof.myConfirmed ? C.green : C.text}>
+                      {proof.myConfirmed ? '✓ 인증함' : '인증해주기'}
+                    </WarmText>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
           </View>
         </ScrollView>
       )}
@@ -166,11 +170,18 @@ function makeStyles(C) {
     screen:  { flex: 1, backgroundColor: C.bg },
     center:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
     content: { padding: 20 },
-    card:    { backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, padding: 14 },
-    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    photo:   { width: '100%', height: 300, borderRadius: 14, backgroundColor: C.surface2 },
+    card:    { backgroundColor: C.surface, borderRadius: 18, borderWidth: 1, borderColor: C.borderStrong, overflow: 'hidden' },
+    photoWrap: { position: 'relative' },
+    photo:   { width: '100%', height: 300, backgroundColor: C.surface2 },
     photoEmpty: { alignItems: 'center', justifyContent: 'center' },
-    confirmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.border },
-    confirmBtn: { borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 9, backgroundColor: C.bg },
+    statusBadge: { position: 'absolute', top: 12, right: 12 },
+    authorOverlay: {
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 12, paddingVertical: 8,
+    },
+    cardBody: { padding: 14 },
+    confirmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(122,92,79,0.25)' },
+    confirmBtn: { borderWidth: 1, borderColor: C.brown, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: C.neutralStrong },
   });
 }

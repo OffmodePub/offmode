@@ -4,6 +4,7 @@ import com.offmode.global.dto.response.ApiResponse;
 import com.offmode.global.status.ErrorStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -60,6 +61,14 @@ public class GlobalExceptionHandler {
   })
   public ResponseEntity<ApiResponse<?>> handleBadRequest(Exception e) {
     return ApiResponse.onFailure(ErrorStatus.BAD_REQUEST);
+  }
+
+  // check-then-save 경합으로 UNIQUE 제약에 걸린 경우 — 서버 오류(500)가 아니라 중복 요청(409)이다.
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(
+      DataIntegrityViolationException e, HttpServletRequest request) {
+    log.warn("Data integrity violation on path={}: {}", request.getRequestURI(), e.getMessage());
+    return ApiResponse.onFailure(ErrorStatus.CONFLICT);
   }
 
   @ExceptionHandler(Exception.class)

@@ -145,12 +145,13 @@ push('myScreen')   // → currentStack === 'myScreen'
 | `signingUp` | `SignupScreen` | 로그인 응답의 `isNew === true` |
 | `authenticated` | 메인 탭 UI | 로그인 성공 + 프로필 로드 완료 |
 
-- 카카오·Apple 로그인 응답은 `{ token, user, isNew }` 형태. `isNew`로 신규/기존 분기.
-- 로그아웃 시 `cancelMissionNotification()` → `clearToken()` → 상태 초기화 → `setAuthStatus('unauthenticated')` 순서를 지킨다.
-- 자동 로그인 흐름은 `useEffect`에서 `loadToken()` → `/api/v1/users/me` → `loadTodayMission()` → `scheduleMissionNotification()`로 이어진다. 새 사용자 설정 필드가 생기면 이 자동 로그인 분기와 카카오/Apple 로그인 분기 두 군데를 동시에 손봐야 한다.
+- 상태머신 본체는 `utils/useAuth.js` 훅. 카카오·Apple 로그인 응답은 `{ token, user, isNew }` 형태이고 `isNew`로 신규/기존 분기.
+- 로그아웃 순서(`cancelMissionNotification()` → `clearToken()` → 상태 초기화 → `unauthenticated`)는 `useAuth`의 `handleLogout`이 보장한다.
+- 로그인/자동 로그인 성공 후처리(프로필·미션시간·오늘미션 로드·알림 예약)는 App.jsx의 `applySession` **한 곳**에 모여 있다. 새 사용자 설정 필드가 생기면 `applySession`(+로그아웃 초기화는 `resetSession`)만 수정하면 자동로그인·카카오·Apple에 모두 반영된다.
+- API가 토큰 보유 상태에서 401을 반환하면 `utils/api.js`의 `setOnUnauthorized`로 등록된 핸들러가 자동 로그아웃시킨다 (`useAuth` 내부에서 등록).
 
 ### 미션 룰렛 자동 트리거 정책
-`App.jsx`의 1초 간격 인터벌이 `missionTime` 도달을 감지해서 룰렛을 띄운다. 룰렛이 **다시 트리거되지 않는** 조건:
+`utils/useMissionRouletteTrigger.js` 훅의 1초 간격 인터벌이 `missionTime` 도달을 감지해서 룰렛을 띄운다 (App.jsx에서 사용). 룰렛이 **다시 트리거되지 않는** 조건:
 
 - 같은 분(`HH:MM`) 안에 이미 한 번 트리거됨 (`lastTriggeredRef`)
 - 오늘 미션이 이미 있음 (`hasMission === true`) — **시간을 변경해도 재트리거하지 않는다**
@@ -196,26 +197,20 @@ uri: photoUrl.startsWith('/') ? `${BASE_URL}${photoUrl}` : photoUrl
 ```
 
 ### 아바타 시스템
-아바타 ID는 `'01'`~`'06'` 문자열. `utils/avatars.js`에서 가져온다.
+아바타 ID는 `'01'`~`'05'` 문자열 (토끼·병아리·수달·펭귄·다람쥐). **PNG 이미지 기반**이며 `utils/avatars.js`에서 가져온다 (과거 SVG 방식 아님).
 
 ```jsx
-import { getAvatarSource, getAvatarDefaultSource, AVATAR_IDS } from '../utils/avatars';
+import { getAvatarSource, AVATAR_IDS } from '../utils/avatars';
+import AvatarImage from '../components/AvatarImage';
 
-// 실제 화면용 — 미션 상태에 따라 아바타 이미지가 바뀜
-const avatarSource = getAvatarSource(avatarId, currentMission?.status);
-// status: null | 'active' | 'pending' | 'done' | 'verified'
+// 아바타 얼굴 이미지 source (상태별 변형 없음 — 두 번째 인자는 호환용)
+const avatarSource = getAvatarSource(avatarId);
 
-// 피커/편집 화면용 — 항상 default 이미지
-const avatarSource = getAvatarDefaultSource(avatarId);
-
-// SVG 렌더링 (ProfileScreen, SignupScreen 참고)
-function AvatarSvg({ source: SvgComponent, width = 80, height = 80 }) {
-  if (!SvgComponent) return <View style={{ width, height }} />;
-  return <SvgComponent width={width} height={height} />;
-}
+// 렌더링 — 공통 컴포넌트 사용 (source 없으면 빈 자리 유지, 기본 72)
+<AvatarImage source={avatarSource} width={80} height={80} />
 ```
 
-`AvatarSvg`는 현재 `ProfileScreen`·`SignupScreen`에 중복 정의됨 → 추후 `components/`로 이전 예정.
+전신 몸통(프로필 꾸미기 캔버스)은 `constants/parts.js`의 `getCharacterSource()`로 연결된다.
 
 ### 미션 상태값
 ```
@@ -373,5 +368,5 @@ throw new BusinessException(ErrorStatus.MISSION_NOT_FOUND);
 - 새 API 엔드포인트 추가 시 `SecurityConfig`의 permitAll/authenticated 목록 확인
 - 백엔드 엔티티 변경 시 dev/prod 모두 `ddl-auto: validate`이므로 자동 반영되지 않는다. `backend/src/main/resources/db/migration/{h2,mysql}/V*__*.sql`에 Flyway 마이그레이션을 동시에 추가한다 (H2/MySQL 양쪽 모두)
 - 개발 API 주소는 `.env`의 `EXPO_PUBLIC_*` 변수로 설정하고 `utils/api.js`에 로컬 IP를 하드코딩하지 않음
-- `AvatarSvg` 컴포넌트가 `ProfileScreen`·`SignupScreen`에 중복 정의됨 → `components/AvatarSvg.jsx`로 분리 예정
-- `BADGE_IMAGE_MAP`이 `MissionScreen`·`ProfileScreen`에 중복 정의됨 → `constants/badges.js`로 분리 예정
+- 공통 모듈을 재사용한다: `pad`는 `utils/date.js`, 아바타 렌더링은 `components/AvatarImage.jsx`, 휠 피커는 `components/WheelPicker.jsx` — 화면 안에 다시 정의하지 않는다
+- 경로별 상세 규칙은 `.claude/rules/`(backend-testing, api-design, frontend-conventions) 참고 — 해당 경로 파일 작업 시 자동 로드됨

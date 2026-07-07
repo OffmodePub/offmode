@@ -13,7 +13,9 @@ import com.offmode.boundedcontext.room.types.MissionSource;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +31,25 @@ public class RoomMissionService {
   private final MissionRepository masterMissionRepository;
   private final RoomService roomService;
 
+  private static final int CANDIDATE_LIMIT = 7;
+
   @Transactional(readOnly = true)
   public List<MissionCandidateResponse> getCandidates(Long userId, Long roomId) {
     roomService.getRoomOrThrow(roomId);
     roomService.getMembershipOrThrow(roomId, userId);
-    return masterMissionRepository.findAll().stream().map(MissionCandidateResponse::from).toList();
+
+    // 이 방에서 직접 입력한(자유입력) 지난 미션 중 제목 기준 중복 제거 후 최신 7개
+    List<RoomMission> past =
+        missionRepository.findByRoomIdAndSourceAndCategoryIsNullOrderByDateDesc(
+            roomId, MissionSource.DIRECT);
+    Map<String, RoomMission> byTitle = new LinkedHashMap<>();
+    for (RoomMission m : past) {
+      byTitle.putIfAbsent(m.getTitle(), m); // 최신순 정렬이라 첫 등장이 가장 최근
+    }
+    return byTitle.values().stream()
+        .limit(CANDIDATE_LIMIT)
+        .map(MissionCandidateResponse::from)
+        .toList();
   }
 
   @Transactional
