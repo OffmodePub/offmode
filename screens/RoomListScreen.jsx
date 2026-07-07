@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl,
+  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
@@ -78,6 +78,19 @@ function EmptyState() {
   );
 }
 
+/* 상단 배너 문구 — 일정 간격으로 순환 노출 */
+const BANNER_PHRASES = [
+  '📸  혼자 또는 친구와 미션을 인증해요',
+  '🌿  오늘도 스크린 OFF, 일상 ON',
+  '🚶  작은 미션 하나로 하루가 달라져요',
+  '🔥  연속 인증으로 나만의 기록을 쌓아요',
+  '👀  친구들의 인증을 구경하고 응원해요',
+  '✨  매일 새로운 랜덤 미션이 기다려요',
+  '☀️  지금, 화면 밖으로 한 걸음 나가볼까요?',
+  '🤝  함께하면 미션이 더 즐거워져요',
+];
+const BANNER_INTERVAL_MS = 4000;
+
 export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNotifications, version }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
@@ -87,6 +100,19 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  // 상단 배너 문구 순환 (페이드 전환)
+  const [bannerIdx, setBannerIdx] = useState(0);
+  const bannerFade = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const id = setInterval(() => {
+      Animated.timing(bannerFade, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
+        setBannerIdx(i => (i + 1) % BANNER_PHRASES.length);
+        Animated.timing(bannerFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+      });
+    }, BANNER_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [bannerFade]);
 
   const load = useCallback(async () => {
     setError('');
@@ -135,7 +161,9 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
         </View>
 
         <View style={s.banner}>
-          <WarmText v="body" size={14} color={C.text}>📸  혼자 또는 친구와 미션을 인증해요</WarmText>
+          <Animated.View style={{ opacity: bannerFade }}>
+            <WarmText v="body" size={14} color={C.text}>{BANNER_PHRASES[bannerIdx]}</WarmText>
+          </Animated.View>
         </View>
 
         {loading ? (
