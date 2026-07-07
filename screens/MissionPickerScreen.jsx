@@ -54,7 +54,7 @@ export default function MissionPickerScreen({ roomId, onBack, onChosen }) {
           <View style={s.center}><ActivityIndicator color={C.green} /></View>
         ) : candidates.length === 0 ? (
           <View style={s.feedEmpty}>
-            <WarmText v="sub" style={{ textAlign: 'center' }}>추천할 지난 미션이 아직 없어요</WarmText>
+            <WarmText v="sub" style={{ textAlign: 'center' }}>직접 입력한 지난 미션이 아직 없어요</WarmText>
           </View>
         ) : (
           <View style={{ gap: 10 }}>
@@ -63,7 +63,7 @@ export default function MissionPickerScreen({ roomId, onBack, onChosen }) {
                 key={m.id}
                 activeOpacity={0.85}
                 disabled={submitting}
-                onPress={() => { H.tap(); submit({ source: 'DIRECT', missionId: m.id }); }}
+                onPress={() => { H.tap(); submit({ source: 'DIRECT', title: m.title, icon: m.icon }); }}
                 style={s.pickRow}
               >
                 <WarmText size={22}>{m.icon}</WarmText>
