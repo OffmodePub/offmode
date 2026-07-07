@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
+import * as S from '../utils/sounds';
 import {
   requestNotificationPermission,
   scheduleMissionNotification, cancelMissionNotification,
@@ -116,7 +117,7 @@ export default function SettingsScreen({
   const [pushNotif, setPushNotif] = useState(false);
   const [reminder,  setReminder]  = useState(false);
   const [haptic,    setHaptic]    = useState(H.isEnabled());
-  const [sound,     setSound]     = useState(false);
+  const [sound,     setSound]     = useState(S.isEnabled());
 
   useEffect(() => {
     (async () => {
@@ -127,7 +128,7 @@ export default function SettingsScreen({
       if (pn !== null) setPushNotif(pn === 'true');
       if (rm !== null) setReminder(rm === 'true');
       if (hp !== null) { const on = hp === 'true'; setHaptic(on); H.setEnabled(on); }
-      if (sd !== null) setSound(sd === 'true');
+      if (sd !== null) { const on = sd === 'true'; setSound(on); S.setEnabled(on); }
     })();
   }, []);
 
@@ -184,7 +185,9 @@ export default function SettingsScreen({
   };
 
   const handleSound = (v) => {
+    S.setEnabled(v);
     setSound(v);
+    if (v) S.tap(); // 미리듣기
     SecureStore.setItemAsync('sound', String(v));
   };
 
