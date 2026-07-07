@@ -8,6 +8,7 @@ import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import { RoomTopBar, MemberAvatar } from '../components/RoomBits';
 import { roomIconEmoji } from '../constants/rooms';
+import { buildInviteUrl } from '../utils/invite';
 
 export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }) {
   const C = W;
@@ -46,7 +47,10 @@ export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }
   const shareCode = () => {
     if (!room?.inviteCode) return;
     H.tap();
-    Share.share({ message: `오프모드 '${room.name}' 방에 초대합니다 🌙\n초대코드: ${room.inviteCode}` }).catch(() => {});
+    const url = buildInviteUrl(room.inviteCode);
+    Share.share({
+      message: `오프모드 '${room.name}' 방에 초대합니다 🌙\n초대코드: ${room.inviteCode}\n\n▼ 아래 링크로 바로 참여하기\n${url}`,
+    }).catch(() => {});
   };
 
   const kick = (member) => {

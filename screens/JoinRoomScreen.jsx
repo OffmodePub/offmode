@@ -9,12 +9,12 @@ import * as H from '../utils/haptics';
 import useBottomInset from '../utils/useBottomInset';
 import { RoomTopBar, GreenButton } from '../components/RoomBits';
 
-export default function JoinRoomScreen({ onBack, onJoined }) {
+export default function JoinRoomScreen({ onBack, onJoined, initialCode }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
   const bottomInset = useBottomInset();
 
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode ? String(initialCode).toUpperCase() : '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
