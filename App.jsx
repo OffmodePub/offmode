@@ -9,7 +9,9 @@ import { useFonts } from 'expo-font';
 import PageIndicator from './components/PageIndicator';
 import useBottomInset from './utils/useBottomInset';
 import { W } from './constants/warm';
+import * as SecureStore from 'expo-secure-store';
 import * as H from './utils/haptics';
+import * as S from './utils/sounds';
 import RoomListScreen from './screens/RoomListScreen';
 import RoomDetailScreen from './screens/RoomDetailScreen';
 import CreateRoomScreen from './screens/CreateRoomScreen';
@@ -171,6 +173,20 @@ function AppInner() {
   });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // 앱 시작 시 햅틱·효과음 설정을 전역 복원 (설정 화면을 열지 않아도 반영)
+  useEffect(() => {
+    (async () => {
+      try {
+        const hp = await SecureStore.getItemAsync('haptic');
+        const sd = await SecureStore.getItemAsync('sound');
+        if (hp !== null) H.setEnabled(hp === 'true');
+        if (sd !== null) S.setEnabled(sd === 'true');
+      } catch (e) {
+        if (__DEV__) console.warn('피드백 설정 복원 실패:', e?.message);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded && authStatus !== 'loading') {
