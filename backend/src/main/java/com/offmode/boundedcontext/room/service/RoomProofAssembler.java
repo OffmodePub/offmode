@@ -57,6 +57,7 @@ public class RoomProofAssembler {
       result.add(
           new RoomProofResponse(
               proof.getId(),
+              proof.getUser().getId(),
               proof.getUser().getName(),
               proof.getUser().getAvatar(),
               proof.getPhotoUrl(),

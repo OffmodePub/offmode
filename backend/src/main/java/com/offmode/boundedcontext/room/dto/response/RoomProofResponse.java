@@ -6,6 +6,7 @@ import java.util.List;
 
 public record RoomProofResponse(
     Long id,
+    Long authorUserId,
     String authorNickname,
     String authorAvatarId,
     String photoUrl,

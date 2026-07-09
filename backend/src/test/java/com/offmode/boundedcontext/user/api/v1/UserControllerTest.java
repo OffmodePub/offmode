@@ -4,19 +4,24 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.offmode.boundedcontext.user.dto.response.BlockResponse;
+import com.offmode.boundedcontext.user.dto.response.BlockedUserResponse;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.config.SecurityConfig;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.jwt.JwtAuthFilter;
 import com.offmode.global.jwt.JwtProvider;
 import com.offmode.global.status.ErrorStatus;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,6 +37,7 @@ class UserControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private UserService userService;
+  @MockitoBean private BlockService blockService;
   @MockitoBean private JwtProvider jwtProvider;
 
   private void authenticate() {
@@ -134,6 +140,42 @@ class UserControllerTest {
         .perform(delete("/api/v1/users/me").header("Authorization", "Bearer token"))
         .andExpect(status().isNoContent())
         .andExpect(content().string(""));
+  }
+
+  @Test
+  void blockReturnsBlockId() throws Exception {
+    authenticate();
+    when(blockService.block(1L, 2L)).thenReturn(new BlockResponse(99L));
+
+    mockMvc
+        .perform(post("/api/v1/users/2/block").header("Authorization", "Bearer token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.blockId").value(99L));
+  }
+
+  @Test
+  void unblockReturnsNoContent() throws Exception {
+    authenticate();
+    doNothing().when(blockService).unblock(1L, 2L);
+
+    mockMvc
+        .perform(delete("/api/v1/users/2/block").header("Authorization", "Bearer token"))
+        .andExpect(status().isNoContent())
+        .andExpect(content().string(""));
+  }
+
+  @Test
+  void myBlocksReturnsBlockedUsers() throws Exception {
+    authenticate();
+    when(blockService.listBlocked(1L))
+        .thenReturn(List.of(new BlockedUserResponse(2L, "차단이", "03")));
+
+    mockMvc
+        .perform(get("/api/v1/users/me/blocks").header("Authorization", "Bearer token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].userId").value(2L))
+        .andExpect(jsonPath("$[0].nickname").value("차단이"))
+        .andExpect(jsonPath("$[0].avatarId").value("03"));
   }
 
   @Test

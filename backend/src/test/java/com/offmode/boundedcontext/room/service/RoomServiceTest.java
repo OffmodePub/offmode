@@ -24,6 +24,7 @@ import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.room.types.RoomRole;
 import com.offmode.boundedcontext.room.types.RoomType;
 import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import java.util.List;
@@ -44,6 +45,7 @@ class RoomServiceTest {
   @Mock private RoomNudgeRepository nudgeRepository;
   @Mock private UserService userService;
   @Mock private RoomProofAssembler proofAssembler;
+  @Mock private BlockService blockService;
 
   private RoomService service() {
     return new RoomService(
@@ -53,7 +55,8 @@ class RoomServiceTest {
         proofRepository,
         nudgeRepository,
         userService,
-        proofAssembler);
+        proofAssembler,
+        blockService);
   }
 
   @Test
