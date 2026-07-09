@@ -24,6 +24,8 @@ public enum ErrorStatus {
 
   // User
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_404_001", "해당 사용자를 찾을 수 없습니다."),
+  USER_SELF_BLOCK_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "USER_400_001", "자기 자신은 차단할 수 없습니다."),
+  USER_ALREADY_BLOCKED(HttpStatus.CONFLICT, "USER_409_001", "이미 차단한 사용자입니다."),
 
   // Mission
   MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "MISSION_404_001", "해당 미션을 찾을 수 없습니다."),

@@ -33,6 +33,7 @@ import SignupScreen from './screens/SignupScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
+import BlockedUsersScreen from './screens/BlockedUsersScreen';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 
 // [WORKAROUND] RN 0.83 iOS Release 빌드에서 RCTFatal abort로 escalate되는
@@ -436,6 +437,12 @@ function AppInner() {
             </View>
           )}
 
+          {currentStack === 'blockedUsers' && (
+            <View style={StyleSheet.absoluteFillObject}>
+              <BlockedUsersScreen onBack={pop} />
+            </View>
+          )}
+
           {/* ── 최상위 3페이지 (좌우 스와이프: Profile | Mission | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
@@ -471,6 +478,7 @@ function AppInner() {
                   }}
                   onLogout={handleLogout}
                   onDeleteAccount={handleDeleteAccount}
+                  onOpenBlockedUsers={() => push('blockedUsers')}
                 />
               )}
             </View>

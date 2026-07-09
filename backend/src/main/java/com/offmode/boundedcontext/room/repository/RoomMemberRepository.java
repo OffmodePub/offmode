@@ -4,12 +4,18 @@ import com.offmode.boundedcontext.room.entity.RoomMember;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
 
   Optional<RoomMember> findByRoomIdAndUserId(Long roomId, Long userId);
+
+  // 회원 탈퇴 시: 유저의 모든 방 멤버십 삭제 (owner 위임 처리 후 호출)
+  @Modifying
+  @Query("DELETE FROM RoomMember m WHERE m.user.id = :userId")
+  void deleteByUserId(@Param("userId") Long userId);
 
   Optional<RoomMember> findByIdAndRoomId(Long id, Long roomId);
 
