@@ -13,6 +13,7 @@ import {
 } from '../components/RoomBits';
 import { roomIconEmoji } from '../constants/rooms';
 import { pad } from '../utils/date';
+import MissionRouletteScreen from './MissionRouletteScreen';
 
 function resolvePhoto(url) {
   if (!url) return null;
@@ -180,6 +181,7 @@ export default function RoomDetailScreen({
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [nudgedIds, setNudgedIds] = useState(() => new Set());
+  const [rouletteOpen, setRouletteOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -204,14 +206,17 @@ export default function RoomDetailScreen({
     load().finally(() => setLoading(false));
   }, [load, version]);
 
-  const handleRandom = useCallback(async () => {
-    H.tap();
+  const handleRandom = useCallback(() => { H.tap(); setRouletteOpen(true); }, []);
+
+  const handleRoulettePick = useCallback(async (mission) => {
     try {
-      await api.post(`/api/v1/rooms/${roomId}/mission`, { source: 'RANDOM' });
+      await api.post(`/api/v1/rooms/${roomId}/mission`, { source: 'RANDOM', missionId: mission.id });
+      setRouletteOpen(false);
       await load();
       onChanged?.();
     } catch (e) {
-      console.warn('랜덤 미션 실패:', e);
+      console.warn('랜덤 미션 배정 실패:', e);
+      setRouletteOpen(false);
     }
   }, [roomId, load, onChanged]);
 
@@ -474,6 +479,16 @@ export default function RoomDetailScreen({
           </View>
         )}
       </ScrollView>
+
+      {rouletteOpen && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <MissionRouletteScreen
+            onStart={handleRoulettePick}
+            onSkip={() => setRouletteOpen(false)}
+            autoSpin
+          />
+        </View>
+      )}
     </View>
   );
 }

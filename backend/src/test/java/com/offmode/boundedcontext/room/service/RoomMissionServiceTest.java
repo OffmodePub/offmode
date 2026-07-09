@@ -78,6 +78,51 @@ class RoomMissionServiceTest {
   }
 
   @Test
+  void setTodayMissionRandomWithMissionIdAssignsThatMissionKeepingRandomSource() {
+    Room room = Room.builder().id(2L).build();
+    Mission chosen =
+        Mission.builder()
+            .id(7L)
+            .icon("📚")
+            .text("책 한 권 사기")
+            .category(MissionCategory.INTELLECT)
+            .build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(missionRepository.findByRoomIdAndDate(eq(2L), any())).thenReturn(Optional.empty());
+    when(masterMissionRepository.findById(7L)).thenReturn(Optional.of(chosen));
+    when(missionRepository.save(any(RoomMission.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    RoomMissionResponse response =
+        service().setTodayMission(1L, 2L, request(MissionSource.RANDOM, null, null, 7L));
+
+    // 룰렛이 뽑은 특정 미션을 배정하되 source는 RANDOM으로 유지한다.
+    assertThat(response.title()).isEqualTo("책 한 권 사기");
+    assertThat(response.icon()).isEqualTo("📚");
+    assertThat(response.source()).isEqualTo(MissionSource.RANDOM);
+
+    ArgumentCaptor<RoomMission> captor = ArgumentCaptor.forClass(RoomMission.class);
+    verify(missionRepository).save(captor.capture());
+    assertThat(captor.getValue().getCategory()).isEqualTo(MissionCategory.INTELLECT);
+  }
+
+  @Test
+  void setTodayMissionRandomWithMissionIdThrowsWhenMasterMissionMissing() {
+    Room room = Room.builder().id(2L).build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(room);
+    when(roomService.getMembershipOrThrow(2L, 1L)).thenReturn(new RoomMember());
+    when(missionRepository.findByRoomIdAndDate(eq(2L), any())).thenReturn(Optional.empty());
+    when(masterMissionRepository.findById(404L)).thenReturn(Optional.empty());
+
+    SetRoomMissionRequest request = request(MissionSource.RANDOM, null, null, 404L);
+
+    assertThatThrownBy(() -> service().setTodayMission(1L, 2L, request))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage("해당 미션을 찾을 수 없습니다.");
+  }
+
+  @Test
   void setTodayMissionDirectUsesProvidedTitle() {
     Room room = Room.builder().id(2L).build();
     when(roomService.getRoomOrThrow(2L)).thenReturn(room);
