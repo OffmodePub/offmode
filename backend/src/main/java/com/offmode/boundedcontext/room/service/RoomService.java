@@ -27,6 +27,7 @@ import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.room.types.RoomRole;
 import com.offmode.boundedcontext.room.types.RoomType;
 import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
@@ -59,6 +60,7 @@ public class RoomService {
   private final RoomNudgeRepository nudgeRepository;
   private final UserService userService;
   private final RoomProofAssembler proofAssembler;
+  private final BlockService blockService;
 
   // ===== 방 생성/참여/목록 =====
 
@@ -224,10 +226,15 @@ public class RoomService {
     int verifiedCount =
         (int) todayProofs.stream().filter(p -> p.getStatus() == ProofStatus.VERIFIED).count();
 
+    // 표시되는 인증 목록에서만 차단한 유저의 인증을 숨긴다 (멤버 목록·달성 카운트 집계는 그대로).
+    Set<Long> blockedIds = blockService.blockedUserIds(userId);
+    List<RoomProof> visibleProofs =
+        todayProofs.stream().filter(p -> !blockedIds.contains(p.getUser().getId())).toList();
+
     List<RoomProofResponse> proofs =
         todayMission == null
             ? List.of()
-            : proofAssembler.buildAll(todayProofs, requiredConfirm, userId);
+            : proofAssembler.buildAll(visibleProofs, requiredConfirm, userId);
 
     MemberTodayStatus myTodayStatus =
         missionId == null ? MemberTodayStatus.NONE : toTodayStatus(statusByUserId.get(userId));

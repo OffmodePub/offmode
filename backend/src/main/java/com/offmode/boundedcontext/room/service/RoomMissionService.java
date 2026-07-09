@@ -67,15 +67,17 @@ public class RoomMissionService {
     String title;
     MissionCategory category;
     if (request.getSource() == MissionSource.RANDOM) {
-      Mission picked = pickRandomMission();
+      // RANDOM + missionId: 클라이언트 룰렛이 뽑은 특정 미션을 랜덤 배정(source는 RANDOM 유지)
+      // RANDOM + missionId 없음: 서버가 마스터 풀에서 무작위 추첨
+      Mission picked =
+          request.getMissionId() != null
+              ? getMasterMissionOrThrow(request.getMissionId())
+              : pickRandomMission();
       icon = picked.getIcon();
       title = picked.getText();
       category = picked.getCategory();
     } else if (request.getMissionId() != null) {
-      Mission picked =
-          masterMissionRepository
-              .findById(request.getMissionId())
-              .orElseThrow(() -> new BusinessException(ErrorStatus.MISSION_NOT_FOUND));
+      Mission picked = getMasterMissionOrThrow(request.getMissionId());
       icon = picked.getIcon();
       title = picked.getText();
       category = picked.getCategory();
@@ -101,6 +103,12 @@ public class RoomMissionService {
                 .build());
 
     return RoomMissionResponse.from(saved);
+  }
+
+  private Mission getMasterMissionOrThrow(Long missionId) {
+    return masterMissionRepository
+        .findById(missionId)
+        .orElseThrow(() -> new BusinessException(ErrorStatus.MISSION_NOT_FOUND));
   }
 
   private Mission pickRandomMission() {

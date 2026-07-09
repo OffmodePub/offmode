@@ -35,6 +35,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
   const [error, setError] = useState('');
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -89,6 +90,51 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
     }
   }, [roomId, proofId]);
 
+  const doBlock = useCallback(async () => {
+    if (blocking) return;
+    if (!proof?.authorUserId) {
+      Alert.alert('차단 실패', '차단할 사용자를 확인할 수 없어요.');
+      return;
+    }
+    setBlocking(true);
+    try {
+      await api.post(`/api/v1/users/${proof.authorUserId}/block`);
+      H.success();
+      Alert.alert('차단했어요', '이 사용자의 인증이 보이지 않아요.');
+      onChanged?.();
+      onBack?.();
+    } catch (e) {
+      Alert.alert('차단 실패', e?.message || '차단하지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setBlocking(false);
+    }
+  }, [blocking, proof?.authorUserId, onChanged, onBack]);
+
+  const confirmBlock = useCallback(() => {
+    const name = proof?.authorNickname ?? '사용자';
+    Alert.alert(
+      `${name}님을 차단할까요?`,
+      '차단하면 이 사용자의 인증이 더 이상 보이지 않아요.',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '차단하기', style: 'destructive', onPress: doBlock },
+      ],
+    );
+  }, [proof?.authorNickname, doBlock]);
+
+  const handleMenu = useCallback(() => {
+    H.tap();
+    Alert.alert(
+      proof?.authorNickname ?? '사용자',
+      undefined,
+      [
+        { text: '신고하기', onPress: () => setReportOpen(true) },
+        { text: '차단하기', style: 'destructive', onPress: confirmBlock },
+        { text: '취소', style: 'cancel' },
+      ],
+    );
+  }, [proof?.authorNickname, confirmBlock]);
+
   const photo = resolvePhoto(proof?.photoUrl);
 
   return (
@@ -99,7 +145,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
         subtitleColor={W.textSub}
         onBack={onBack}
         rightIcon={proof && !proof.mine ? 'ellipsis-horizontal' : undefined}
-        onRight={() => { H.tap(); setReportOpen(true); }}
+        onRight={handleMenu}
       />
       {loading ? (
         <View style={s.center}><ActivityIndicator color={C.green} /></View>

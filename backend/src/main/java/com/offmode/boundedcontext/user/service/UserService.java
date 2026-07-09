@@ -8,10 +8,18 @@ import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.part.repository.UserPartRepository;
+import com.offmode.boundedcontext.room.entity.RoomMember;
+import com.offmode.boundedcontext.room.repository.RoomMemberRepository;
+import com.offmode.boundedcontext.room.repository.RoomNudgeRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofConfirmRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofReportRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
 import com.offmode.boundedcontext.room.types.ProofStatus;
+import com.offmode.boundedcontext.room.types.RoomRole;
 import com.offmode.boundedcontext.user.dto.response.UserStatsResponse;
 import com.offmode.boundedcontext.user.entity.User;
+import com.offmode.boundedcontext.user.repository.UserBlockRepository;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
@@ -36,6 +44,12 @@ public class UserService {
   private final UserBadgeRepository userBadgeRepository;
   private final UserPartRepository userPartRepository;
   private final RoomProofRepository roomProofRepository;
+  private final RoomReactionRepository roomReactionRepository;
+  private final RoomProofConfirmRepository roomProofConfirmRepository;
+  private final RoomProofReportRepository roomProofReportRepository;
+  private final RoomNudgeRepository roomNudgeRepository;
+  private final RoomMemberRepository roomMemberRepository;
+  private final UserBlockRepository userBlockRepository;
 
   public User getById(Long id) {
     return userRepository
@@ -151,7 +165,41 @@ public class UserService {
     userBadgeRepository.deleteByUserId(userId); // 내 배지
     userPartRepository.deleteByUserId(userId); // 내 파츠
     userMissionRepository.deleteByUserId(userId); // 내 미션
+    userBlockRepository.deleteAllByUser(userId); // 내가 차단했거나 나를 차단한 행
+
+    // 방(room) 도메인 정리 — 모든 방 자식 테이블은 users FK 가 있고 ON DELETE CASCADE 가 없다.
+    // rooms/room_missions 는 users FK 가 없어 삭제할 필요가 없다.
+    // owner 로 있던 방은 RoomService.leave 와 동일 정책으로 가장 먼저 들어온 남은 멤버에게 위임한다
+    // (GROUP 방의 다른 멤버 데이터 보존). 남은 멤버가 없으면 빈 방으로 남는다(leave 와 동일).
+    delegateRoomOwnership(userId);
+
+    // FK 안전 순서: 인증에 달린 자식(리액션/컨펌/신고) → 콕찌르기 → 인증 → 멤버십
+    roomReactionRepository.deleteByUserId(userId); // 내가 남긴 방 리액션
+    roomReactionRepository.deleteByProofOwnerUserId(userId); // 내 방 인증에 달린 리액션
+    roomProofConfirmRepository.deleteByUserId(userId); // 내가 남긴 방 confirm
+    roomProofConfirmRepository.deleteByProofOwnerUserId(userId); // 내 방 인증에 달린 confirm
+    roomProofReportRepository.deleteByReporterId(userId); // 내가 신고한 행
+    roomProofReportRepository.deleteByProofOwnerUserId(userId); // 내 방 인증에 달린 신고
+    roomNudgeRepository.deleteAllByUser(userId); // 내가 보냈거나 받은 콕찌르기
+    roomProofRepository.deleteByUserId(userId); // 내 방 인증
+    roomMemberRepository.deleteByUserId(userId); // 내 방 멤버십
+
     userRepository.deleteById(userId);
+  }
+
+  // 탈퇴 유저가 OWNER 인 방을 가장 먼저 들어온 남은 멤버에게 위임한다 (RoomService.leave 와 동일 정책).
+  private void delegateRoomOwnership(Long userId) {
+    for (RoomMember membership : roomMemberRepository.findWithRoomByUserId(userId)) {
+      if (membership.getRole() != RoomRole.OWNER) continue;
+      roomMemberRepository.findByRoomIdOrderByJoinedAtAsc(membership.getRoom().getId()).stream()
+          .filter(next -> !next.getUser().getId().equals(userId))
+          .findFirst()
+          .ifPresent(
+              next -> {
+                next.setRole(RoomRole.OWNER);
+                roomMemberRepository.save(next);
+              });
+    }
   }
 
   // 카테고리별 레벨당 10개 미션, fill은 현재 레벨 내 진행도

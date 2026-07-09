@@ -11,12 +11,19 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
 
   List<RoomProof> findByRoomMissionIdOrderByCreatedAtDesc(Long roomMissionId);
+
+  // 회원 탈퇴 시: 유저가 올린 방 인증 삭제
+  // (선행: 이 인증에 달린 reaction/confirm/report 를 먼저 지워야 FK 위반이 없다)
+  @Modifying
+  @Query("DELETE FROM RoomProof p WHERE p.user.id = :userId")
+  void deleteByUserId(@Param("userId") Long userId);
 
   // confirm/리액션 직렬화용 행 락 — 같은 인증에 대한 동시 요청이 순서대로 처리되어
   // 임계치 이중 통과(이중 진급/뱃지)와 UNIQUE 위반 500을 막는다.

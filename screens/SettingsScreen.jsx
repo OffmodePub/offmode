@@ -106,6 +106,7 @@ export default function SettingsScreen({
   onSetAutoRoulette,
   onLogout,
   onDeleteAccount,
+  onOpenBlockedUsers,
 }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
@@ -293,6 +294,12 @@ export default function SettingsScreen({
 
         {/* 계정 */}
         <Section title="계정">
+          <SettingRow
+            icon="🚫"
+            label="차단한 사용자 관리"
+            right={<Chevron />}
+            onPress={onOpenBlockedUsers}
+          />
           <SettingRow
             icon="🚪"
             label="로그아웃"
