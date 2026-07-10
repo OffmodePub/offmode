@@ -149,7 +149,7 @@ export default function RoomVerifyScreen({ room, onBack, onVerified }) {
               <WarmText v="label">한마디 남기기 (선택)</WarmText>
               <TextInput
                 style={s.captionInput}
-                placeholder="오늘 미션 어떠셨나요?"
+                placeholder="오늘 미션 어땠어요?"
                 placeholderTextColor={C.textSub}
                 value={caption}
                 onChangeText={setCaption}

@@ -54,7 +54,7 @@ export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }
   };
 
   const kick = (member) => {
-    Alert.alert(`${member.nickname}님을 내보낼까요?`, '이 방에서 빠지게 됩니다.', [
+    Alert.alert(`${member.nickname}님을 내보낼까요?`, '이 방에서 나가게 돼요.', [
       { text: '취소', style: 'cancel' },
       {
         text: '내보내기', style: 'destructive',
@@ -74,7 +74,7 @@ export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }
   const leave = () => {
     Alert.alert(
       solo ? '방을 나갈까요?' : '방을 나갈까요?',
-      solo ? '오늘 미션과 인증 기록에서 빠지게 됩니다.' : '이 방의 인증 기록에서 빠지게 됩니다.',
+      solo ? '오늘 미션과 인증 기록에서 빠지게 돼요.' : '이 방의 인증 기록에서 빠지게 돼요.',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -144,7 +144,7 @@ export default function RoomSettingsScreen({ roomId, onBack, onLeft, onChanged }
         ) : (
           <View style={s.soloInfo}>
             <WarmText size={26} style={{ marginBottom: 6 }}>{roomIconEmoji(room?.iconKey)}</WarmText>
-            <WarmText v="sub" style={{ textAlign: 'center' }}>혼자 수행하는 방이에요</WarmText>
+            <WarmText v="sub" style={{ textAlign: 'center' }}>혼자 하는 방이에요</WarmText>
           </View>
         )}
 

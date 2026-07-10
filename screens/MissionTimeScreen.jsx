@@ -69,7 +69,7 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <T v="sub" style={{ lineHeight: 20, textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
-          매일 이 시간에 오늘의 미션 알림을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 설정하세요.
+          매일 이 시간에 오늘의 미션 알림을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 정해보세요.
         </T>
 
         <View style={styles.previewWrap}>
@@ -114,7 +114,7 @@ export default function MissionTimeScreen({ onBack, onSave, initialTime = { hour
 
         <TouchableOpacity onPress={handleSave} activeOpacity={0.85} style={{ marginTop: 8 }}>
           <LinearGradient colors={['#26d67a', '#1ab065']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveBtn}>
-            <T v="btn">{pad(h)}:{pad(m)} 으로 설정하기</T>
+            <T v="btn">{pad(h)}:{pad(m)}으로 설정하기</T>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

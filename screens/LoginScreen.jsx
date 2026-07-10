@@ -39,7 +39,7 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
         >
           <WarmText size={20}>💬</WarmText>
           <WarmText v="body" size={16} style={s.kakaoText}>
-            {loading ? '로그인 중...' : '카카오로 시작하기'}
+            {loading ? '로그인 중…' : '카카오로 시작하기'}
           </WarmText>
           <View style={{ width: 24 }} />
         </TouchableOpacity>
@@ -54,7 +54,7 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
           >
             <WarmText size={18} color="#000000"></WarmText>
             <WarmText v="body" size={16} style={s.appleText}>
-              {loading ? '로그인 중...' : 'Apple로 시작하기'}
+              {loading ? '로그인 중…' : 'Apple로 시작하기'}
             </WarmText>
             <View style={{ width: 24 }} />
           </TouchableOpacity>

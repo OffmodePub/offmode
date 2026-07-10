@@ -34,7 +34,7 @@ const SLIDES = [
     key: 'proof',
     hero: HeroProofCard,
     title: '함께라서 더 꾸준히',
-    subtitle: '서로 인증해주고 🔥 리액션,\n안 한 친구는 콕 찔러 재촉해요',
+    subtitle: '서로 인증해주고 🔥 리액션,\n안 한 친구는 콕 찔러 응원해요',
   },
 ];
 
@@ -204,7 +204,7 @@ function HeroProofCard({ C }) {
             <WarmText size={10} color="rgba(255,255,255,0.6)">🕐 19:02 미션 완료</WarmText>
           </View>
           <View style={[heroStyles.statusBadge, { backgroundColor: C.textSub, borderColor: C.brown }]}>
-            <WarmText size={9} color={C.text}>✓ 인증완료</WarmText>
+            <WarmText size={9} color={C.text}>✓ 인증 완료</WarmText>
           </View>
         </View>
       </View>
