@@ -22,7 +22,8 @@ if printf '%s' "$cmd" | grep -Eq '\bgit[[:space:]]+push\b'; then
   base=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "origin/develop")
   changed=$(git diff --name-only "$base"...HEAD 2>/dev/null | sort -u)
 else
-  changed=$( { git diff --name-only 2>/dev/null; git diff --name-only --cached 2>/dev/null; } | sort -u )
+  # untracked 포함 — 새로 만든 마이그레이션/소스 파일은 add 전에는 diff 에 안 잡힌다
+  changed=$( { git diff --name-only 2>/dev/null; git diff --name-only --cached 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null; } | sort -u )
 fi
 
 [ -z "$changed" ] && exit 0
@@ -44,6 +45,25 @@ if printf '%s\n' "$changed" | grep -Ev '^backend/' | grep -Eq '\.(jsx?|tsx?)$'; 
   if ! npm run --silent lint; then
     echo "❌ npm run lint 실패 — 린트 오류 수정 후 다시 시도하세요." >&2
     fail=1
+  fi
+fi
+
+# 백엔드 엔티티 변경 → Flyway 마이그레이션 동반 확인
+# (dev/prod 모두 ddl-auto: validate 라 마이그레이션 누락 시 앱이 기동하지 않는다)
+# 스키마 무관 변경(메서드 추가 등)이면 명령 앞에 OFFMODE_SKIP_MIGRATION_GUARD=1 을 붙여 통과 가능.
+if ! printf '%s' "$cmd" | grep -q 'OFFMODE_SKIP_MIGRATION_GUARD'; then
+  if printf '%s\n' "$changed" | grep -Eq '^backend/.*/entity/.*\.java$'; then
+    mig_h2=$(printf '%s\n' "$changed" | grep -c '^backend/src/main/resources/db/migration/h2/' || true)
+    mig_my=$(printf '%s\n' "$changed" | grep -c '^backend/src/main/resources/db/migration/mysql/' || true)
+    if [ "$mig_h2" -eq 0 ] && [ "$mig_my" -eq 0 ]; then
+      echo "❌ 엔티티(.java) 변경이 있는데 Flyway 마이그레이션이 없습니다." >&2
+      echo "   스키마가 바뀌는 변경이면 /migration 스킬로 h2/mysql 양쪽 마이그레이션을 추가하세요." >&2
+      echo "   스키마 무관 변경(메서드·주석 등)이면 'OFFMODE_SKIP_MIGRATION_GUARD=1 git commit ...' 으로 재시도하세요." >&2
+      fail=1
+    elif [ "$mig_h2" -eq 0 ] || [ "$mig_my" -eq 0 ]; then
+      echo "❌ Flyway 마이그레이션이 h2/mysql 한쪽에만 있습니다 — 반드시 양쪽 모두 추가하세요 (/migration)." >&2
+      fail=1
+    fi
   fi
 fi
 
