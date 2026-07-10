@@ -31,7 +31,7 @@ export default function JoinRoomScreen({ onBack, onJoined, initialCode }) {
       onJoined?.(room);
     } catch (e) {
       console.warn('방 참여 실패:', e);
-      setError(e?.message || '해당 코드의 방을 찾을 수 없어요.');
+      setError(e?.message || '이 코드로 방을 찾지 못했어요. 코드를 다시 확인해주세요.');
     } finally {
       setSubmitting(false);
     }
@@ -53,7 +53,7 @@ export default function JoinRoomScreen({ onBack, onJoined, initialCode }) {
             maxLength={8}
             style={[s.input, { letterSpacing: 2 }]}
           />
-          <WarmText v="caption" color={C.text} style={{ marginTop: 4 }}>친구에게 받은 6자리 코드를 입력하세요 (예: RUN777, BOOK10)</WarmText>
+          <WarmText v="caption" color={C.text} style={{ marginTop: 4 }}>친구에게 받은 6자리 코드를 입력해주세요</WarmText>
         </View>
 
         {error ? (

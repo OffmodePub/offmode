@@ -55,7 +55,7 @@ export default function BlockedUsersScreen({ onBack }) {
       ) : error ? (
         <View style={s.center}>
           <WarmText v="sub" style={{ textAlign: 'center', marginBottom: 12 }}>{error}</WarmText>
-          <OutlineButton label="다시 시도" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
+          <OutlineButton label="다시 시도하기" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
         </View>
       ) : users.length === 0 ? (
         <View style={s.center}>

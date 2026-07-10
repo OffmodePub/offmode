@@ -53,7 +53,7 @@ export default function ReportReasonModal({ visible, targetUser, submitting = fa
 
           {targetUser ? (
             <WarmText v="sub" size={14} color={C.textSub} style={{ marginBottom: 14 }}>
-              <WarmText v="sub" size={14} color={C.text}>{targetUser}</WarmText>님의 인증을 신고합니다.
+              <WarmText v="sub" size={14} color={C.text}>{targetUser}</WarmText>님의 인증을 신고해요.
             </WarmText>
           ) : null}
 

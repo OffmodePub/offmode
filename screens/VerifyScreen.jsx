@@ -230,7 +230,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
               <T v="label">한마디 남기기 (선택)</T>
               <TextInput
                 style={styles.captionInput}
-                placeholder="오늘 미션 어떠셨나요?"
+                placeholder="오늘 미션 어땠어요?"
                 placeholderTextColor={C.textSub}
                 value={caption}
                 onChangeText={setCaption}

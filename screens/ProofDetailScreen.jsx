@@ -82,7 +82,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
     try {
       await api.post(`/api/v1/rooms/${roomId}/proofs/${proofId}/report`, { reason: reasonKey, detail: detail?.trim() || null });
       setReportOpen(false);
-      Alert.alert('신고 접수', '신고가 접수되었어요.\n운영자가 확인 후 조치할게요.');
+      Alert.alert('신고 접수', '신고가 접수됐어요.\n운영자가 확인 후 조치할게요.');
     } catch (e) {
       Alert.alert('신고 실패', e?.message || '신고를 접수하지 못했어요. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -100,7 +100,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
     try {
       await api.post(`/api/v1/users/${proof.authorUserId}/block`);
       H.success();
-      Alert.alert('차단했어요', '이 사용자의 인증이 보이지 않아요.');
+      Alert.alert('차단했어요', '이제 이 사용자의 인증이 보이지 않아요.');
       onChanged?.();
       onBack?.();
     } catch (e) {
@@ -152,7 +152,7 @@ export default function ProofDetailScreen({ roomId, proofId, missionTitle, isGro
       ) : error || !proof ? (
         <View style={s.center}>
           <WarmText v="sub" style={{ textAlign: 'center', marginBottom: 12 }}>{error || '인증을 찾을 수 없어요.'}</WarmText>
-          <OutlineButton label="다시 시도" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
+          <OutlineButton label="다시 시도하기" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
