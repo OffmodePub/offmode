@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OFFMODE 초대</title>
-  <meta property="og:title" content="OFFMODE 방에 초대받았어요 🌙" />
-  <meta property="og:description" content="혼자 또는 친구와 매일 미션을 인증하는 공간, 오프모드. 초대코드로 참여하세요." />
+  <meta property="og:title" content="오프모드 미션 방에 초대받았어요 🌙" />
+  <meta property="og:description" content="매일 하나의 오프라인 미션을 사진으로 인증하는 오프모드. 친구가 기다리고 있어요 — 초대코드로 바로 참여하세요." />
   <!-- TODO: 대표 이미지 절대 URL로 교체하면 카톡 공유 시 썸네일이 뜹니다 -->
   <meta property="og:image" content="https://offmodechallenge.com/invite/og.png" />
   <style>
@@ -17,7 +17,8 @@
     .card { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border);
       border-radius:24px; padding:32px 24px; text-align:center; box-shadow:0 8px 30px rgba(74,59,48,0.08); }
     .logo { font-size:30px; font-weight:800; letter-spacing:-0.5px; color:var(--green); font-style:italic; margin:0 0 6px; }
-    .tagline { font-size:14px; color:var(--sub); margin:0 0 24px; }
+    .tagline { font-size:14px; color:var(--sub); margin:0 0 10px; }
+    .intro { font-size:14px; color:var(--text); line-height:1.6; margin:0 0 24px; }
     .label { font-size:12px; color:var(--sub); letter-spacing:1px; margin:0 0 8px; }
     .code { font-size:28px; font-weight:700; letter-spacing:4px; color:var(--text);
       background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:16px; margin:0 0 24px; }
@@ -32,11 +33,12 @@
   <div class="card">
     <p class="logo">OFFMODE</p>
     <p class="tagline">스크린 OFF. 일상 ON.</p>
+    <p class="intro">친구가 매일 미션 방에 초대했어요.<br/>하루 하나, 오프라인 미션을 사진으로 인증해요.</p>
     <p class="label">초대코드</p>
     <div class="code" id="code">------</div>
-    <a class="btn btn-primary" id="openApp" href="#">앱에서 참여하기</a>
-    <a class="btn btn-outline" id="appstore" href="https://apps.apple.com/app/id6767263531">App Store에서 받기</a>
-    <p class="hint">앱이 설치돼 있으면 위 버튼으로 바로 참여할 수 있어요.<br/>설치 후에는 초대코드를 직접 입력해도 됩니다.</p>
+    <a class="btn btn-primary" id="openApp" href="#">앱 열고 바로 참여하기</a>
+    <a class="btn btn-outline" id="appstore" href="https://apps.apple.com/app/id6767263531">App Store에서 무료로 받기</a>
+    <p class="hint">앱이 있으면 위 버튼으로 바로 방에 들어가요.<br/>처음이라면 설치 후 첫 화면에서 초대코드 <b id="hintCode">------</b>을 입력하세요.</p>
   </div>
 
   <script>
@@ -45,6 +47,7 @@
     var code = (seg[seg.length - 1] || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code && code !== 'INVITE') {
       document.getElementById('code').textContent = code;
+      document.getElementById('hintCode').textContent = code;
     }
     // "앱에서 참여하기" → 커스텀 스킴으로 앱 열기 시도
     var openApp = document.getElementById('openApp');
