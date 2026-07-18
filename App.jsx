@@ -11,6 +11,7 @@ import useBottomInset from './utils/useBottomInset';
 import { W } from './constants/warm';
 import * as SecureStore from 'expo-secure-store';
 import * as H from './utils/haptics';
+import * as A from './utils/analytics';
 import * as S from './utils/sounds';
 import { parseInviteCode } from './utils/invite';
 import RoomListScreen from './screens/RoomListScreen';
@@ -135,6 +136,7 @@ function AppInner() {
 
   // 로그아웃 시 세션 상태 초기화
   const resetSession = () => {
+    A.resetAnalyticsState();
     setProfile({ name: '오프모더', avatar: '01' });
     setMissionTime({ hour: 8, minute: 0 });
     setHasMission(false);
@@ -144,7 +146,7 @@ function AppInner() {
 
   // ── 인증 상태: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
   const {
-    authStatus, setAuthStatus, authUser, loginLoading, loginError,
+    authStatus, setAuthStatus, authUser, authProvider, loginLoading, loginError,
     handleKakaoLogin, handleAppleLogin, handleLogout, handleDeleteAccount,
   } = useAuth({ applySession, resetSession });
 
@@ -164,6 +166,7 @@ function AppInner() {
     setMissionTime(mt);
     await loadTodayMission();
     scheduleMissionNotification(mt.hour, mt.minute);
+    A.logRegistration(authProvider);   // Meta 광고 — 가입 완료 이벤트
     setShowOnboarding(true);   // 신규 유저: 인증 완료 후 온보딩 캐러셀 1회 노출
     setAuthStatus('authenticated');
   };
@@ -176,6 +179,13 @@ function AppInner() {
   });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Meta SDK 초기화 — iOS는 ATT 권한을 물은 뒤 결과를 SDK에 반영한다.
+  useEffect(() => {
+    A.initAnalytics().catch((e) => {
+      if (__DEV__) console.warn('analytics 초기화 실패:', e?.message);
+    });
+  }, []);
 
   // 앱 시작 시 햅틱·효과음 설정을 전역 복원 (설정 화면을 열지 않아도 반영)
   useEffect(() => {
