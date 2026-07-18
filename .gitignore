@@ -156,3 +156,6 @@ backend/offmode-db*
 !.claude/settings.json
 .claude/settings.local.json
 .claude/worktrees/
+
+# 스토어 제출용 스크린샷 (로컬 보관)
+store-screenshots/
