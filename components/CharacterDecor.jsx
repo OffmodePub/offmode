@@ -161,7 +161,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       Alert.alert(
         '아직 잠긴 파츠예요',
         part.unlockThreshold != null
-          ? `누적 인증 ${part.unlockThreshold}회 달성 시 열려요`
+          ? `인증을 ${part.unlockThreshold}번 모으면 열려요`
           : '준비 중이에요',
       );
       return;
@@ -250,7 +250,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       ) : (
         <View style={s.guide}>
           <WarmText v="sub" style={s.guideLine}>
-            아래 파츠를 눌러 캐릭터 위에 올려 보세요
+            아래 파츠를 눌러 캐릭터 위에 올려보세요
           </WarmText>
           <WarmText v="sub" style={s.guideLine}>
             드래그로 이동 · 두 손가락으로 크기·회전

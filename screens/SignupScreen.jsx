@@ -186,7 +186,7 @@ export default function SignupScreen({ defaultName = '', onComplete }) {
           <T v="logo" size={20} style={{ letterSpacing: 4, marginBottom: 10, fontFamily: GL }}>OFFMODE</T>
           <T v="title" size={22} color={W.green} style={{ marginBottom: 10 }}>미션 시간을 정해요</T>
           <T v="sub" style={{ textAlign: 'center' }}>
-            매일 이 시간에 오늘의 미션을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 설정하세요.
+            매일 이 시간에 오늘의 미션을 받아요.{'\n'}스스로 지킬 수 있는 시간으로 정해보세요.
           </T>
         </View>
 

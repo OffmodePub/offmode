@@ -175,7 +175,7 @@ export default function RoomHistoryScreen({ roomId, onBack }) {
 
             {(selectedDay.proofs ?? []).length === 0 ? (
               <WarmText v="sub" size={13} color={C.textSub} style={{ marginTop: 12 }}>
-                이 날은 인증 기록이 없어요.
+                이날은 인증 기록이 없어요.
               </WarmText>
             ) : (
               <View style={{ marginTop: 12 }}>

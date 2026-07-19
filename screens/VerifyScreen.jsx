@@ -10,6 +10,7 @@ import { useColors } from '../utils/useColors';
 import { api } from '../utils/api';
 import T from '../components/ThemedText';
 import { pad } from '../utils/date';
+import * as A from '../utils/analytics';
 
 const F = 'Kkukkukk';
 
@@ -156,6 +157,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
         }
         if (caption) formData.append('caption', caption);
         await api.upload('/api/v1/feed/verify', formData);
+        A.logMissionVerified(userMissionId);
       } catch (e) {
         console.warn('인증 업로드 실패:', e);
       }
@@ -230,7 +232,7 @@ export default function VerifyScreen({ mission, userMissionId, onBack, onVerifie
               <T v="label">한마디 남기기 (선택)</T>
               <TextInput
                 style={styles.captionInput}
-                placeholder="오늘 미션 어떠셨나요?"
+                placeholder="오늘 미션 어땠어요?"
                 placeholderTextColor={C.textSub}
                 value={caption}
                 onChangeText={setCaption}

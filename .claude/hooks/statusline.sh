@@ -13,4 +13,8 @@ over=$(printf '%s' "$input" | jq -r '.exceeds_200k_tokens // empty' 2>/dev/null 
 ctx=""
 [ "$over" = "true" ] && ctx="  ⚠️ 200k+ (새 세션 권장)"
 
-printf '%s  ⎇ %s  📁 %s%s' "$model" "$branch" "$(basename "$dir")" "$ctx"
+# 백엔드(8080) 기동 여부 — 앱 실행 전 백엔드 안 띄운 함정을 한눈에 (bash /dev/tcp: 즉시 반환)
+be="⚪8080"
+(exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null && { exec 3>&- 3<&-; be="🟢8080"; }
+
+printf '%s  ⎇ %s  📁 %s  %s%s' "$model" "$branch" "$(basename "$dir")" "$be" "$ctx"

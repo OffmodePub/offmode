@@ -18,7 +18,7 @@ import { pad } from '../utils/date';
 
 const openLink = (url) =>
   Linking.openURL(url).catch(() =>
-    Alert.alert('오류', '페이지를 열 수 없어요. 잠시 후 다시 시도해주세요.')
+    Alert.alert('페이지를 열 수 없어요', '잠시 후 다시 시도해주세요.')
   );
 
 /* ── 웜 토글 (Figma 46×28 pill) ──────────────────────── */
@@ -138,7 +138,7 @@ export default function SettingsScreen({
       const granted = await requestNotificationPermission();
       if (!granted) {
         Alert.alert(
-          '알림 권한 필요',
+          '알림 권한이 필요해요',
           '설정 > offmode > 알림에서 권한을 허용해주세요.',
           [
             { text: '취소', style: 'cancel' },
@@ -161,7 +161,7 @@ export default function SettingsScreen({
       const granted = await requestNotificationPermission();
       if (!granted) {
         Alert.alert(
-          '알림 권한 필요',
+          '알림 권한이 필요해요',
           '설정 > offmode > 알림에서 권한을 허용해주세요.',
           [
             { text: '취소', style: 'cancel' },
@@ -224,7 +224,7 @@ export default function SettingsScreen({
           />
           <SettingRow
             icon="🎲"
-            label="시간되면 자동으로 돌리기"
+            label="시간이 되면 자동으로 돌리기"
             sub="설정 시간에 룰렛 자동 시작"
             right={<WarmToggle value={autoRoulette} onValueChange={onSetAutoRoulette} />}
             last
@@ -242,7 +242,7 @@ export default function SettingsScreen({
           <SettingRow
             icon="🌙"
             label="일일 리마인더"
-            sub="미완료 미션 저녁 알림 (21:00)"
+            sub="미션을 아직 안 했다면 저녁에 알려요 (21:00)"
             right={<WarmToggle value={reminder} onValueChange={handleReminder} />}
             last
           />
@@ -313,7 +313,7 @@ export default function SettingsScreen({
             onPress={() => {
               Alert.alert(
                 '회원 탈퇴',
-                '탈퇴하면 모든 미션 기록과 배지가 삭제됩니다.\n정말 탈퇴하시겠어요?',
+                '탈퇴하면 모든 미션 기록이 사라져요.\n정말 탈퇴할까요?',
                 [
                   { text: '취소', style: 'cancel' },
                   { text: '탈퇴', style: 'destructive', onPress: onDeleteAccount },

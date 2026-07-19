@@ -2,7 +2,7 @@
   "expo": {
     "name": "offmode",
     "slug": "offmode",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.minnnj.offmode",
-      "buildNumber": "2",
+      "buildNumber": "1",
       "appleTeamId": "SX5KZM28U5",
       "usesAppleSignIn": true,
       "associatedDomains": ["applinks:offmodechallenge.com"],
@@ -66,7 +66,20 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "1650144739389762",
+          "clientToken": "05fe1003111565de48c6c708a5a4239b",
+          "displayName": "offmode",
+          "scheme": "fb1650144739389762",
+          "isAutoInitEnabled": true,
+          "autoLogAppEventsEnabled": true,
+          "advertiserIDCollectionEnabled": true,
+          "iosUserTrackingPermission": "offmode가 더 잘 맞는 광고를 보여드리기 위해 활동 정보를 사용합니다."
+        }
+      ]
     ],
     "extra": {
       "eas": {

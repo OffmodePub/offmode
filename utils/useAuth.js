@@ -13,6 +13,7 @@ import { cancelMissionNotification } from './notifications';
 export default function useAuth({ applySession, resetSession }) {
   const [authStatus, setAuthStatus]     = useState('loading');
   const [authUser, setAuthUser]         = useState(null);
+  const [authProvider, setAuthProvider] = useState(null);  // 'kakao' | 'apple' — 가입 완료 이벤트에 사용
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError]     = useState('');
 
@@ -38,12 +39,13 @@ export default function useAuth({ applySession, resetSession }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = async (signIn, fallbackMessage) => {
+  const login = async (signIn, fallbackMessage, provider) => {
     setLoginLoading(true);
     setLoginError('');
     try {
       const { user, isNew } = await signIn();
       setAuthUser(user);
+      setAuthProvider(provider);
       if (!isNew) await applySession(user);
       setAuthStatus(isNew ? 'signingUp' : 'authenticated');
     } catch (e) {
@@ -56,13 +58,14 @@ export default function useAuth({ applySession, resetSession }) {
     }
   };
 
-  const handleKakaoLogin = () => login(signInWithKakao, '카카오 로그인에 실패했습니다.');
-  const handleAppleLogin = () => login(signInWithApple, 'Apple 로그인에 실패했습니다.');
+  const handleKakaoLogin = () => login(signInWithKakao, '카카오 로그인에 실패했습니다.', 'kakao');
+  const handleAppleLogin = () => login(signInWithApple, 'Apple 로그인에 실패했습니다.', 'apple');
 
   const handleLogout = async () => {
     await cancelMissionNotification();
     await clearToken();
     setAuthUser(null);
+    setAuthProvider(null);
     resetSession();
     setAuthStatus('unauthenticated');
   };
@@ -86,6 +89,7 @@ export default function useAuth({ applySession, resetSession }) {
     authStatus,
     setAuthStatus,
     authUser,
+    authProvider,
     loginLoading,
     loginError,
     handleKakaoLogin,

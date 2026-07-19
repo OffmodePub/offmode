@@ -25,7 +25,7 @@ function RoomCard({ room, solo, onPress }) {
             <WarmText v="section" size={16} numberOfLines={1} style={{ flexShrink: 1 }}>{room.name}</WarmText>
             {mission?.source ? <SourceBadge source={mission.source} /> : null}
           </View>
-          <WarmText v="caption" color={C.text}>{solo ? '혼자 수행하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
+          <WarmText v="caption" color={C.text}>{solo ? '혼자 하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
         </View>
         {!solo && room.members ? <AvatarStack members={room.members} /> : null}
       </View>
@@ -171,7 +171,7 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
         ) : error ? (
           <View style={s.center}>
             <WarmText v="sub" style={{ textAlign: 'center', marginBottom: 12 }}>{error}</WarmText>
-            <OutlineButton label="다시 시도" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
+            <OutlineButton label="다시 시도하기" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
           </View>
         ) : isEmpty ? (
           <EmptyState />

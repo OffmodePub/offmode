@@ -42,7 +42,7 @@ function OverlayStatusBadge({ status }) {
       backgroundColor: C.borderStrong, borderWidth: 1, borderColor: C.brown,
       borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4,
     }}>
-      <WarmText v="caption" size={11} color={C.text}>{verified ? 'V 인증완료' : '대기 중'}</WarmText>
+      <WarmText v="caption" size={11} color={C.text}>{verified ? '✓ 인증 완료' : '대기 중'}</WarmText>
     </View>
   );
 }
@@ -139,7 +139,7 @@ function GridProofCard({ proof, onReact, onPeerVerify, onOpen }) {
         <View style={s.gridBottomOverlay}>
           <WarmText v="caption" size={11} color={C.bg}>{timeLabel(proof.createdAt)}</WarmText>
           <WarmText v="caption" size={11} color={C.bg} numberOfLines={1} style={{ flex: 1 }}>미션 완료</WarmText>
-          <WarmText v="caption" size={11} color={C.bg}>{proof.status === 'VERIFIED' ? 'V' : '대기'}</WarmText>
+          <WarmText v="caption" size={11} color={C.bg}>{proof.status === 'VERIFIED' ? '✓' : '대기'}</WarmText>
         </View>
       </View>
 
@@ -268,7 +268,7 @@ export default function RoomDetailScreen({
         <RoomTopBar title="방" onBack={onBack} />
         <View style={s.center}>
           <WarmText v="sub" style={{ textAlign: 'center', marginBottom: 12 }}>{error || '방 정보를 찾을 수 없어요.'}</WarmText>
-          <OutlineButton label="다시 시도" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
+          <OutlineButton label="다시 시도하기" onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }} />
         </View>
       </View>
     );
@@ -374,7 +374,7 @@ export default function RoomDetailScreen({
                           <NudgeChip nudged={nudged} onPress={() => handleNudge(m.memberId)} />
                         ) : (
                           <WarmText v="caption" size={11} color={m.todayStatus === 'PENDING' ? C.green : C.textSub}>
-                            {m.todayStatus === 'PENDING' ? '인증 대기' : '미인증'}
+                            {m.todayStatus === 'PENDING' ? '인증 대기' : '인증 전'}
                           </WarmText>
                         )}
                       </View>
