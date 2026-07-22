@@ -5,6 +5,7 @@ import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.response.GroupRoomSummaryResponse;
 import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
+import com.offmode.boundedcontext.room.dto.response.NudgeSenderResponse;
 import com.offmode.boundedcontext.room.dto.response.ProgressResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
@@ -30,6 +31,7 @@ import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
+import com.offmode.global.push.PushService;
 import com.offmode.global.status.ErrorStatus;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -61,6 +63,7 @@ public class RoomService {
   private final UserService userService;
   private final RoomProofAssembler proofAssembler;
   private final BlockService blockService;
+  private final PushService pushService;
 
   // ===== 방 생성/참여/목록 =====
 
@@ -239,6 +242,20 @@ public class RoomService {
     MemberTodayStatus myTodayStatus =
         missionId == null ? MemberTodayStatus.NONE : toTodayStatus(statusByUserId.get(userId));
 
+    // 오늘 나를 콕 찌른 사람 (이미 인증을 마쳤으면 재촉할 이유가 없으므로 숨긴다)
+    List<NudgeSenderResponse> receivedNudges =
+        (missionId == null || myTodayStatus == MemberTodayStatus.DONE)
+            ? List.of()
+            : nudgeRepository.findWithFromUserByMissionAndToUser(missionId, userId).stream()
+                .filter(nudge -> !blockedIds.contains(nudge.getFromUser().getId()))
+                .map(
+                    nudge ->
+                        new NudgeSenderResponse(
+                            nudge.getFromUser().getId(),
+                            nudge.getFromUser().getName(),
+                            nudge.getFromUser().getAvatar()))
+                .toList();
+
     return new RoomDetailResponse(
         room.getId(),
         room.getName(),
@@ -252,7 +269,10 @@ public class RoomService {
         myTodayStatus,
         new ProgressResponse(verifiedCount, memberCount),
         members,
-        proofs);
+        proofs,
+        receivedNudges,
+        // 차단으로 가려진 인증도 잠금 사유이므로 visibleProofs 가 아닌 전체 목록으로 판단한다
+        missionId != null && todayProofs.isEmpty());
   }
 
   // ===== 방 설정 =====
@@ -338,6 +358,14 @@ public class RoomService {
               .fromUser(myMembership.getUser())
               .toUser(target.getUser())
               .build());
+
+      // 멱등이라 중복 요청에는 다시 보내지 않는다. 발송 실패해도 콕 찌르기 자체는 성공 처리된다.
+      pushService.send(
+          targetUserId,
+          target.getUser().getExpoPushToken(),
+          "👉 " + myMembership.getUser().getName() + "님이 콕 찔렀어요",
+          todayMission.getTitle() + " — 아직 인증 전이에요!",
+          Map.of("type", "nudge", "roomId", roomId));
     }
 
     return new NudgeResponse(memberId, true);

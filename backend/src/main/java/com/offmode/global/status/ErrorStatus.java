@@ -57,6 +57,7 @@ public enum ErrorStatus {
   ROOM_NUDGE_TARGET_DONE(HttpStatus.BAD_REQUEST, "ROOM_400_003", "이미 인증을 완료한 멤버입니다."),
   ROOM_SELF_REPORT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ROOM_400_004", "본인 인증은 신고할 수 없습니다."),
   ROOM_ALREADY_REPORTED(HttpStatus.CONFLICT, "ROOM_409_004", "이미 신고한 콘텐츠입니다."),
+  ROOM_MISSION_LOCKED(HttpStatus.CONFLICT, "ROOM_409_005", "이미 인증이 시작돼 미션 이름을 바꿀 수 없습니다."),
 
   // File
   FILE_EMPTY(HttpStatus.BAD_REQUEST, "FILE_400_001", "업로드할 파일이 비어있습니다."),

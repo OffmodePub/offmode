@@ -6,6 +6,7 @@ import com.offmode.boundedcontext.room.dto.request.RenameRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.ReportRequest;
 import com.offmode.boundedcontext.room.dto.request.RoomReactRequest;
 import com.offmode.boundedcontext.room.dto.request.SetRoomMissionRequest;
+import com.offmode.boundedcontext.room.dto.request.UpdateRoomMissionTitleRequest;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.MissionCandidateResponse;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
@@ -117,6 +118,16 @@ public class RoomController {
       @PathVariable Long roomId,
       @Valid @RequestBody SetRoomMissionRequest request) {
     return ResponseEntity.ok(roomMissionService.setTodayMission(userId, roomId, request));
+  }
+
+  // PATCH /api/v1/rooms/{roomId}/mission - 오늘 미션 제목 수정
+  @PatchMapping("/{roomId}/mission")
+  public ResponseEntity<RoomMissionResponse> updateTodayMissionTitle(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable Long roomId,
+      @Valid @RequestBody UpdateRoomMissionTitleRequest request) {
+    return ResponseEntity.ok(
+        roomMissionService.updateTodayMissionTitle(userId, roomId, request.getTitle()));
   }
 
   // ===== 인증/리액션 =====

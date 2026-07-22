@@ -67,7 +67,7 @@ if (!__DEV__ && Platform.OS === 'ios') {
   }
 }
 import { api } from './utils/api';
-import { scheduleMissionNotification } from './utils/notifications';
+import { scheduleMissionNotification, registerPushToken } from './utils/notifications';
 import useAuth from './utils/useAuth';
 import useMissionRouletteTrigger from './utils/useMissionRouletteTrigger';
 
@@ -132,6 +132,7 @@ function AppInner() {
     if (user.autoRoulette != null) setAutoRoulette(user.autoRoulette);
     await loadTodayMission();
     scheduleMissionNotification(hour, minute);
+    registerPushToken();   // 원격 푸시(콕 찌르기) 수신용 — 실패해도 세션에는 영향 없음
   };
 
   // 로그아웃 시 세션 상태 초기화
@@ -166,6 +167,7 @@ function AppInner() {
     setMissionTime(mt);
     await loadTodayMission();
     scheduleMissionNotification(mt.hour, mt.minute);
+    registerPushToken();
     A.logRegistration(authProvider);   // Meta 광고 — 가입 완료 이벤트
     setShowOnboarding(true);   // 신규 유저: 인증 완료 후 온보딩 캐러셀 1회 노출
     setAuthStatus('authenticated');

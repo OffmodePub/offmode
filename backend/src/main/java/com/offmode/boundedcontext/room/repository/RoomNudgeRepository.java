@@ -22,4 +22,12 @@ public interface RoomNudgeRepository extends JpaRepository<RoomNudge, Long> {
           + "where n.roomMission.id = :missionId and n.fromUser.id = :fromUserId")
   List<Long> findToUserIdsByMissionAndFromUser(
       @Param("missionId") Long missionId, @Param("fromUserId") Long fromUserId);
+
+  // 오늘 미션에서 내가 받은 콕 찌르기 (보낸 사람 정보까지 한 번에 로드)
+  @Query(
+      "select n from RoomNudge n join fetch n.fromUser "
+          + "where n.roomMission.id = :missionId and n.toUser.id = :toUserId "
+          + "order by n.createdAt asc")
+  List<RoomNudge> findWithFromUserByMissionAndToUser(
+      @Param("missionId") Long missionId, @Param("toUserId") Long toUserId);
 }
