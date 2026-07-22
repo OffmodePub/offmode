@@ -16,6 +16,7 @@ import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMember;
 import com.offmode.boundedcontext.room.entity.RoomMission;
 import com.offmode.boundedcontext.room.repository.RoomMissionRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.types.MissionSource;
 import com.offmode.global.exception.BusinessException;
 import java.util.List;
@@ -31,10 +32,12 @@ class RoomMissionServiceTest {
 
   @Mock private RoomMissionRepository missionRepository;
   @Mock private MissionRepository masterMissionRepository;
+  @Mock private RoomProofRepository proofRepository;
   @Mock private RoomService roomService;
 
   private RoomMissionService service() {
-    return new RoomMissionService(missionRepository, masterMissionRepository, roomService);
+    return new RoomMissionService(
+        missionRepository, masterMissionRepository, proofRepository, roomService);
   }
 
   @Test
@@ -142,6 +145,43 @@ class RoomMissionServiceTest {
     ArgumentCaptor<RoomMission> captor = ArgumentCaptor.forClass(RoomMission.class);
     verify(missionRepository).save(captor.capture());
     assertThat(captor.getValue().getCategory()).isNull();
+  }
+
+  @Test
+  void updateTodayMissionTitleRenamesWhenNoProofYet() {
+    RoomMission mission =
+        RoomMission.builder()
+            .id(7L)
+            .title("원래 미션")
+            .icon("🎲")
+            .source(MissionSource.RANDOM)
+            .category(MissionCategory.VITALITY)
+            .build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(Room.builder().id(2L).build());
+    when(roomService.getMembershipOrThrow(eq(2L), eq(1L))).thenReturn(RoomMember.builder().build());
+    when(missionRepository.findByRoomIdAndDate(eq(2L), any())).thenReturn(Optional.of(mission));
+    when(proofRepository.existsByRoomMissionId(7L)).thenReturn(false);
+    when(missionRepository.save(any(RoomMission.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    RoomMissionResponse response = service().updateTodayMissionTitle(1L, 2L, "  다듬은 미션  ");
+
+    assertThat(response.title()).isEqualTo("다듬은 미션"); // 앞뒤 공백 제거
+    // 제목만 바꾸고 source·category 는 유지한다 (레벨·배지 집계에서 빠지지 않도록)
+    assertThat(response.source()).isEqualTo(MissionSource.RANDOM);
+    assertThat(mission.getCategory()).isEqualTo(MissionCategory.VITALITY);
+  }
+
+  @Test
+  void updateTodayMissionTitleRejectsAfterFirstProof() {
+    RoomMission mission = RoomMission.builder().id(7L).title("원래 미션").build();
+    when(roomService.getRoomOrThrow(2L)).thenReturn(Room.builder().id(2L).build());
+    when(roomService.getMembershipOrThrow(eq(2L), eq(1L))).thenReturn(RoomMember.builder().build());
+    when(missionRepository.findByRoomIdAndDate(eq(2L), any())).thenReturn(Optional.of(mission));
+    when(proofRepository.existsByRoomMissionId(7L)).thenReturn(true);
+
+    assertThatThrownBy(() -> service().updateTodayMissionTitle(1L, 2L, "바꾼 미션"))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage("이미 인증이 시작돼 미션 이름을 바꿀 수 없습니다.");
   }
 
   private SetRoomMissionRequest request(

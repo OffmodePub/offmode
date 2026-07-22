@@ -57,6 +57,9 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
 
   boolean existsByRoomMissionIdAndUserId(Long roomMissionId, Long userId);
 
+  // 오늘 미션에 인증이 하나라도 올라왔는지 (인증 시작 후 미션 제목 수정 잠금용)
+  boolean existsByRoomMissionId(Long roomMissionId);
+
   List<RoomProof> findByRoomMissionIdInOrderByCreatedAtAsc(List<Long> roomMissionIds);
 
   // 방의 오늘 미션에 대해 VERIFIED 한 멤버(유저) 수

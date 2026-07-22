@@ -23,9 +23,8 @@ spring:
     locations:
       - classpath:db/migration/h2
 
-apple:
-  # dev 실기기 빌드의 번들 ID는 .dev 접미사가 붙는다 (ios PRODUCT_BUNDLE_IDENTIFIER=com.minnnj.offmode.dev)
-  bundle-id: com.minnnj.offmode.dev
+# apple.bundle-id 는 application.yml 의 com.minnnj.offmode 를 그대로 쓴다.
+# (dev 빌드도 같은 번들 ID 를 쓰므로 .dev 접미사 오버라이드를 두면 Apple 로그인 aud 검증이 실패한다)
 
 offmode:
   security:

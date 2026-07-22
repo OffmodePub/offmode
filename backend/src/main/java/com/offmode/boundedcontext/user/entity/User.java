@@ -1,5 +1,6 @@
 package com.offmode.boundedcontext.user.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -45,6 +46,11 @@ public class User {
   @Builder.Default private Integer missionMinute = 0;
 
   @Builder.Default private Boolean autoRoulette = true;
+
+  // Expo 푸시 토큰 (ExponentPushToken[...]) — 응답으로 내보내지 않는다
+  @JsonIgnore
+  @Column(name = "expo_push_token")
+  private String expoPushToken;
 
   @CreationTimestamp private LocalDateTime createdAt;
 }

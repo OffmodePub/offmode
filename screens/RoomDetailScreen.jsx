@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image,
+  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
@@ -8,9 +8,10 @@ import { api, BASE_URL } from '../utils/api';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import {
-  RoomTopBar, MemberAvatar, SourceBadge, GreenButton, OutlineButton,
+  RoomTopBar, MemberAvatar, GreenButton, OutlineButton,
   ReactionBar, NudgeChip,
 } from '../components/RoomBits';
+import EditMissionTitleModal from '../components/EditMissionTitleModal';
 import { roomIconEmoji } from '../constants/rooms';
 import { pad } from '../utils/date';
 import MissionRouletteScreen from './MissionRouletteScreen';
@@ -27,6 +28,12 @@ function timeLabel(createdAt) {
     : new Date(createdAt);
   if (isNaN(d.getTime())) return '';
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function nudgeLabel(nudges) {
+  const [first, ...rest] = nudges;
+  const others = rest.length > 0 ? ` 외 ${rest.length}명` : '';
+  return `👉 ${first.nickname}님${others}이 콕 찔렀어요`;
 }
 
 function reactionTotal(proof) {
@@ -182,6 +189,9 @@ export default function RoomDetailScreen({
   const [filter, setFilter] = useState('all');
   const [nudgedIds, setNudgedIds] = useState(() => new Set());
   const [rouletteOpen, setRouletteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const load = useCallback(async () => {
     setError('');
@@ -220,6 +230,24 @@ export default function RoomDetailScreen({
     }
   }, [roomId, load, onChanged]);
 
+  const handleEditTitle = useCallback(async (title) => {
+    if (editSubmitting) return;
+    setEditSubmitting(true);
+    setEditError('');
+    try {
+      const updated = await api.patch(`/api/v1/rooms/${roomId}/mission`, { title });
+      // 응답(갱신된 미션)으로 미션 바만 부분 갱신
+      setRoom(prev => prev ? { ...prev, todayMission: updated ?? prev.todayMission } : prev);
+      setEditOpen(false);
+      onChanged?.();   // 방 목록의 미션 요약도 갱신
+    } catch (e) {
+      console.warn('미션 이름 수정 실패:', e);
+      setEditError(e?.message || '미션 이름을 수정하지 못했어요.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  }, [roomId, onChanged, editSubmitting]);
+
   const handleReact = useCallback(async (proofId, emoji) => {
     try {
       const updated = await api.post(`/api/v1/rooms/${roomId}/proofs/${proofId}/reactions`, { emoji });
@@ -251,6 +279,7 @@ export default function RoomDetailScreen({
     } catch (e) {
       console.warn('콕 찌르기 실패:', e);
       setNudgedIds(prev => { const next = new Set(prev); next.delete(memberId); return next; });
+      Alert.alert('콕 찌르기에 실패했어요', e?.message || '잠시 후 다시 시도해주세요.');
     }
   }, [roomId]);
 
@@ -282,6 +311,7 @@ export default function RoomDetailScreen({
     ? (status === 'DONE' ? 100 : 0)
     : (prog.requiredCount > 0 ? Math.min(100, (prog.verifiedCount / prog.requiredCount) * 100) : 0);
 
+  const receivedNudges = room.receivedNudges ?? [];
   const pendingMembers = (room.members ?? []).filter(m => m.todayStatus !== 'DONE');
   const proofs = room.proofs ?? [];
   const filtered = filter === 'all' ? proofs : proofs.filter(p => p.status === filter);
@@ -314,7 +344,16 @@ export default function RoomDetailScreen({
               <View style={s.missionRow}>
                 <WarmText size={18}>{mission.icon}</WarmText>
                 <WarmText v="body" size={17} numberOfLines={1} style={{ flex: 1 }}>{mission.title}</WarmText>
-                <SourceBadge source={mission.source} />
+                {/* 인증이 하나라도 올라오면 잠긴다 (서버가 missionEditable 로 판단) */}
+                {room.missionEditable ? (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    hitSlop={8}
+                    onPress={() => { H.tap(); setEditError(''); setEditOpen(true); }}
+                  >
+                    <Ionicons name="create-outline" size={18} color={C.textSub} />
+                  </TouchableOpacity>
+                ) : null}
                 {!solo ? (
                   <TouchableOpacity
                     activeOpacity={0.7}
@@ -340,6 +379,21 @@ export default function RoomDetailScreen({
               )}
             </View>
 
+            {/* 오늘 나를 콕 찌른 사람 (인증 완료 시 백엔드가 빈 배열로 내려준다) */}
+            {receivedNudges.length > 0 ? (
+              <View style={s.nudgeBanner}>
+                <View style={s.nudgeAvatars}>
+                  {receivedNudges.slice(0, 3).map(n => (
+                    <MemberAvatar key={n.userId} avatarId={n.avatarId} size={26} />
+                  ))}
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <WarmText v="section" size={14} color={C.coral}>{nudgeLabel(receivedNudges)}</WarmText>
+                  <WarmText v="caption" size={12} color={C.brown}>얼른 인증하고 화답해볼까요?</WarmText>
+                </View>
+              </View>
+            ) : null}
+
             {/* 인증하기 버튼 / 상태 배너 */}
             {status === 'DONE' || status === 'PENDING' ? (
               <View style={s.doneBanner}>
@@ -364,7 +418,8 @@ export default function RoomDetailScreen({
                 <View style={{ gap: 12 }}>
                   {pendingMembers.map(m => {
                     // 아직 미션을 시작하지 않은(NONE) 다른 멤버만 콕 찌를 수 있다
-                    const canNudge = !m.isMe && m.todayStatus !== 'PENDING';
+                    // (백엔드도 인증 완료 멤버는 ROOM_NUDGE_TARGET_DONE 으로 거절한다)
+                    const canNudge = !m.isMe && m.todayStatus === 'NONE';
                     const nudged = m.nudgedByMe || nudgedIds.has(m.memberId);
                     return (
                       <View key={m.memberId} style={s.pendingRow}>
@@ -480,6 +535,16 @@ export default function RoomDetailScreen({
         )}
       </ScrollView>
 
+      <EditMissionTitleModal
+        visible={editOpen}
+        icon={mission?.icon}
+        initialTitle={mission?.title ?? ''}
+        submitting={editSubmitting}
+        error={editError}
+        onClose={() => setEditOpen(false)}
+        onSubmit={handleEditTitle}
+      />
+
       {rouletteOpen && (
         <View style={StyleSheet.absoluteFillObject}>
           <MissionRouletteScreen
@@ -510,6 +575,10 @@ function makeStyles(C) {
 
     verifyBtn:  { marginHorizontal: 20, marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.green, borderRadius: 14, paddingVertical: 15 },
     doneBanner: { marginHorizontal: 20, marginTop: 16, borderWidth: 1, borderColor: C.greenBorder, backgroundColor: C.greenFaint, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+
+    // 받은 콕 배너 (코랄 틴트 — 재촉이라 그린 계열과 구분)
+    nudgeBanner:  { marginHorizontal: 20, marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.coralFaint, borderWidth: 1, borderColor: C.coralBorder, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 },
+    nudgeAvatars: { flexDirection: 'row', gap: 4 },
 
     // 수행 중 (피그마 PendingStrip: greenFaint / greenBorder / r20 / p16)
     pendingStrip: { marginHorizontal: 20, marginTop: 16, backgroundColor: C.greenFaint, borderWidth: 1, borderColor: C.greenBorder, borderRadius: 20, padding: 16 },

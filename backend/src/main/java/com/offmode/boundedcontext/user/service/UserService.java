@@ -74,6 +74,19 @@ public class UserService {
     return userRepository.save(user);
   }
 
+  /** Expo 푸시 토큰을 등록/해제한다. 같은 토큰이 다른 계정에 남아 있으면(기기 공유·재로그인) 먼저 떼어내 한 기기가 한 계정에만 매핑되게 한다. */
+  @Transactional
+  public void updatePushToken(Long userId, String token) {
+    User user = getById(userId);
+    String normalized = (token == null || token.isBlank()) ? null : token.trim();
+
+    if (normalized != null) {
+      userRepository.clearPushTokenForOtherUsers(normalized, userId);
+    }
+    user.setExpoPushToken(normalized);
+    userRepository.save(user);
+  }
+
   @Transactional
   public void levelUp(Long userId, int verifiedCount) {
     User user = getById(userId);

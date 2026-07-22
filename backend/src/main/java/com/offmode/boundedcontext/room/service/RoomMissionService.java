@@ -9,6 +9,7 @@ import com.offmode.boundedcontext.room.dto.response.RoomMissionResponse;
 import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMission;
 import com.offmode.boundedcontext.room.repository.RoomMissionRepository;
+import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.types.MissionSource;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
@@ -29,6 +30,7 @@ public class RoomMissionService {
 
   private final RoomMissionRepository missionRepository;
   private final MissionRepository masterMissionRepository;
+  private final RoomProofRepository proofRepository;
   private final RoomService roomService;
 
   private static final int CANDIDATE_LIMIT = 7;
@@ -103,6 +105,35 @@ public class RoomMissionService {
                 .build());
 
     return RoomMissionResponse.from(saved);
+  }
+
+  /**
+   * 오늘 미션의 제목만 바꾼다. 미션을 정할 때와 같이 방 멤버라면 누구나 수정할 수 있지만, 인증이 하나라도 올라온 뒤에는 잠근다 — 먼저 인증한 사람이 다른 미션을 한
+   * 꼴이 되기 때문이다.
+   *
+   * <p>source·category 는 그대로 둔다 — 제목만 다듬은 랜덤 미션이 미분류로 바뀌어 레벨·배지 집계에서 빠지는 것을 막기 위해서다.
+   */
+  @Transactional
+  public RoomMissionResponse updateTodayMissionTitle(Long userId, Long roomId, String title) {
+    roomService.getRoomOrThrow(roomId);
+    roomService.getMembershipOrThrow(roomId, userId);
+
+    RoomMission todayMission =
+        missionRepository
+            .findByRoomIdAndDate(roomId, LocalDate.now())
+            .orElseThrow(() -> new BusinessException(ErrorStatus.ROOM_MISSION_NOT_SET));
+
+    if (proofRepository.existsByRoomMissionId(todayMission.getId())) {
+      throw new BusinessException(ErrorStatus.ROOM_MISSION_LOCKED);
+    }
+
+    String trimmed = title == null ? "" : title.trim();
+    if (trimmed.isEmpty()) {
+      throw new BusinessException(ErrorStatus.BAD_REQUEST);
+    }
+
+    todayMission.setTitle(trimmed);
+    return RoomMissionResponse.from(missionRepository.save(todayMission));
   }
 
   private Mission getMasterMissionOrThrow(Long missionId) {

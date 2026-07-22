@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { signInWithApple, signInWithKakao } from './auth';
 import { api, loadToken, clearToken, setOnUnauthorized } from './api';
-import { cancelMissionNotification } from './notifications';
+import { cancelMissionNotification, unregisterPushToken } from './notifications';
 
 /*
  * 인증 상태머신 훅 — authStatus: 'loading' | 'unauthenticated' | 'signingUp' | 'authenticated'
@@ -61,13 +61,23 @@ export default function useAuth({ applySession, resetSession }) {
   const handleKakaoLogin = () => login(signInWithKakao, '카카오 로그인에 실패했습니다.', 'kakao');
   const handleAppleLogin = () => login(signInWithApple, 'Apple 로그인에 실패했습니다.', 'apple');
 
+  // 401 경로에서 unregisterPushToken 이 다시 401을 받아 재진입하는 것을 막는다
+  const loggingOutRef = useRef(false);
+
   const handleLogout = async () => {
-    await cancelMissionNotification();
-    await clearToken();
-    setAuthUser(null);
-    setAuthProvider(null);
-    resetSession();
-    setAuthStatus('unauthenticated');
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    try {
+      await unregisterPushToken();   // 토큰을 지우기 전에 서버 등록 해제 (다른 계정 오배송 방지)
+      await cancelMissionNotification();
+      await clearToken();
+      setAuthUser(null);
+      setAuthProvider(null);
+      resetSession();
+      setAuthStatus('unauthenticated');
+    } finally {
+      loggingOutRef.current = false;
+    }
   };
 
   const handleDeleteAccount = async () => {
