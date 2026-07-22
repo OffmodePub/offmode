@@ -1,5 +1,6 @@
 package com.offmode.boundedcontext.user.api.v1;
 
+import com.offmode.boundedcontext.user.dto.request.UpdatePushTokenRequest;
 import com.offmode.boundedcontext.user.dto.request.UpdateUserProfileRequest;
 import com.offmode.boundedcontext.user.dto.response.BlockResponse;
 import com.offmode.boundedcontext.user.dto.response.BlockedUserResponse;
@@ -56,6 +57,15 @@ public class UserController {
             request.getMissionMinute(),
             request.getAutoRoulette());
     return ResponseEntity.ok(updated);
+  }
+
+  // PUT /api/v1/users/me/push-token
+  // body: { "token": "ExponentPushToken[...]" }  — token 이 비어 있으면 해제
+  @PutMapping("/me/push-token")
+  public ResponseEntity<Void> updatePushToken(
+      @AuthenticationPrincipal Long userId, @Valid @RequestBody UpdatePushTokenRequest request) {
+    userService.updatePushToken(userId, request.getToken());
+    return ResponseEntity.noContent().build();
   }
 
   // POST /api/v1/users/{userId}/block  (userId = 차단 대상)

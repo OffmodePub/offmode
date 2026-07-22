@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { api } from './api';
 
 const SILENT_NOTIFICATION_CHANNEL_ID = 'offmode-silent-notifications';
 
@@ -82,4 +83,38 @@ export async function scheduleReminderNotification() {
 
 export async function cancelReminderNotification() {
   await Notifications.cancelScheduledNotificationAsync('daily-reminder');
+}
+
+/* ── 원격 푸시 (콕 찌르기 등 서버 발송) ───────────────────── */
+
+/**
+ * Expo 푸시 토큰을 발급받아 서버에 등록한다.
+ * 시뮬레이터·권한 거부 등으로 실패하면 조용히 넘어간다 (원격 푸시는 실기기에서만 동작).
+ * projectId 는 expo-notifications 가 app.json 의 extra.eas.projectId 에서 알아서 읽는다.
+ */
+export async function registerPushToken() {
+  try {
+    const granted = await requestNotificationPermission();
+    if (!granted) return null;
+    await ensureSilentNotificationChannel();
+
+    const { data: token } = await Notifications.getExpoPushTokenAsync();
+    if (!token) return null;
+
+    await api.put('/api/v1/users/me/push-token', { token });
+    return token;
+  } catch (e) {
+    if (__DEV__) console.warn('푸시 토큰 등록 실패:', e?.message ?? e);
+    return null;
+  }
+}
+
+/** 로그아웃 시 서버에 등록된 토큰을 해제해 다른 계정으로 오배송되지 않게 한다. */
+export async function unregisterPushToken() {
+  try {
+    await api.put('/api/v1/users/me/push-token', { token: null });
+  } catch (e) {
+    // 401은 세션이 이미 만료된 경우(자동 로그인 실패 등) — 해제할 등록도 없으므로 조용히 넘어간다
+    if (__DEV__ && e?.status !== 401) console.warn('푸시 토큰 해제 실패:', e?.message ?? e);
+  }
 }

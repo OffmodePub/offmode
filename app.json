@@ -15,10 +15,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.minnnj.offmode",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "appleTeamId": "SX5KZM28U5",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:offmodechallenge.com"],
+      "associatedDomains": [
+        "applinks:offmodechallenge.com"
+      ],
       "privacyPolicyUrl": "https://fuchsia-belief-040.notion.site/OFFMODE-34309a0b0e3e809b965bd62530627431"
     },
     "android": {
@@ -35,9 +37,16 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "offmodechallenge.com", "pathPrefix": "/invite" }
+            {
+              "scheme": "https",
+              "host": "offmodechallenge.com",
+              "pathPrefix": "/invite"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -70,10 +79,10 @@
       [
         "react-native-fbsdk-next",
         {
-          "appID": "1650144739389762",
-          "clientToken": "05fe1003111565de48c6c708a5a4239b",
+          "appID": "2518223585358464",
+          "clientToken": "d5e76b8307a965b7389daf5a155b8de0",
           "displayName": "offmode",
-          "scheme": "fb1650144739389762",
+          "scheme": "fb2518223585358464",
           "isAutoInitEnabled": true,
           "autoLogAppEventsEnabled": true,
           "advertiserIDCollectionEnabled": true,

@@ -42,7 +42,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>fb1650144739389762</string>
+          <string>fb2518223585358464</string>
         </array>
       </dict>
       <dict>
@@ -53,17 +53,17 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>FacebookAdvertiserIDCollectionEnabled</key>
     <true/>
     <key>FacebookAppID</key>
-    <string>1650144739389762</string>
+    <string>2518223585358464</string>
     <key>FacebookAutoInitEnabled</key>
     <true/>
     <key>FacebookAutoLogAppEventsEnabled</key>
     <true/>
     <key>FacebookClientToken</key>
-    <string>05fe1003111565de48c6c708a5a4239b</string>
+    <string>d5e76b8307a965b7389daf5a155b8de0</string>
     <key>FacebookDisplayName</key>
     <string>offmode</string>
     <key>KAKAO_APP_KEY</key>

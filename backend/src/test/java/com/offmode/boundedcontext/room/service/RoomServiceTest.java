@@ -27,6 +27,7 @@ import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
+import com.offmode.global.push.PushService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ class RoomServiceTest {
   @Mock private UserService userService;
   @Mock private RoomProofAssembler proofAssembler;
   @Mock private BlockService blockService;
+  @Mock private PushService pushService;
 
   private RoomService service() {
     return new RoomService(
@@ -56,7 +58,8 @@ class RoomServiceTest {
         nudgeRepository,
         userService,
         proofAssembler,
-        blockService);
+        blockService,
+        pushService);
   }
 
   @Test

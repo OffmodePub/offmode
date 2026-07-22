@@ -18,4 +18,7 @@ public record RoomDetailResponse(
     MemberTodayStatus myTodayStatus,
     ProgressResponse progress,
     List<RoomMemberResponse> members,
-    List<RoomProofResponse> proofs) {}
+    List<RoomProofResponse> proofs,
+    List<NudgeSenderResponse> receivedNudges,
+    // 인증이 하나라도 올라오면 false — 미션 이름 수정 잠금 여부를 서버가 판단해 내려준다
+    boolean missionEditable) {}
