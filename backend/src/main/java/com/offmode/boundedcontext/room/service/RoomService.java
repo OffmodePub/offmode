@@ -140,9 +140,15 @@ public class RoomService {
 
       if (room.getType() == RoomType.SOLO) {
         if (soloRoom != null) continue; // 첫 SOLO 방만 노출
+        // 오늘 내 인증을 한 번만 조회해 완료 여부와 사진(메인 화면 썸네일용)을 함께 얻는다.
+        RoomProof myProof =
+            todayMission == null
+                ? null
+                : proofRepository
+                    .findByRoomMissionIdAndUserId(todayMission.getId(), userId)
+                    .orElse(null);
         boolean done =
-            todayMission != null
-                && computeTodayStatus(todayMission.getId(), userId) == MemberTodayStatus.DONE;
+            myProof != null && toTodayStatus(myProof.getStatus()) == MemberTodayStatus.DONE;
         soloRoom =
             new SoloRoomSummaryResponse(
                 room.getId(),
@@ -151,7 +157,8 @@ public class RoomService {
                 room.getType(),
                 memberCounts.getOrDefault(room.getId(), 0L).intValue(),
                 mini,
-                done);
+                done,
+                done ? myProof.getPhotoUrl() : null);
       } else {
         int memberCount = memberCounts.getOrDefault(room.getId(), 0L).intValue();
         int verifiedCount =

@@ -10,4 +10,5 @@ public record SoloRoomSummaryResponse(
     RoomType type,
     int memberCount,
     MiniMissionResponse todayMission,
-    boolean todayDone) {}
+    boolean todayDone,
+    String todayPhotoUrl) {}
