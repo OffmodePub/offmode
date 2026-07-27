@@ -4,6 +4,8 @@ import com.offmode.boundedcontext.badge.service.BadgeService;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.HistoryProofResponse;
 import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryProofResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomProofResponse;
@@ -30,6 +32,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -219,6 +222,44 @@ public class RoomProofService {
               new MiniMissionResponse(mission.getIcon(), mission.getTitle()),
               proofResponses));
     }
+    return result;
+  }
+
+  // ===== 내 기록 (월별, 모든 방) =====
+
+  @Transactional(readOnly = true)
+  public List<MyHistoryResponse> getMyHistory(Long userId, String month) {
+    YearMonth yearMonth =
+        month == null || month.isBlank() ? YearMonth.now() : YearMonth.parse(month);
+    List<RoomProof> proofs =
+        proofRepository.findMyHistoryBetween(userId, yearMonth.atDay(1), yearMonth.atEndOfMonth());
+
+    // 쿼리 정렬(날짜 내림차순, 업로드 오름차순)을 그대로 유지하며 날짜별로 묶는다.
+    Map<LocalDate, List<RoomProof>> byDate = new LinkedHashMap<>();
+    for (RoomProof proof : proofs) {
+      byDate.computeIfAbsent(proof.getRoomMission().getDate(), d -> new ArrayList<>()).add(proof);
+    }
+
+    List<MyHistoryResponse> result = new ArrayList<>();
+    byDate.forEach(
+        (date, dayProofs) -> {
+          List<MyHistoryProofResponse> items =
+              dayProofs.stream()
+                  .map(
+                      p -> {
+                        RoomMission rm = p.getRoomMission();
+                        Room room = rm.getRoom();
+                        return new MyHistoryProofResponse(
+                            p.getCreatedAt() == null ? null : p.getCreatedAt().format(TIME_FORMAT),
+                            room.getName(),
+                            room.getIconKey(),
+                            new MiniMissionResponse(rm.getIcon(), rm.getTitle()),
+                            p.getPhotoUrl(),
+                            p.getStatus());
+                      })
+                  .toList();
+          result.add(new MyHistoryResponse(date, items));
+        });
     return result;
   }
 

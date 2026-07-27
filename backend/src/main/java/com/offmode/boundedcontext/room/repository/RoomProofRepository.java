@@ -82,6 +82,20 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
     """)
   List<RoomProof> findHistoryByUser(@Param("userId") Long userId, Pageable pageable);
 
+  // 내 기록 모아보기용: 기간 내 유저가 올린 방 인증 (모든 방).
+  // roomMission·room 을 fetch join 으로 함께 로드해 건당 추가 쿼리(N+1) 없이 사용한다.
+  @Query(
+      """
+        SELECT p
+        FROM RoomProof p
+        JOIN FETCH p.roomMission rm
+        JOIN FETCH rm.room
+        WHERE p.user.id = :userId AND rm.date BETWEEN :start AND :end
+        ORDER BY rm.date DESC, p.createdAt ASC
+    """)
+  List<RoomProof> findMyHistoryBetween(
+      @Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
   // 카테고리별 방 인증 수 (WALKER/BEAUTY_CURATOR/LOCAL_HIPSTER 배지 + 카테고리 통계용).
   // roomMission.category 가 null 인 인증은 어떤 카테고리에도 잡히지 않는다.
   long countByUserIdAndStatusAndRoomMissionCategory(

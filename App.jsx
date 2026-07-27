@@ -24,6 +24,7 @@ import RoomVerifyScreen from './screens/RoomVerifyScreen';
 import ProofDetailScreen from './screens/ProofDetailScreen';
 import RoomCompleteScreen from './screens/RoomCompleteScreen';
 import RoomHistoryScreen from './screens/RoomHistoryScreen';
+import MyHistoryScreen from './screens/MyHistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import MissionTimeScreen from './screens/MissionTimeScreen';
 import MissionRouletteScreen from './screens/MissionRouletteScreen';
@@ -73,8 +74,8 @@ import useMissionRouletteTrigger from './utils/useMissionRouletteTrigger';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// 최상위 3페이지 좌우 스와이프 순서 (Mission 가운데). Feed 탭은 RoomDetail로 흡수되어 제거됨.
-const PAGES = ['profile', 'mission', 'settings'];
+// 최상위 4페이지 좌우 스와이프 순서 (records 맨 왼쪽). Feed 탭은 RoomDetail로 흡수되어 제거됨.
+const PAGES = ['records', 'profile', 'mission', 'settings'];
 
 // 최상위 페이저 하단 여백 (홈 인디케이터 있으면 그 높이, 없으면 24px — useBottomInset).
 // SafeAreaProvider 하위에서 렌더돼야 훅이 동작하므로 별도 컴포넌트로 분리.
@@ -455,13 +456,14 @@ function AppInner() {
             </View>
           )}
 
-          {/* ── 최상위 3페이지 (좌우 스와이프: Profile | Mission | Settings) ── */}
+          {/* ── 최상위 4페이지 (좌우 스와이프: Records | Profile | Mission | Settings) ── */}
           <View
             style={[styles.screenWrap, currentStack && { opacity: 0 }]}
             pointerEvents={currentStack ? 'none' : 'auto'}
             {...pagerResponder.panHandlers}
           >
             <View style={{ flex: 1 }}>
+              {tab === 'records' && <MyHistoryScreen />}
               {tab === 'mission' && (
                 <RoomListScreen
                   version={roomVersion}

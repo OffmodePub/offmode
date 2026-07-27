@@ -9,6 +9,7 @@ import com.offmode.boundedcontext.room.dto.request.SetRoomMissionRequest;
 import com.offmode.boundedcontext.room.dto.request.UpdateRoomMissionTitleRequest;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
 import com.offmode.boundedcontext.room.dto.response.MissionCandidateResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
 import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
@@ -179,6 +180,13 @@ public class RoomController {
   }
 
   // ===== 기록 =====
+
+  // GET /api/v1/rooms/me/history?month=YYYY-MM - 내 기록 모아보기 (모든 방)
+  @GetMapping("/me/history")
+  public ResponseEntity<List<MyHistoryResponse>> getMyHistory(
+      @AuthenticationPrincipal Long userId, @RequestParam(required = false) String month) {
+    return ResponseEntity.ok(roomProofService.getMyHistory(userId, month));
+  }
 
   // GET /api/v1/rooms/{roomId}/history?month=YYYY-MM - 지난 기록
   @GetMapping("/{roomId}/history")
