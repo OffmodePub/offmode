@@ -19,11 +19,6 @@
  */
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { AppEventsLogger, Settings } from 'react-native-fbsdk-next';
-import {
-  getTrackingPermissionsAsync,
-  requestTrackingPermissionsAsync,
-} from 'expo-tracking-transparency';
 
 // Meta 표준 이벤트명 (SDK 내부 상수와 동일한 문자열)
 const EV = {
@@ -48,8 +43,32 @@ const debug = (...args) => {
   if (__DEV__) console.log('[analytics]', ...args);
 };
 
-/** SDK 호출은 실패해도 앱 흐름을 막지 않는다. */
+/**
+ * Meta SDK 와 ATT 모듈은 **import 되는 순간** 네이티브를 건드린다.
+ *   - react-native-fbsdk-next  → `new NativeEventEmitter(NativeModules.FBAccessToken)`
+ *   - expo-tracking-transparency → `requireNativeModule('ExpoTrackingTransparency')`
+ * 네이티브가 없는 클라이언트(Expo Go, Meta SDK 도입 전에 만든 dev-client 빌드)에서는
+ * `NativeEventEmitter requires a non-null argument` 로 앱 전체가 뜨지 않는다.
+ * 정적 import 라 호출부 try/catch 로는 못 막으므로, 런타임 require 로 늦게 불러오고
+ * 실패하면 이벤트 로깅만 통째로 no-op 으로 둔다.
+ */
+const optionalRequire = (label, load) => {
+  try {
+    return load();
+  } catch (e) {
+    debug(`${label} 네이티브 모듈 없음 — 로깅 비활성화`, e?.message);
+    return null;
+  }
+};
+
+const FB = optionalRequire('Meta SDK', () => require('react-native-fbsdk-next'));
+
+// Meta SDK 가 없으면 ATT 권한도 쓸 데가 없으므로 같이 건너뛴다.
+const ATT = FB ? optionalRequire('ATT', () => require('expo-tracking-transparency')) : null;
+
+/** Meta SDK 가 없는 빌드에서는 조용히 건너뛴다. 호출은 실패해도 앱 흐름을 막지 않는다. */
 const safe = (fn) => {
+  if (!FB) return;
   try {
     fn();
   } catch (e) {
@@ -64,17 +83,19 @@ const safe = (fn) => {
  * 빠져서 광고↔설치 연결 정확도가 떨어지고, SKAdNetwork 집계에만 의존하게 된다.
  */
 export async function initAnalytics() {
+  if (!FB) return;
+
   if (Platform.OS !== 'ios') {
-    Settings.initializeSDK();
+    FB.Settings.initializeSDK();
     return;
   }
 
   let granted = false;
   try {
-    const current = await getTrackingPermissionsAsync();
+    const current = await ATT.getTrackingPermissionsAsync();
     // 아직 묻지 않은 경우에만 시스템 팝업을 띄운다 (재요청은 불가).
     const status = current.canAskAgain && current.status !== 'granted'
-      ? (await requestTrackingPermissionsAsync()).status
+      ? (await ATT.requestTrackingPermissionsAsync()).status
       : current.status;
     granted = status === 'granted';
   } catch (e) {
@@ -82,14 +103,14 @@ export async function initAnalytics() {
   }
 
   debug('ATT 허용 여부', granted);
-  await Settings.setAdvertiserTrackingEnabled(granted);
-  Settings.initializeSDK();
+  await FB.Settings.setAdvertiserTrackingEnabled(granted);
+  FB.Settings.initializeSDK();
 }
 
 /** 신규 가입 완료. method 는 'kakao' | 'apple'. */
 export function logRegistration(method) {
   safe(() => {
-    AppEventsLogger.logEvent(EV.COMPLETE_REGISTRATION, {
+    FB.AppEventsLogger.logEvent(EV.COMPLETE_REGISTRATION, {
       [P.REGISTRATION_METHOD]: method ?? 'unknown',
     });
   });
@@ -102,6 +123,9 @@ export function logRegistration(method) {
  * 사용자를 가려내는 지표라, 매번 보내면 의미가 희석된다.
  */
 export async function logMissionVerified(missionId) {
+  // SDK 가 없을 때 '첫 인증 기록'을 남겨버리면 정상 빌드에서 이벤트가 유실된다.
+  if (!FB) return;
+
   let alreadyLogged = null;
   try {
     alreadyLogged = await SecureStore.getItemAsync(FIRST_VERIFY_KEY);
@@ -112,7 +136,7 @@ export async function logMissionVerified(missionId) {
   if (alreadyLogged) return;
 
   safe(() => {
-    AppEventsLogger.logEvent(EV.COMPLETE_TUTORIAL, {
+    FB.AppEventsLogger.logEvent(EV.COMPLETE_TUTORIAL, {
       [P.SUCCESS]: 1,
       [P.CONTENT_ID]: String(missionId ?? ''),
     });
@@ -128,7 +152,7 @@ export async function logMissionVerified(missionId) {
 /** 뱃지 획득·친구 초대 성공 등 성취 달성. */
 export function logAchievement(description) {
   safe(() => {
-    AppEventsLogger.logEvent(EV.UNLOCK_ACHIEVEMENT, {
+    FB.AppEventsLogger.logEvent(EV.UNLOCK_ACHIEVEMENT, {
       [P.DESCRIPTION]: description ?? '',
     });
   });
@@ -137,7 +161,7 @@ export function logAchievement(description) {
 /** 피드 탭 진입. */
 export function logFeedView() {
   safe(() => {
-    AppEventsLogger.logEvent(EV.VIEW_CONTENT, {
+    FB.AppEventsLogger.logEvent(EV.VIEW_CONTENT, {
       [P.CONTENT_TYPE]: 'feed',
       [P.CONTENT_ID]: 'feed_tab',
     });
