@@ -1,36 +1,36 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Animated,
+  View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Animated, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { W } from '../constants/warm';
-import { api } from '../utils/api';
+import { api, BASE_URL } from '../utils/api';
 import WarmText from '../components/WarmText';
 import * as H from '../utils/haptics';
 import { RoomIcon, AvatarStack, ProgressBar, GreenButton, OutlineButton, SourceBadge } from '../components/RoomBits';
 import { usePagerBottomBarHeight } from '../components/PageIndicator';
 
-/* ── 방 카드 ───────────────────────────────────────────── */
-function RoomCard({ room, solo, onPress }) {
+/* ── 방 카드 (함께하는 방 전용) ─────────────────────────── */
+function RoomCard({ room, onPress }) {
   const C = W;
   const s = useMemo(() => makeStyles(C), [C]);
   const mission = room.todayMission;
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[s.card, solo && s.cardSolo]}>
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={s.card}>
       <View style={s.cardTop}>
-        <RoomIcon iconKey={room.iconKey} size={30} accent={solo} />
+        <RoomIcon iconKey={room.iconKey} size={30} />
         <View style={{ flex: 1, gap: 3 }}>
           <View style={s.nameRow}>
             <WarmText v="section" size={16} numberOfLines={1} style={{ flexShrink: 1 }}>{room.name}</WarmText>
             {mission?.source ? <SourceBadge source={mission.source} /> : null}
           </View>
-          <WarmText v="caption" color={C.text}>{solo ? '혼자 하는 방' : `멤버 ${room.memberCount}명`}</WarmText>
+          <WarmText v="caption" color={C.text}>{`멤버 ${room.memberCount}명`}</WarmText>
         </View>
-        {!solo && room.members ? <AvatarStack members={room.members} /> : null}
+        {room.members ? <AvatarStack members={room.members} /> : null}
       </View>
 
-      <View style={[s.divider, solo && s.dividerSolo]} />
+      <View style={s.divider} />
 
       {mission ? (
         <View style={s.missionRow}>
@@ -44,19 +44,49 @@ function RoomCard({ room, solo, onPress }) {
         </View>
       )}
 
-      {solo && mission ? (
-        <View style={{ marginTop: 10 }}>
-          <WarmText v="caption" size={11} color={room.todayDone ? C.green : C.textSub}>
-            {room.todayDone ? '✓ 오늘 미션 인증 완료' : '아직 인증 전이에요'}
-          </WarmText>
-        </View>
-      ) : null}
-
-      {!solo && mission ? (
+      {mission ? (
         <View style={{ marginTop: 12 }}>
           <ProgressBar value={room.verifiedCount ?? 0} total={room.requiredCount ?? room.memberCount ?? 0} />
         </View>
       ) : null}
+    </TouchableOpacity>
+  );
+}
+
+/* ── 오늘의 미션 (나의 방 요약) ─────────────────────────────
+   지난 기록은 '내 기록' 탭에서 보므로, 여기서는 방 개념 없이
+   오늘 미션 제목 + 인증 여부만 간단히 보여준다 (셋로그 '내 log' 스타일). */
+function TodayMissionCard({ room, onPress }) {
+  const C = W;
+  const s = useMemo(() => makeStyles(C), [C]);
+  const mission = room.todayMission;
+  const done = !!room.todayDone;
+  // 인증 완료 시에만 오늘 사진 썸네일 노출 (지난 기록은 '내 기록' 탭 담당)
+  const photo = done && room.todayPhotoUrl
+    ? (room.todayPhotoUrl.startsWith('/') ? `${BASE_URL}${room.todayPhotoUrl}` : room.todayPhotoUrl)
+    : null;
+
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[s.card, s.cardSolo]}>
+      {mission ? (
+        <View style={s.todayRow}>
+          <View style={{ flex: 1 }}>
+            <View style={s.missionRow}>
+              <WarmText size={22}>{mission.icon}</WarmText>
+              <WarmText v="section" size={16} numberOfLines={1} style={{ flex: 1 }}>{mission.title}</WarmText>
+            </View>
+            <WarmText v="caption" size={12} color={done ? C.green : C.textSub} style={s.todayStatus}>
+              {done ? '✓ 오늘 미션 인증 완료' : '○ 아직 인증 전이에요'}
+            </WarmText>
+          </View>
+          {photo ? <Image source={{ uri: photo }} style={s.todayThumb} resizeMode="cover" /> : null}
+        </View>
+      ) : (
+        <View style={s.missionRow}>
+          <WarmText size={22}>💤</WarmText>
+          <WarmText v="sub" size={14} style={{ flex: 1 }}>아직 오늘 미션이 없어요</WarmText>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -179,8 +209,8 @@ export default function RoomListScreen({ onOpenRoom, onCreate, onJoin, onOpenNot
           <>
             {solo ? (
               <>
-                <WarmText v="label" color={C.green} style={s.sectionLabel}>나의 방</WarmText>
-                <RoomCard room={solo} solo onPress={() => { H.tap(); onOpenRoom?.(solo.id); }} />
+                <WarmText v="label" color={C.green} style={s.sectionLabel}>오늘의 미션</WarmText>
+                <TodayMissionCard room={solo} onPress={() => { H.tap(); onOpenRoom?.(solo.id); }} />
               </>
             ) : null}
 
@@ -225,8 +255,10 @@ function makeStyles(C) {
     cardTop:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
     nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
     divider:  { height: 1, backgroundColor: C.borderStrong, marginVertical: 12 },
-    dividerSolo: { backgroundColor: C.greenBorder },
     missionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    todayRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    todayStatus: { marginTop: 8, marginLeft: 30 }, // 미션 아이콘 폭(22)+gap(8)만큼 들여쓰기
+    todayThumb: { width: 48, height: 48, borderRadius: 12, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.greenBorder },
 
     empty:     { alignItems: 'center', paddingVertical: 70, paddingHorizontal: 40 },
     emptyIcon: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.greenFaint, alignItems: 'center', justifyContent: 'center' },

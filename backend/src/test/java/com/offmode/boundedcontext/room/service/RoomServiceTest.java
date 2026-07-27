@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
+import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
 import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMember;
 import com.offmode.boundedcontext.room.entity.RoomMission;
@@ -28,6 +29,8 @@ import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.push.PushService;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -204,6 +207,63 @@ class RoomServiceTest {
 
     assertThat(res.nudged()).isTrue();
     verify(nudgeRepository, never()).save(any(RoomNudge.class));
+  }
+
+  private RoomMember soloMembership(Long roomId, Long userId) {
+    Room room =
+        Room.builder().id(roomId).name("나의 방").type(RoomType.SOLO).inviteCode("OFF000").build();
+    User user = User.builder().id(userId).provider("kakao").providerId("me").build();
+    return RoomMember.builder()
+        .id(10L)
+        .room(room)
+        .user(user)
+        .role(RoomRole.OWNER)
+        .joinedAt(LocalDateTime.of(2026, 7, 1, 9, 0))
+        .build();
+  }
+
+  @Test
+  void getMyRoomsIncludesTodayPhotoUrlWhenSoloVerified() {
+    RoomMember membership = soloMembership(2L, 1L);
+    RoomMission mission = RoomMission.builder().id(50L).room(membership.getRoom()).build();
+    RoomProof proof =
+        RoomProof.builder().status(ProofStatus.VERIFIED).photoUrl("/uploads/today.jpg").build();
+
+    when(memberRepository.findWithRoomByUserId(1L))
+        .thenReturn(new ArrayList<>(List.of(membership)));
+    when(missionRepository.findByRoomIdInAndDate(eq(List.of(2L)), any()))
+        .thenReturn(List.of(mission));
+    when(memberRepository.countRowsByRoomIdIn(List.of(2L)))
+        .thenReturn(List.<Object[]>of(new Object[] {2L, 1L}));
+    when(proofRepository.countRowsByRoomMissionIdInAndStatus(List.of(50L), ProofStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(proofRepository.findByRoomMissionIdAndUserId(50L, 1L)).thenReturn(Optional.of(proof));
+
+    RoomListResponse res = service().getMyRooms(1L);
+
+    assertThat(res.soloRoom().todayDone()).isTrue();
+    assertThat(res.soloRoom().todayPhotoUrl()).isEqualTo("/uploads/today.jpg");
+  }
+
+  @Test
+  void getMyRoomsOmitsTodayPhotoUrlWhenNotVerified() {
+    RoomMember membership = soloMembership(2L, 1L);
+    RoomMission mission = RoomMission.builder().id(50L).room(membership.getRoom()).build();
+
+    when(memberRepository.findWithRoomByUserId(1L))
+        .thenReturn(new ArrayList<>(List.of(membership)));
+    when(missionRepository.findByRoomIdInAndDate(eq(List.of(2L)), any()))
+        .thenReturn(List.of(mission));
+    when(memberRepository.countRowsByRoomIdIn(List.of(2L)))
+        .thenReturn(List.<Object[]>of(new Object[] {2L, 1L}));
+    when(proofRepository.countRowsByRoomMissionIdInAndStatus(List.of(50L), ProofStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(proofRepository.findByRoomMissionIdAndUserId(50L, 1L)).thenReturn(Optional.empty());
+
+    RoomListResponse res = service().getMyRooms(1L);
+
+    assertThat(res.soloRoom().todayDone()).isFalse();
+    assertThat(res.soloRoom().todayPhotoUrl()).isNull();
   }
 
   private JoinRoomRequest request(String inviteCode) {
