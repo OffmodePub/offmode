@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.offmode.boundedcontext.badge.service.BadgeService;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.ProofReportResponse;
 import com.offmode.boundedcontext.room.entity.Room;
 import com.offmode.boundedcontext.room.entity.RoomMember;
@@ -24,11 +25,15 @@ import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
 import com.offmode.boundedcontext.room.types.ProofReportReason;
 import com.offmode.boundedcontext.room.types.ProofStatus;
+import com.offmode.boundedcontext.room.types.RoomIconKey;
 import com.offmode.boundedcontext.room.types.RoomType;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.file.ImageUploadService;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -225,5 +230,51 @@ class RoomProofServiceTest {
 
     assertThat(response.reportId()).isEqualTo(555L);
     verify(reportRepository).save(any(RoomProofReport.class));
+  }
+
+  private RoomProof myProofOf(String roomName, LocalDate date, String time, ProofStatus status) {
+    Room room = Room.builder().id(2L).name(roomName).iconKey(RoomIconKey.FIRE).build();
+    RoomMission mission =
+        RoomMission.builder().id(10L).room(room).date(date).icon("🚶").title("산책하기").build();
+    User me = User.builder().id(1L).provider("kakao").providerId("me").build();
+    return RoomProof.builder()
+        .id(100L)
+        .roomMission(mission)
+        .user(me)
+        .status(status)
+        .photoUrl("/uploads/p.jpg")
+        .createdAt(LocalDate.parse(date.toString()).atTime(LocalTime.parse(time)))
+        .build();
+  }
+
+  @Test
+  void getMyHistoryGroupsProofsByDate() {
+    LocalDate d1 = LocalDate.of(2026, 7, 25);
+    LocalDate d2 = LocalDate.of(2026, 7, 24);
+    when(proofRepository.findMyHistoryBetween(
+            1L, LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 31)))
+        .thenReturn(
+            List.of(
+                myProofOf("아침 산책방", d1, "08:10", ProofStatus.VERIFIED),
+                myProofOf("독서방", d1, "21:30", ProofStatus.PENDING),
+                myProofOf("아침 산책방", d2, "08:05", ProofStatus.VERIFIED)));
+
+    List<MyHistoryResponse> result = service().getMyHistory(1L, "2026-07");
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).date()).isEqualTo(d1);
+    assertThat(result.get(0).proofs()).hasSize(2);
+    assertThat(result.get(0).proofs().get(0).roomName()).isEqualTo("아침 산책방");
+    assertThat(result.get(0).proofs().get(0).time()).isEqualTo("08:10");
+    assertThat(result.get(0).proofs().get(0).mission().title()).isEqualTo("산책하기");
+    assertThat(result.get(1).date()).isEqualTo(d2);
+    assertThat(result.get(1).proofs()).hasSize(1);
+  }
+
+  @Test
+  void getMyHistoryReturnsEmptyListWhenNoProofs() {
+    when(proofRepository.findMyHistoryBetween(anyLong(), any(), any())).thenReturn(List.of());
+
+    assertThat(service().getMyHistory(1L, "2026-06")).isEmpty();
   }
 }

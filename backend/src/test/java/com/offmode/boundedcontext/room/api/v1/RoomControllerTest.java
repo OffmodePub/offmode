@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.offmode.boundedcontext.room.dto.request.CreateRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.response.ConfirmResponse;
+import com.offmode.boundedcontext.room.dto.response.MiniMissionResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryProofResponse;
+import com.offmode.boundedcontext.room.dto.response.MyHistoryResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomDetailResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomReactionSummaryResponse;
@@ -27,6 +30,7 @@ import com.offmode.global.exception.BusinessException;
 import com.offmode.global.jwt.JwtAuthFilter;
 import com.offmode.global.jwt.JwtProvider;
 import com.offmode.global.status.ErrorStatus;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -193,6 +197,55 @@ class RoomControllerTest {
         .andExpect(jsonPath("$[0].emoji").value("🔥"))
         .andExpect(jsonPath("$[0].count").value(3))
         .andExpect(jsonPath("$[0].mine").value(true));
+  }
+
+  @Test
+  void getMyHistoryReturnsGroupedRecords() throws Exception {
+    authenticate();
+    when(roomProofService.getMyHistory(1L, "2026-07"))
+        .thenReturn(
+            List.of(
+                new MyHistoryResponse(
+                    LocalDate.of(2026, 7, 25),
+                    List.of(
+                        new MyHistoryProofResponse(
+                            "08:10",
+                            "아침 산책방",
+                            RoomIconKey.FIRE,
+                            new MiniMissionResponse("🚶", "산책하기"),
+                            "/uploads/p.jpg",
+                            ProofStatus.VERIFIED)))));
+
+    mockMvc
+        .perform(
+            get("/api/v1/rooms/me/history?month=2026-07").header("Authorization", "Bearer token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].date").value("2026-07-25"))
+        .andExpect(jsonPath("$[0].proofs[0].roomName").value("아침 산책방"))
+        .andExpect(jsonPath("$[0].proofs[0].roomIconKey").value("FIRE"))
+        .andExpect(jsonPath("$[0].proofs[0].mission.title").value("산책하기"))
+        .andExpect(jsonPath("$[0].proofs[0].status").value("VERIFIED"));
+  }
+
+  @Test
+  void getMyHistoryReturnsEmptyArrayWhenNoRecords() throws Exception {
+    authenticate();
+    when(roomProofService.getMyHistory(eq(1L), any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(get("/api/v1/rooms/me/history").header("Authorization", "Bearer token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  void getMyHistoryWithoutTokenReturnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/rooms/me/history"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.isSuccess").value(false))
+        .andExpect(jsonPath("$.code").value("COMMON_401"));
   }
 
   @Test
