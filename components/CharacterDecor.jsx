@@ -10,6 +10,8 @@ import { W } from '../constants/warm';
 import { CHARACTER_BASE, PART_BY_KEY } from '../constants/parts';
 import * as H from '../utils/haptics';
 import WarmText from './WarmText';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 
 const PART_SIZE = 72;   // 배치 파츠 기본 렌더 크기(px, scale=1 기준)
 const MIN_SCALE = 0.4;
@@ -133,6 +135,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   const [placed, setPlaced] = useState([]);       // [{ key, x, y, scale, rotation, z }]
   const [selectedKey, setSelectedKey] = useState(null);
   const [card, setCard] = useState({ w: 0, h: 0 });
+  const cardShotRef = useRef();
 
   // 서버 placement → 편집 상태 초기화(로드/새로고침/저장 후)
   useEffect(() => {
@@ -204,37 +207,53 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   const selectedPart = selectedKey ? PART_BY_KEY[selectedKey] : null;
   const sortedPlaced = [...placed].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 
+    const handleSaveImage = async () => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한을 허용해주세요!');
+        return;
+      }
+      const uri = await cardShotRef.current.capture();
+      await MediaLibrary.saveToLibraryAsync(uri);
+      H.tap();
+      Alert.alert('저장 완료', '캐릭터 이미지가 갤러리에 저장됐어요!');
+    } catch (e) {
+      Alert.alert('저장 실패', e.message);
+    }
+  };
+
   return (
     <View style={s.wrap}>
       {/* 캐릭터 카드 (편집 캔버스) */}
-      <View style={s.card} onLayout={onCardLayout}>
-        <Image source={characterSource} style={s.character} resizeMode="contain" />
+      <ViewShot ref={cardShotRef} options={{ format: 'png', quality: 1 }}>
+        <View style={s.card} onLayout={onCardLayout}>
+          <Image source={characterSource} style={s.character} resizeMode="contain" />
 
-        {/* 빈 곳 탭 → 선택 해제 */}
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={() => setSelectedKey(null)}
-        />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setSelectedKey(null)}
+          />
 
-        {/* 배치된 파츠 */}
-        {card.w > 0 && sortedPlaced.map((item) => {
-          const meta = PART_BY_KEY[item.key];
-          if (!meta) return null;
-          return (
-            <PlacedPart
-              key={item.key}
-              item={item}
-              cardW={card.w}
-              cardH={card.h}
-              image={meta.image}
-              selected={selectedKey === item.key}
-              onSelect={() => setSelectedKey(item.key)}
-              onChange={(patch) => updatePlacement(item.key, patch)}
-            />
-          );
-        })}
-      </View>
+          {card.w > 0 && sortedPlaced.map((item) => {
+            const meta = PART_BY_KEY[item.key];
+            if (!meta) return null;
+            return (
+              <PlacedPart
+                key={item.key}
+                item={item}
+                cardW={card.w}
+                cardH={card.h}
+                image={meta.image}
+                selected={selectedKey === item.key}
+                onSelect={() => setSelectedKey(item.key)}
+                onChange={(patch) => updatePlacement(item.key, patch)}
+              />
+            );
+          })}
+        </View>
+      </ViewShot>
 
       {/* 선택된 파츠 툴바 */}
       {selectedPart ? (
@@ -287,6 +306,11 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       {/* 저장 버튼 (웜 톤) */}
       <TouchableOpacity style={s.saveBtn} onPress={handleSave} activeOpacity={0.85}>
         <WarmText v="btn" size={15} color={W.white}>꾸미기 저장</WarmText>
+      </TouchableOpacity>
+
+      {/* 새로 추가하는 부분 */}
+      <TouchableOpacity style={s.imageSaveBtn} onPress={handleSaveImage} activeOpacity={0.85}>
+        <WarmText v="btn" size={15} color={W.brown}>이미지로 저장</WarmText>
       </TouchableOpacity>
 
       {/* 푸터 */}
@@ -394,4 +418,14 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   footer: { textAlign: 'center', marginTop: 6 },
+  imageSaveBtn: {
+    alignSelf: 'stretch',
+    backgroundColor: W.surface,
+    borderWidth: 1,
+    borderColor: W.borderStrong,
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 6,
+  },
 });
