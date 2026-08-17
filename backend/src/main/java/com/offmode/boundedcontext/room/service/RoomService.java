@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +63,7 @@ public class RoomService {
   private final RoomProofAssembler proofAssembler;
   private final BlockService blockService;
   private final PushService pushService;
+  private final InviteCodeGenerator inviteCodeGenerator;
 
   // ===== 방 생성/참여/목록 =====
 
@@ -446,7 +446,7 @@ public class RoomService {
 
   private String generateUniqueInviteCode() {
     for (int attempt = 0; attempt < INVITE_CODE_MAX_ATTEMPTS; attempt++) {
-      String code = "OFF" + String.format("%03d", ThreadLocalRandom.current().nextInt(0, 1000));
+      String code = inviteCodeGenerator.generate();
       if (!roomRepository.existsByInviteCode(code)) {
         return code;
       }

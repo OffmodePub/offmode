@@ -46,7 +46,7 @@ export default function JoinRoomScreen({ onBack, onJoined, initialCode }) {
           <TextInput
             value={code}
             onChangeText={(t) => { setCode(t.toUpperCase()); setError(''); }}
-            placeholder="예) OFF111"
+            placeholder="예) K7M2QP"
             placeholderTextColor={C.brown}
             autoCapitalize="characters"
             autoCorrect={false}
