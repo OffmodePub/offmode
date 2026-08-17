@@ -5,7 +5,6 @@ import com.offmode.boundedcontext.room.entity.RoomProof;
 import com.offmode.boundedcontext.room.types.ProofStatus;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -109,10 +108,19 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
   long countByUserIdAndStatusAndRoomMissionTitleContaining(
       Long userId, ProofStatus status, String keyword);
 
-  // 시간대 배지용 — VERIFIED 방 인증의 생성 시각 목록(시(hour) 필터는 Java에서 수행)
-  @Query("SELECT p.createdAt FROM RoomProof p WHERE p.user.id = :userId AND p.status = :status")
-  List<LocalDateTime> findCreatedAtByUserIdAndStatus(
-      @Param("userId") Long userId, @Param("status") ProofStatus status);
+  // 시간대 배지용 — VERIFIED 방 인증 중 생성 시각이 [fromHour, toHour) 에 드는 건수
+  @Query(
+      """
+        SELECT COUNT(p)
+        FROM RoomProof p
+        WHERE p.user.id = :userId AND p.status = :status
+          AND HOUR(p.createdAt) >= :fromHour AND HOUR(p.createdAt) < :toHour
+    """)
+  long countByStatusAndHourRange(
+      @Param("userId") Long userId,
+      @Param("status") ProofStatus status,
+      @Param("fromHour") int fromHour,
+      @Param("toHour") int toHour);
 
   // 유저 연속 달성 일수 계산용: 유저가 VERIFIED 한 방 미션의 날짜들
   @Query(

@@ -101,8 +101,7 @@ class UserServiceTest {
 
   @Test
   void getStats_방인증을_누적_통계에_합산한다() {
-    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L))
-        .thenReturn(List.of()); // 레거시 0
+    when(userMissionRepository.countByUserId(1L)).thenReturn(0L); // 레거시 0
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(2L);
     stubCategoryCounts();
     when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
@@ -120,7 +119,7 @@ class UserServiceTest {
 
   @Test
   void getStats_연속달성은_방인증_날짜도_포함한다() {
-    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserId(1L)).thenReturn(0L);
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
     stubCategoryCounts();
     when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
@@ -138,7 +137,7 @@ class UserServiceTest {
 
   @Test
   void getStats_오늘_미인증이어도_어제까지_이어진_연속달성은_유지된다() {
-    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserId(1L)).thenReturn(0L);
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
     stubCategoryCounts();
     when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
@@ -160,7 +159,7 @@ class UserServiceTest {
 
   @Test
   void getStats_어제도_인증이_없으면_연속달성은_0이다() {
-    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserId(1L)).thenReturn(0L);
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
     stubCategoryCounts();
     when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
@@ -178,7 +177,7 @@ class UserServiceTest {
 
   @Test
   void getStats_카테고리_통계에_방인증을_합산한다() {
-    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserId(1L)).thenReturn(0L);
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
     stubCategoryCounts(); // 레거시 카테고리 0
     when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
