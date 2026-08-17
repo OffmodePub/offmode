@@ -149,4 +149,24 @@ class BadgeServiceTest {
     assertThat(awarded)
         .doesNotContain(BadgeDefinition.EMOJI_ARTIST, BadgeDefinition.REACTION_MASTER);
   }
+
+  @Test
+  void checkAndAwardCountsRoomProofDatesForStreakBadge() {
+    BadgeService service = service();
+    User user = User.builder().id(1L).provider("kakao").providerId("p1").build();
+    java.time.LocalDate start = java.time.LocalDate.now().minusDays(6);
+    when(userBadgeRepository.findEarnedKeys(1L)).thenReturn(Set.of());
+    // 개인 미션 인증은 없고 방 인증만 7일 연속 → SPEEDRUNNER 획득
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(Collections.emptyList());
+    when(roomProofRepository.findVerifiedDatesByUser(1L, ProofStatus.VERIFIED))
+        .thenReturn(java.util.stream.IntStream.range(0, 7).mapToObj(start::plusDays).toList());
+    when(userRepository.getReferenceById(1L)).thenReturn(user);
+    when(userBadgeRepository.save(any(UserBadge.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    List<BadgeDefinition> awarded = service.checkAndAward(1L);
+
+    assertThat(awarded).contains(BadgeDefinition.SPEEDRUNNER);
+  }
 }
