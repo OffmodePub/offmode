@@ -57,6 +57,7 @@ class RoomServiceTest {
   @Mock private RoomProofAssembler proofAssembler;
   @Mock private BlockService blockService;
   @Mock private PushService pushService;
+  @Mock private RoomProofReconciler proofReconciler;
 
   private RoomService service() {
     return new RoomService(
@@ -69,7 +70,8 @@ class RoomServiceTest {
         proofAssembler,
         blockService,
         pushService,
-        new InviteCodeGenerator());
+        new InviteCodeGenerator(),
+        proofReconciler);
   }
 
   @Test
@@ -123,6 +125,60 @@ class RoomServiceTest {
     verify(memberRepository).save(captor.capture());
     assertThat(captor.getValue().getRole()).isEqualTo(RoomRole.OWNER);
     assertThat(captor.getValue().getId()).isEqualTo(11L);
+  }
+
+  @Test
+  void leaveRevisesTodayProofsWithTheLoweredRequirement() {
+    Room room = Room.builder().id(2L).type(RoomType.GROUP).build();
+    User owner = User.builder().id(1L).provider("kakao").providerId("owner").build();
+    RoomMember ownerMember =
+        RoomMember.builder().id(10L).room(room).user(owner).role(RoomRole.MEMBER).build();
+
+    when(roomRepository.findById(2L)).thenReturn(Optional.of(room));
+    when(memberRepository.findByRoomIdAndUserId(2L, 1L)).thenReturn(Optional.of(ownerMember));
+    // 3명이던 방에서 한 명이 빠져 2명 → 요구 확인 수는 1
+    when(memberRepository.countByRoomId(2L)).thenReturn(2L);
+
+    service().leave(1L, 2L);
+
+    verify(proofReconciler).reconcileTodayProofs(2L, 1);
+  }
+
+  @Test
+  void kickMemberRevisesTodayProofsWithTheLoweredRequirement() {
+    Room room = Room.builder().id(2L).type(RoomType.GROUP).build();
+    User owner = User.builder().id(1L).provider("kakao").providerId("owner").build();
+    RoomMember ownerMember =
+        RoomMember.builder().id(10L).room(room).user(owner).role(RoomRole.OWNER).build();
+    User target = User.builder().id(2L).provider("kakao").providerId("target").build();
+    RoomMember targetMember =
+        RoomMember.builder().id(11L).room(room).user(target).role(RoomRole.MEMBER).build();
+
+    when(roomRepository.findById(2L)).thenReturn(Optional.of(room));
+    when(memberRepository.findByRoomIdAndUserId(2L, 1L)).thenReturn(Optional.of(ownerMember));
+    when(memberRepository.findByIdAndRoomId(11L, 2L)).thenReturn(Optional.of(targetMember));
+    when(memberRepository.countByRoomId(2L)).thenReturn(2L);
+
+    service().kickMember(1L, 2L, 11L);
+
+    verify(memberRepository).delete(targetMember);
+    verify(proofReconciler).reconcileTodayProofs(2L, 1);
+  }
+
+  @Test
+  void soloRoomNeedsNoConfirmAfterMemberLeaves() {
+    Room room = Room.builder().id(2L).type(RoomType.SOLO).build();
+    User owner = User.builder().id(1L).provider("kakao").providerId("owner").build();
+    RoomMember ownerMember =
+        RoomMember.builder().id(10L).room(room).user(owner).role(RoomRole.OWNER).build();
+
+    when(roomRepository.findById(2L)).thenReturn(Optional.of(room));
+    when(memberRepository.findByRoomIdAndUserId(2L, 1L)).thenReturn(Optional.of(ownerMember));
+    when(memberRepository.countByRoomId(2L)).thenReturn(0L);
+
+    service().leave(1L, 2L);
+
+    verify(proofReconciler).reconcileTodayProofs(2L, 0);
   }
 
   @Test

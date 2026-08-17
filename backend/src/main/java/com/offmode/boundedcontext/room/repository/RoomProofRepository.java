@@ -31,6 +31,10 @@ public interface RoomProofRepository extends JpaRepository<RoomProof, Long> {
   @Query("SELECT p FROM RoomProof p WHERE p.id = :id")
   Optional<RoomProof> findWithLockById(@Param("id") Long id);
 
+  // 멤버가 나가 요구치가 줄었을 때 다시 판정할 대상.
+  // id 오름차순으로 고정해 동시에 나가는 요청들이 같은 순서로 락을 잡게 한다 (데드락 방지).
+  List<RoomProof> findByRoomMissionIdAndStatusOrderByIdAsc(Long roomMissionId, ProofStatus status);
+
   // 방 목록용: 미션별 VERIFIED 수를 한 번에 집계 (방 개수만큼 반복 호출하지 않는다)
   @Query(
       """

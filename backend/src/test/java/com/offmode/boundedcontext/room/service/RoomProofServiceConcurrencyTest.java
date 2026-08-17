@@ -37,7 +37,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * 피어 인증(confirm) 동시성 검증 — 같은 인증에 동시에 confirm 이 몰려도 임계치 판정과 진급/뱃지 처리가 정확히 한 번만 일어나야 한다.
+ * 인증 상태 전환 동시성 검증 — 같은 인증에 confirm 이 몰리거나 확인과 나가기가 겹쳐도, 임계치 판정과 진급/뱃지 처리는 정확히 한 번만 일어나야 한다.
  *
  * <p>스레드 간 커밋 가시성이 필요하므로 테스트에 @Transactional 을 붙이지 않는다 (각 서비스 호출이 자체 트랜잭션으로 커밋된다).
  */
@@ -53,6 +53,7 @@ import org.springframework.test.context.TestPropertySource;
 class RoomProofServiceConcurrencyTest {
 
   @Autowired private RoomProofService proofService;
+  @Autowired private RoomService roomService;
   @Autowired private UserRepository userRepository;
   @Autowired private RoomRepository roomRepository;
   @Autowired private RoomMemberRepository memberRepository;
@@ -109,6 +110,29 @@ class RoomProofServiceConcurrencyTest {
                     f.confirmerA.getId(), f.room.getId(), f.proof.getId(), "🔥"));
 
     assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void leavingWhileAnotherMemberConfirmsStillVerifiesExactlyOnce() throws Exception {
+    // 3명 방(requiredConfirm=2)에서 한 명이 나가는 동시에 다른 한 명이 확인한다.
+    // 인증 행 락이 두 경로를 직렬화하므로 어느 순서가 되든 결과는 "2명 + 확인 1건" 이고,
+    // 요구치가 1로 낮아졌으니 최종 상태는 VERIFIED 여야 한다.
+    //  - confirm 이 먼저면: 아직 3명이라 미달로 두고 커밋 → 나가기의 재판정이 완료 처리
+    //  - 나가기가 먼저면: 확인 0건이라 미달로 두고 커밋 → confirm 이 2명 기준으로 완료 처리
+    // 어느 쪽이든 진급·뱃지는 한 번만 실행되어야 한다.
+    Fixture f = createGroupRoomWithProof("room-c4", 2);
+
+    List<Throwable> errors =
+        runConcurrently(
+            () -> proofService.confirm(f.confirmerA.getId(), f.room.getId(), f.proof.getId()),
+            () -> roomService.leave(f.confirmerB.getId(), f.room.getId()));
+
+    assertThat(errors).isEmpty();
+    RoomProof reloaded = proofRepository.findById(f.proof.getId()).orElseThrow();
+    assertThat(reloaded.getStatus()).isEqualTo(ProofStatus.VERIFIED);
+    assertThat(confirmRepository.countByRoomProofId(f.proof.getId())).isEqualTo(1);
+    assertThat(memberRepository.countByRoomId(f.room.getId())).isEqualTo(2);
+    assertBadgesNotDuplicated(f.uploader.getId());
   }
 
   // ===== 픽스처/헬퍼 =====
