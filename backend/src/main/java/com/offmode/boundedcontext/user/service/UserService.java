@@ -23,6 +23,7 @@ import com.offmode.boundedcontext.user.repository.UserBlockRepository;
 import com.offmode.boundedcontext.user.repository.UserRepository;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.status.ErrorStatus;
+import com.offmode.global.util.StreakCalculator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -140,7 +141,7 @@ public class UserService {
             .map(LocalDateTime::toLocalDate)
             .collect(Collectors.toCollection(HashSet::new));
     verifiedDates.addAll(roomProofRepository.findVerifiedDatesByUser(userId, ProofStatus.VERIFIED));
-    int streak = calcStreak(verifiedDates);
+    int streak = StreakCalculator.compute(verifiedDates, LocalDate.now());
 
     return new UserStatsResponse(
         totalMissions,
@@ -152,19 +153,6 @@ public class UserService {
         level(intellect),
         fill(vitality),
         level(vitality));
-  }
-
-  // 연속 달성 일수 계산 (오늘부터 역순으로 확인)
-  private int calcStreak(Set<LocalDate> dates) {
-    if (dates.isEmpty()) return 0;
-
-    LocalDate check = LocalDate.now();
-    int streak = 0;
-    while (dates.contains(check)) {
-      streak++;
-      check = check.minusDays(1);
-    }
-    return streak;
   }
 
   @Transactional
