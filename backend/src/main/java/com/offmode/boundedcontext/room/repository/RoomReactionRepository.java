@@ -21,6 +21,25 @@ public interface RoomReactionRepository extends JpaRepository<RoomReaction, Long
   @Query("DELETE FROM RoomReaction r WHERE r.roomProof.user.id = :userId")
   void deleteByProofOwnerUserId(@Param("userId") Long userId);
 
+  // 배지(EMOJI_ARTIST): 내가 '다른 유저' 인증에 남긴 리액션 수.
+  // 셀프 리액션은 토글 API가 막지 않으므로 여기서 제외한다.
+  @Query(
+      """
+        SELECT COUNT(r)
+        FROM RoomReaction r
+        WHERE r.user.id = :userId AND r.roomProof.user.id <> :userId
+    """)
+  long countGivenToOthers(@Param("userId") Long userId);
+
+  // 배지(REACTION_MASTER): 내 인증에 '남이' 남긴 리액션 수. 셀프 리액션 제외.
+  @Query(
+      """
+        SELECT COUNT(r)
+        FROM RoomReaction r
+        WHERE r.roomProof.user.id = :userId AND r.user.id <> :userId
+    """)
+  long countReceivedFromOthers(@Param("userId") Long userId);
+
   @Query(
       """
         SELECT r.roomProof.id, r.emoji, r.user.id
