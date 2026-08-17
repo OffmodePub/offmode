@@ -8,6 +8,7 @@ import com.offmode.boundedcontext.mission.repository.UserMissionRepository;
 import com.offmode.boundedcontext.mission.types.MissionCategory;
 import com.offmode.boundedcontext.mission.types.MissionStatus;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
+import com.offmode.boundedcontext.room.repository.RoomReactionRepository;
 import com.offmode.boundedcontext.room.types.ProofStatus;
 import com.offmode.boundedcontext.user.entity.User;
 import com.offmode.boundedcontext.user.repository.UserRepository;
@@ -27,6 +28,7 @@ public class BadgeService {
   private final UserMissionRepository userMissionRepository;
   private final UserRepository userRepository;
   private final RoomProofRepository roomProofRepository;
+  private final RoomReactionRepository roomReactionRepository;
 
   /** 모든 배지 정의 + 획득 여부 반환 */
   public List<BadgeResponse> getUserBadges(Long userId) {
@@ -74,8 +76,9 @@ public class BadgeService {
       case AFTERNOON_FREE -> verifiedByHour(userId, 12, 18) >= 5;
       case EVENING_WARDEN -> verifiedByHour(userId, 18, 22) >= 5;
 
-        // 소셜 (리액션 시스템 미구현 → 항상 false)
-      case EMOJI_ARTIST, REACTION_MASTER -> false;
+        // 소셜 (셀프 리액션은 양쪽 모두 집계에서 제외)
+      case EMOJI_ARTIST -> roomReactionRepository.countGivenToOthers(userId) >= 50;
+      case REACTION_MASTER -> roomReactionRepository.countReceivedFromOthers(userId) >= 100;
 
         // 유니크
       case OFFMODE_ENTRY -> userMissionRepository.existsByUserId(userId);
