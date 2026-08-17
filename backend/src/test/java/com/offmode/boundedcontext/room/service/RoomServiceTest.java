@@ -3,11 +3,14 @@ package com.offmode.boundedcontext.room.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.offmode.boundedcontext.room.dto.request.CreateRoomRequest;
 import com.offmode.boundedcontext.room.dto.request.JoinRoomRequest;
 import com.offmode.boundedcontext.room.dto.response.NudgeResponse;
 import com.offmode.boundedcontext.room.dto.response.RoomListResponse;
@@ -22,6 +25,7 @@ import com.offmode.boundedcontext.room.repository.RoomNudgeRepository;
 import com.offmode.boundedcontext.room.repository.RoomProofRepository;
 import com.offmode.boundedcontext.room.repository.RoomRepository;
 import com.offmode.boundedcontext.room.types.ProofStatus;
+import com.offmode.boundedcontext.room.types.RoomIconKey;
 import com.offmode.boundedcontext.room.types.RoomRole;
 import com.offmode.boundedcontext.room.types.RoomType;
 import com.offmode.boundedcontext.user.entity.User;
@@ -29,10 +33,12 @@ import com.offmode.boundedcontext.user.service.BlockService;
 import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.push.PushService;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -62,7 +68,8 @@ class RoomServiceTest {
         userService,
         proofAssembler,
         blockService,
-        pushService);
+        pushService,
+        new InviteCodeGenerator());
   }
 
   @Test
@@ -264,6 +271,84 @@ class RoomServiceTest {
 
     assertThat(res.soloRoom().todayDone()).isFalse();
     assertThat(res.soloRoom().todayPhotoUrl()).isNull();
+  }
+
+  @Test
+  void createRoomIssuesGeneratedInviteCodeAndRetriesOnCollision() {
+    User owner = User.builder().id(1L).name("나").build();
+    Room saved = Room.builder().id(2L).name("함께 걷기").type(RoomType.GROUP).build();
+    RoomMember membership =
+        RoomMember.builder().id(10L).room(saved).user(owner).role(RoomRole.OWNER).build();
+
+    when(userService.getById(1L)).thenReturn(owner);
+    // 첫 코드는 이미 쓰이고 있어 한 번 더 뽑아야 한다
+    when(roomRepository.existsByInviteCode(anyString())).thenReturn(true, false);
+    when(roomRepository.save(any(Room.class))).thenReturn(saved);
+    stubDetailLookupsFor(saved, membership, owner);
+
+    service().createRoom(1L, createRequest("함께 걷기", RoomType.GROUP));
+
+    ArgumentCaptor<Room> captor = ArgumentCaptor.forClass(Room.class);
+    verify(roomRepository).save(captor.capture());
+    String issued = captor.getValue().getInviteCode();
+
+    assertThat(issued).matches("[" + InviteCodeGenerator.ALPHABET + "]{6}");
+    assertThat(issued).doesNotStartWith("OFF");
+    // 충돌 한 번 → 검사도 두 번
+    verify(roomRepository, times(2)).existsByInviteCode(anyString());
+  }
+
+  @Test
+  void createRoomLeavesInviteCodeNullForSoloRoom() {
+    User owner = User.builder().id(1L).name("나").build();
+    Room saved = Room.builder().id(2L).name("혼자 하기").type(RoomType.SOLO).build();
+    RoomMember membership =
+        RoomMember.builder().id(10L).room(saved).user(owner).role(RoomRole.OWNER).build();
+
+    when(userService.getById(1L)).thenReturn(owner);
+    when(roomRepository.save(any(Room.class))).thenReturn(saved);
+    stubDetailLookupsFor(saved, membership, owner);
+
+    service().createRoom(1L, createRequest("혼자 하기", RoomType.SOLO));
+
+    ArgumentCaptor<Room> captor = ArgumentCaptor.forClass(Room.class);
+    verify(roomRepository).save(captor.capture());
+
+    assertThat(captor.getValue().getInviteCode()).isNull();
+    verify(roomRepository, never()).existsByInviteCode(anyString());
+  }
+
+  /** createRoom 이 마지막에 호출하는 getDetail 이 통과하도록 최소한의 조회만 채운다. */
+  private void stubDetailLookupsFor(Room room, RoomMember membership, User owner) {
+    Long roomId = room.getId();
+    when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
+    when(memberRepository.findByRoomIdAndUserId(roomId, owner.getId()))
+        .thenReturn(Optional.of(membership));
+    when(memberRepository.findWithUserByRoomIdOrderByJoinedAtAsc(roomId))
+        .thenReturn(List.of(membership));
+    when(missionRepository.findByRoomIdAndDate(eq(roomId), any(LocalDate.class)))
+        .thenReturn(Optional.empty());
+    when(blockService.blockedUserIds(owner.getId())).thenReturn(Set.of());
+    when(proofRepository.findVerifiedDates(roomId, ProofStatus.VERIFIED)).thenReturn(List.of());
+  }
+
+  private CreateRoomRequest createRequest(String name, RoomType type) {
+    CreateRoomRequest request = new CreateRoomRequest();
+    try {
+      set(request, "name", name);
+      set(request, "iconKey", RoomIconKey.FIRE);
+      set(request, "type", type);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
+    }
+    return request;
+  }
+
+  private static void set(Object target, String fieldName, Object value)
+      throws ReflectiveOperationException {
+    var field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    field.set(target, value);
   }
 
   private JoinRoomRequest request(String inviteCode) {

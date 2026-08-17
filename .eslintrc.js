@@ -1,6 +1,10 @@
 module.exports = {
   root: true,
   extends: ['expo'],
+  // 백엔드는 Gradle 프로젝트라 프론트 lint 대상이 아니다.
+  // 특히 ./gradlew test 가 만드는 backend/build/reports/jacoco 의 서드파티 JS가
+  // no-undef 에러로 잡혀서, 백엔드 테스트를 돌린 뒤에는 커밋 훅이 항상 막혔다.
+  ignorePatterns: ['backend/'],
   env: {
     browser: true, // setTimeout, setInterval, requestAnimationFrame 등 전역 허용
   },
