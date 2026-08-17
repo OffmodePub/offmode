@@ -118,14 +118,15 @@ public class BadgeService {
     return legacy + room;
   }
 
-  /** 최대 연속 미션 달성 일수 계산 */
+  /** 최대 연속 미션 달성 일수 계산 — 개인 미션 인증 날짜 + 방 인증 날짜를 합산 */
   private int maxConsecutiveDays(Long userId) {
-    List<LocalDate> dates =
+    Set<LocalDate> verifiedDates =
         userMissionRepository.findVerifiedDateTimes(userId, MissionStatus.VERIFIED).stream()
             .map(LocalDateTime::toLocalDate)
-            .distinct()
-            .sorted()
-            .toList();
+            .collect(Collectors.toCollection(HashSet::new));
+    verifiedDates.addAll(roomProofRepository.findVerifiedDatesByUser(userId, ProofStatus.VERIFIED));
+
+    List<LocalDate> dates = verifiedDates.stream().sorted().toList();
 
     if (dates.isEmpty()) return 0;
 

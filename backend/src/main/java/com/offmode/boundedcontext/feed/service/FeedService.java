@@ -111,10 +111,10 @@ public class FeedService {
         userMissionRepository.save(mission);
 
         // 레벨업 + 배지 체크 (미션 주인에게)
+        // 누적 인증 수는 '개인 미션 + 방 인증' 합산이라 UserService 로 위임한다.
+        // 여기서 UserMission 만 세면 방 인증 위주 유저의 승급이 누락된다.
         Long ownerId = mission.getUser().getId();
-        long verifiedCount =
-            userMissionRepository.countByUserIdAndStatus(ownerId, MissionStatus.VERIFIED);
-        userService.levelUp(ownerId, (int) verifiedCount);
+        userService.applyVerifiedProgress(ownerId);
         badgeService.checkAndAward(ownerId);
       }
     }

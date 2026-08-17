@@ -109,14 +109,14 @@ class FeedServiceTest {
     when(confirmRepository.existsByVerificationIdAndUserId(20L, 2L)).thenReturn(false);
     when(userService.getById(2L)).thenReturn(confirmer);
     when(confirmRepository.countByVerificationId(20L)).thenReturn(1L);
-    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(1L);
 
     feedService.confirm(2L, 20L);
 
     assertThat(mission.getStatus()).isEqualTo(MissionStatus.VERIFIED);
     assertThat(mission.getVerifiedAt()).isNotNull();
     verify(userMissionRepository).save(mission);
-    verify(userService).levelUp(1L, 1);
+    // 누적 인증 수 계산은 UserService 로 위임한다 (개인 미션 + 방 인증 합산)
+    verify(userService).applyVerifiedProgress(1L);
     verify(badgeService).checkAndAward(1L);
   }
 
