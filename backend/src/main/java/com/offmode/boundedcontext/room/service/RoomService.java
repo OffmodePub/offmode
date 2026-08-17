@@ -33,6 +33,7 @@ import com.offmode.boundedcontext.user.service.UserService;
 import com.offmode.global.exception.BusinessException;
 import com.offmode.global.push.PushService;
 import com.offmode.global.status.ErrorStatus;
+import com.offmode.global.util.StreakCalculator;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -444,16 +445,7 @@ public class RoomService {
   private int computeStreak(Long roomId) {
     Set<LocalDate> verifiedDates =
         new HashSet<>(proofRepository.findVerifiedDates(roomId, ProofStatus.VERIFIED));
-    if (verifiedDates.isEmpty()) return 0;
-
-    LocalDate today = LocalDate.now();
-    LocalDate cursor = verifiedDates.contains(today) ? today : today.minusDays(1);
-    int streak = 0;
-    while (verifiedDates.contains(cursor)) {
-      streak++;
-      cursor = cursor.minusDays(1);
-    }
-    return streak;
+    return StreakCalculator.compute(verifiedDates, LocalDate.now());
   }
 
   private String generateUniqueInviteCode() {

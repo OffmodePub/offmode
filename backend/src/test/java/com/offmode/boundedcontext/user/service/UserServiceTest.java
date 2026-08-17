@@ -137,6 +137,46 @@ class UserServiceTest {
   }
 
   @Test
+  void getStats_오늘_미인증이어도_어제까지_이어진_연속달성은_유지된다() {
+    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
+    stubCategoryCounts();
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(roomProofRepository.countByUserId(1L)).thenReturn(3L);
+    when(roomProofRepository.countByUserIdAndStatus(1L, ProofStatus.VERIFIED)).thenReturn(3L);
+    // 오늘은 아직 인증 전, 어제부터 3일 연속
+    when(roomProofRepository.findVerifiedDatesByUser(1L, ProofStatus.VERIFIED))
+        .thenReturn(
+            List.of(
+                LocalDate.now().minusDays(1),
+                LocalDate.now().minusDays(2),
+                LocalDate.now().minusDays(3)));
+
+    UserStatsResponse res = service().getStats(1L);
+
+    assertThat(res.getStreak()).isEqualTo(3);
+  }
+
+  @Test
+  void getStats_어제도_인증이_없으면_연속달성은_0이다() {
+    when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
+    when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
+    stubCategoryCounts();
+    when(userMissionRepository.findVerifiedDateTimes(1L, MissionStatus.VERIFIED))
+        .thenReturn(List.of());
+    when(roomProofRepository.countByUserId(1L)).thenReturn(1L);
+    when(roomProofRepository.countByUserIdAndStatus(1L, ProofStatus.VERIFIED)).thenReturn(1L);
+    // 오늘·어제 모두 없음 → 끊긴 기록
+    when(roomProofRepository.findVerifiedDatesByUser(1L, ProofStatus.VERIFIED))
+        .thenReturn(List.of(LocalDate.now().minusDays(2)));
+
+    UserStatsResponse res = service().getStats(1L);
+
+    assertThat(res.getStreak()).isZero();
+  }
+
+  @Test
   void getStats_카테고리_통계에_방인증을_합산한다() {
     when(userMissionRepository.findByUserIdOrderByAssignedAtDesc(1L)).thenReturn(List.of());
     when(userMissionRepository.countByUserIdAndStatus(1L, MissionStatus.VERIFIED)).thenReturn(0L);
