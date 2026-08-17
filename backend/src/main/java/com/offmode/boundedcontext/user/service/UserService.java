@@ -114,8 +114,7 @@ public class UserService {
     // 누적 통계는 레거시 개인 미션(UserMission)과 Rooms v2 방 인증(RoomProof)을 합산한다.
     // (현재 실제 인증은 방 인증으로만 저장되므로 RoomProof 미합산 시 누적이 오르지 않음)
     long totalMissions =
-        userMissionRepository.findByUserIdOrderByAssignedAtDesc(userId).size()
-            + roomProofRepository.countByUserId(userId);
+        userMissionRepository.countByUserId(userId) + roomProofRepository.countByUserId(userId);
     long totalVerified = totalVerifiedCount(userId);
 
     // 카테고리 통계도 개인 미션 + 방 인증(해당 category)을 합산한다.

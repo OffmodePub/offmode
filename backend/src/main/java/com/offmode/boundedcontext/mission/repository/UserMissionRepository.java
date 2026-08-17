@@ -21,6 +21,8 @@ public interface UserMissionRepository extends JpaRepository<UserMission, Long> 
 
   boolean existsByUserId(Long userId);
 
+  long countByUserId(Long userId);
+
   long countByUserIdAndStatus(Long userId, MissionStatus status);
 
   long countByUserIdAndStatusAndMissionCategory(

@@ -110,11 +110,8 @@ public class BadgeService {
         userMissionRepository.countByStatusAndHourRange(
             userId, MissionStatus.VERIFIED, fromHour, toHour);
     long room =
-        roomProofRepository.findCreatedAtByUserIdAndStatus(userId, ProofStatus.VERIFIED).stream()
-            .filter(java.util.Objects::nonNull)
-            .map(LocalDateTime::getHour)
-            .filter(hour -> hour >= fromHour && hour < toHour)
-            .count();
+        roomProofRepository.countByStatusAndHourRange(
+            userId, ProofStatus.VERIFIED, fromHour, toHour);
     return legacy + room;
   }
 
