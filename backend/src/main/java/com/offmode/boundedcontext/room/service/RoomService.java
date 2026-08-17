@@ -64,6 +64,7 @@ public class RoomService {
   private final BlockService blockService;
   private final PushService pushService;
   private final InviteCodeGenerator inviteCodeGenerator;
+  private final RoomProofReconciler proofReconciler;
 
   // ===== 방 생성/참여/목록 =====
 
@@ -295,7 +296,7 @@ public class RoomService {
 
   @Transactional
   public void leave(Long userId, Long roomId) {
-    getRoomOrThrow(roomId);
+    Room room = getRoomOrThrow(roomId);
     RoomMember membership = getMembershipOrThrow(roomId, userId);
     memberRepository.delete(membership);
 
@@ -309,11 +310,13 @@ public class RoomService {
                 memberRepository.save(next);
               });
     }
+
+    reconcileTodayProofs(room);
   }
 
   @Transactional
   public void kickMember(Long userId, Long roomId, Long memberId) {
-    getRoomOrThrow(roomId);
+    Room room = getRoomOrThrow(roomId);
     requireOwner(roomId, userId);
 
     RoomMember target =
@@ -326,6 +329,15 @@ public class RoomService {
       throw new BusinessException(ErrorStatus.ROOM_FORBIDDEN);
     }
     memberRepository.delete(target);
+
+    reconcileTodayProofs(room);
+  }
+
+  // 인원이 줄면 요구 확인 수도 줄어든다. 이미 그 수를 채운 오늘 인증을 완료로 넘겨준다
+  // (멤버 삭제 뒤에 호출해야 새 인원이 반영된 요구치가 나온다).
+  private void reconcileTodayProofs(Room room) {
+    int remaining = (int) getMemberCount(room.getId());
+    proofReconciler.reconcileTodayProofs(room.getId(), requiredConfirm(room.getType(), remaining));
   }
 
   // ===== 콕 찌르기 =====
