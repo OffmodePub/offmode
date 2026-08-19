@@ -243,7 +243,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   return (
     <View style={s.wrap}>
       {/* 캐릭터 카드 (편집 캔버스) */}
-      <ViewShot ref={cardShotRef} options={{ format: 'png', quality: 1 }}>
+      <ViewShot ref={cardShotRef} style={s.shot} options={{ format: 'png', quality: 1 }}>
         <View style={s.card} onLayout={onCardLayout}>
           <Image source={characterSource} style={s.character} resizeMode="contain" />
 
