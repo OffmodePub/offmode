@@ -209,7 +209,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
 
     const handleSaveImage = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('권한 필요', '갤러리 접근 권한을 허용해주세요!');
         return;
