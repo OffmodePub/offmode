@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,6 +10,8 @@ import { W } from '../constants/warm';
 import { CHARACTER_BASE, PART_BY_KEY } from '../constants/parts';
 import * as H from '../utils/haptics';
 import WarmText from './WarmText';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 
 const PART_SIZE = 72;   // 배치 파츠 기본 렌더 크기(px, scale=1 기준)
 const MIN_SCALE = 0.4;
@@ -133,6 +135,8 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   const [placed, setPlaced] = useState([]);       // [{ key, x, y, scale, rotation, z }]
   const [selectedKey, setSelectedKey] = useState(null);
   const [card, setCard] = useState({ w: 0, h: 0 });
+  const cardShotRef = useRef(null);
+  const [saving, setSaving] = useState(false);  // 추가
 
   // 서버 placement → 편집 상태 초기화(로드/새로고침/저장 후)
   useEffect(() => {
@@ -204,37 +208,71 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   const selectedPart = selectedKey ? PART_BY_KEY[selectedKey] : null;
   const sortedPlaced = [...placed].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 
+      const handleSaveImage = async () => {
+        if (saving) return;               // 중복 클릭 방지
+        if (!cardShotRef.current) return; // 마운트 전 가드
+        setSaving(true);
+        try {
+          const { status } = await MediaLibrary.requestPermissionsAsync(true); // writeOnly
+          if (status !== 'granted') {
+            Alert.alert('권한 필요', '갤러리 접근 권한을 허용해주세요!');
+            return;
+          }
+        setSelectedKey(null); // 캡처 전 선택 해제 (테두리 안 찍히게)
+        requestAnimationFrame(async () => {
+          try {
+            if (!cardShotRef.current) return;
+            const uri = await cardShotRef.current.capture();
+            await MediaLibrary.saveToLibraryAsync(uri);
+            H.success();
+            Alert.alert('저장 완료', '캐릭터 이미지가 갤러리에 저장됐어요!');
+          } catch (e) {
+            if (__DEV__) console.warn('[CharacterDecor] 이미지 저장 실패', e);
+            Alert.alert('저장 실패', '이미지를 저장하지 못했어요. 잠시 후 다시 시도해주세요.');
+          } finally {
+            setSaving(false);
+          }
+        });
+                } catch (e) {
+          if (__DEV__) console.warn('[CharacterDecor] 이미지 저장 실패', e);
+          Alert.alert('저장 실패', '이미지를 저장하지 못했어요. 잠시 후 다시 시도해주세요.');
+          setSaving(false);
+        }
+      };
+
   return (
     <View style={s.wrap}>
       {/* 캐릭터 카드 (편집 캔버스) */}
-      <View style={s.card} onLayout={onCardLayout}>
-        <Image source={characterSource} style={s.character} resizeMode="contain" />
+      <ViewShot ref={cardShotRef} style={s.shot} options={{ format: 'png', quality: 1 }}>
+        <View style={s.card} onLayout={onCardLayout}>
+          <Image source={characterSource} style={s.character} resizeMode="contain" />
 
-        {/* 빈 곳 탭 → 선택 해제 */}
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={() => setSelectedKey(null)}
-        />
+          {/* 빈 곳 탭 → 선택 해제 */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setSelectedKey(null)}
+          />
 
-        {/* 배치된 파츠 */}
-        {card.w > 0 && sortedPlaced.map((item) => {
-          const meta = PART_BY_KEY[item.key];
-          if (!meta) return null;
-          return (
-            <PlacedPart
-              key={item.key}
-              item={item}
-              cardW={card.w}
-              cardH={card.h}
-              image={meta.image}
-              selected={selectedKey === item.key}
-              onSelect={() => setSelectedKey(item.key)}
-              onChange={(patch) => updatePlacement(item.key, patch)}
-            />
-          );
-        })}
-      </View>
+          {/* 배치된 파츠 */}
+          {card.w > 0 && sortedPlaced.map((item) => {
+            const meta = PART_BY_KEY[item.key];
+            if (!meta) return null;
+            return (
+              <PlacedPart
+                key={item.key}
+                item={item}
+                cardW={card.w}
+                cardH={card.h}
+                image={meta.image}
+                selected={selectedKey === item.key}
+                onSelect={() => setSelectedKey(item.key)}
+                onChange={(patch) => updatePlacement(item.key, patch)}
+              />
+            );
+          })}
+        </View>
+      </ViewShot>
 
       {/* 선택된 파츠 툴바 */}
       {selectedPart ? (
@@ -287,6 +325,18 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       {/* 저장 버튼 (웜 톤) */}
       <TouchableOpacity style={s.saveBtn} onPress={handleSave} activeOpacity={0.85}>
         <WarmText v="btn" size={15} color={W.white}>꾸미기 저장</WarmText>
+      </TouchableOpacity>
+
+      {/* 이미지로 저장 (갤러리) */}
+      <TouchableOpacity
+        style={[s.imageSaveBtn, saving && { opacity: 0.6 }]}
+        onPress={handleSaveImage}
+        activeOpacity={0.85}
+        disabled={saving}
+      >
+        <WarmText v="btn" size={15} color={W.brown}>
+          {saving ? '저장 중...' : '이미지로 저장'}
+        </WarmText>
       </TouchableOpacity>
 
       {/* 푸터 */}
@@ -394,4 +444,14 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   footer: { textAlign: 'center', marginTop: 6 },
+  imageSaveBtn: {
+    alignSelf: 'stretch',
+    backgroundColor: W.surface,
+    borderWidth: 1,
+    borderColor: W.borderStrong,
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 6,
+  },
 });
