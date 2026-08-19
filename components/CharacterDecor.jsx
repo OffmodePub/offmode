@@ -219,7 +219,8 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       H.tap();
       Alert.alert('저장 완료', '캐릭터 이미지가 갤러리에 저장됐어요!');
     } catch (e) {
-      Alert.alert('저장 실패', e.message);
+      if (__DEV__) console.warn('[CharacterDecor] 이미지 저장 실패', e);
+      Alert.alert('저장 실패', '이미지를 저장하지 못했어요. 잠시 후 다시 시도해주세요.');
     }
   };
 
