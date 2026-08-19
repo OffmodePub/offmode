@@ -216,7 +216,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
       }
       const uri = await cardShotRef.current.capture();
       await MediaLibrary.saveToLibraryAsync(uri);
-      H.tap();
+      H.success();
       Alert.alert('저장 완료', '캐릭터 이미지가 갤러리에 저장됐어요!');
     } catch (e) {
       if (__DEV__) console.warn('[CharacterDecor] 이미지 저장 실패', e);
