@@ -135,7 +135,7 @@ export default function CharacterDecor({ parts, characterSource = CHARACTER_BASE
   const [placed, setPlaced] = useState([]);       // [{ key, x, y, scale, rotation, z }]
   const [selectedKey, setSelectedKey] = useState(null);
   const [card, setCard] = useState({ w: 0, h: 0 });
-  const cardShotRef = useRef();
+  const cardShotRef = useRef(null);
 
   // 서버 placement → 편집 상태 초기화(로드/새로고침/저장 후)
   useEffect(() => {
