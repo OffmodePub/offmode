@@ -93,6 +93,10 @@
     <string>offmode가 미션 인증을 위해 카메라에 접근합니다.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to save photos</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your photos</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>offmode가 더 잘 맞는 광고를 보여드리기 위해 활동 정보를 사용합니다.</string>
     <key>SKAdNetworkItems</key>
