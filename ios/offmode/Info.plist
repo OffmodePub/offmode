@@ -94,9 +94,9 @@
     <key>NSFaceIDUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to save photos</string>
+    <string>offmode가 꾸민 캐릭터 이미지를 사진 앱에 저장합니다.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>offmode가 이미지를 저장하기 위해 사진 앱에 접근합니다.</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>offmode가 더 잘 맞는 광고를 보여드리기 위해 활동 정보를 사용합니다.</string>
     <key>SKAdNetworkItems</key>
