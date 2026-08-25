@@ -82,8 +82,7 @@
           "savePhotosPermission": "offmode가 꾸민 캐릭터 이미지를 앨범에 저장합니다.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
-]
+      ],
       "expo-splash-screen",
       [
         "react-native-fbsdk-next",
