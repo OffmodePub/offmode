@@ -84,9 +84,11 @@
     <true/>
     <key>NSAppTransportSecurity</key>
     <dict>
+      <!-- 개발용: 공유 개발 백엔드(http://43.202.90.1:8080)가 평문 HTTP라 필요.
+           프로덕션 배포(v*.*.* 태그) 전에 반드시 false로 되돌리고 NSAllowsLocalNetworking true를 복원할 것.
+           주의: NSAllowsLocalNetworking 등 세분화 키가 함께 있으면 iOS 10+가
+           NSAllowsArbitraryLoads를 무시하므로 여기서는 마스터 키 하나만 둔다. -->
       <key>NSAllowsArbitraryLoads</key>
-      <false/>
-      <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
