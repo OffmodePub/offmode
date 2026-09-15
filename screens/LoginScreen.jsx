@@ -41,7 +41,6 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
           <WarmText v="body" size={16} style={s.kakaoText}>
             {loading ? '로그인 중…' : '카카오로 시작하기'}
           </WarmText>
-          <View style={{ width: 24 }} />
         </TouchableOpacity>
 
         {/* Apple (iOS only) */}
@@ -52,11 +51,10 @@ export default function LoginScreen({ onKakaoLogin, onAppleLogin, loading, error
             activeOpacity={0.85}
             disabled={loading}
           >
-            <WarmText size={18} color="#000000"></WarmText>
+            <WarmText size={18} color="#000000">🍎</WarmText>
             <WarmText v="body" size={16} style={s.appleText}>
               {loading ? '로그인 중…' : 'Apple로 시작하기'}
             </WarmText>
-            <View style={{ width: 24 }} />
           </TouchableOpacity>
         )}
 
@@ -100,8 +98,7 @@ function makeStyles(C) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8,
     },
-    kakaoText: { color: 'rgba(0,0,0,0.85)', flex: 1, textAlign: 'center' },
-
+    kakaoText: { color: 'rgba(0,0,0,0.85)' },
     /* Apple */
     appleBtn: {
       backgroundColor: '#ffffff',
@@ -110,7 +107,7 @@ function makeStyles(C) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8,
     },
-    appleText: { color: '#000000', flex: 1, textAlign: 'center' },
+    appleText: { color: '#000000' },
 
     error: { textAlign: 'center', lineHeight: 18 },
     terms: { textAlign: 'center', lineHeight: 18, opacity: 0.4 },
