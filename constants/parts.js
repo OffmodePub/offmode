@@ -23,9 +23,12 @@ export const PARTS = [
   { key: 'angelRing', name: '천사링', unlockThreshold: 25, image: require('../assets/character/angelRing.png') },
   { key: 'beret', name: '베레모', unlockThreshold: 28, image: require('../assets/character/beret.png') },
   { key: 'starTwinkle', name: '별빛', unlockThreshold: 31, image: require('../assets/character/starTwinkle.png') },
-  { key: 'comingSoon14', name: '준비 중', unlockThreshold: null, image: require('../assets/character/comingSoon14.png') },
-  { key: 'comingSoon15', name: '준비 중', unlockThreshold: null, image: require('../assets/character/comingSoon15.png') },
-  { key: 'comingSoon16', name: '준비 중', unlockThreshold: null, image: require('../assets/character/comingSoon16.png') },
+  { key: 'clover', name: '클로버', unlockThreshold: 34, image: require('../assets/character/clover.png') },
+  { key: 'tomato', name: '토마토', unlockThreshold: 37, image: require('../assets/character/tomato.png') },
+  { key: 'note', name: '노트', unlockThreshold: 40, image: require('../assets/character/note.png') },
+  { key: 'sweat', name: '땀', unlockThreshold: 43, image: require('../assets/character/sweat.png') },
+  { key: 'annoy', name: '짜증', unlockThreshold: 46, image: require('../assets/character/annoy.png') },
+  { key: 'stress', name: '스트레스', unlockThreshold: 49, image: require('../assets/character/stress.png') },
 ].map((p, i) => ({ ...p, order: i + 1 }));
 
 /** key → 파츠 메타 빠른 조회 */
