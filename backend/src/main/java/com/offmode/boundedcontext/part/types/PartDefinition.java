@@ -27,9 +27,12 @@ public enum PartDefinition {
   ANGEL_RING("angelRing", "천사링", 25),
   BERET("beret", "베레모", 28),
   STAR_TWINKLE("starTwinkle", "별빛", 31),
-  COMING_SOON_14("comingSoon14", "준비 중", null),
-  COMING_SOON_15("comingSoon15", "준비 중", null),
-  COMING_SOON_16("comingSoon16", "준비 중", null);
+  CLOVER("clover", "클로버", 34),
+  TOMATO("tomato", "토마토", 37),
+  NOTE("note", "노트", 40),
+  SWEAT("sweat", "땀", 43),
+  ANNOY("annoy", "짜증", 46),
+  STRESS("stress", "스트레스", 49);
 
   private final String key;
   private final String name;
