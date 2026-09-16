@@ -71,10 +71,10 @@ class PartServiceTest {
 
     List<PartResponse> parts = service().getUserParts(1L);
 
-    assertThat(parts).hasSize(16);
+    assertThat(parts).hasSize(19);
     assertThat(find(parts, "heart").isUnlocked()).isTrue(); // threshold 7
     assertThat(find(parts, "ribbon").isUnlocked()).isFalse(); // threshold 10
-    assertThat(find(parts, "comingSoon14").isUnlocked()).isFalse(); // 항상 잠김
+    assertThat(find(parts, "clover").isUnlocked()).isFalse(); // threshold 34
 
     PartResponse crown = find(parts, "crown");
     assertThat(crown.getPlacement()).isNotNull();
@@ -160,7 +160,7 @@ class PartServiceTest {
 
     verify(userPartRepository).deleteByUserId(1L);
     verify(userPartRepository, never()).saveAll(anyList());
-    assertThat(parts).hasSize(16);
+    assertThat(parts).hasSize(19);
     assertThat(parts).allMatch(p -> p.getPlacement() == null);
   }
 }
